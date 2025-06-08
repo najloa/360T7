@@ -8,6 +8,7 @@
 # This is free software, licensed under the MIT License.
 # See /LICENSE for more information.
 # find . -type d -name "passwall"
+sed -i 's/3/5/' package/network/services/ppp/files/lib/netifd/ppp-down
 sed -i 's/192.168.1.1/192.168.10.1/' package/base-files/files/bin/config_generate
 sed -i "s/hostname='[^']*'/hostname='OpenWrt'/" package/base-files/files/bin/config_generate
 sed -i 's/immortalwrt.lan/OpenWrt.lan/' feeds/luci/modules/luci-mod-system/htdocs/luci-static/resources/view/system/flash.js
