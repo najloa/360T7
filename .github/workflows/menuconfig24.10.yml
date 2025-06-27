@@ -37,8 +37,8 @@ jobs:
 
     - name: Download
       run: |
-        git clone -b 2410 https://github.com/padavanonly/immortalwrt-mt798x-24.10 immortalwrt-mt798x-24.10
-        cd immortalwrt-mt798x-24.10
+        git clone -b openwrt-24.10-6.6 https://github.com/padavanonly/immortalwrt-mt798x-6.6 immortalwrt-mt798x-6.6
+        cd immortalwrt-mt798x-6.6
         ./scripts/feeds update -a
         ./scripts/feeds install -a
         git clone https://github.com/xiaorouji/openwrt-passwall.git package/passwall
@@ -46,13 +46,13 @@ jobs:
         git clone https://github.com/immortalwrt/packages.git immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && mv ./immortalwrt-packages/lang/golang feeds/packages/lang/golang && rm -rf ./immortalwrt-packages
         cp -f defconfig/mt7981-ax3000.config .config
 
-    - name: Setup tmate session 步骤：【输入q 命令cd immortalwrt-mt798x-24.10 && make menuconfig 结束运行sudo touch /continue】 # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
+    - name: Setup tmate session 步骤：【输入q 命令cd immortalwrt-mt798x-6.6 && make menuconfig 结束运行sudo touch /continue】 # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
       uses: mxschmitt/action-tmate@v3
       timeout-minutes: 30
 
     - name: config
       run: |
-        cd immortalwrt-mt798x-24.10
+        cd immortalwrt-mt798x-6.6
         mv .config padavanonly.config
 
     - name: Upload artifact
@@ -60,5 +60,5 @@ jobs:
       with:
         name: config
         path: |
-          immortalwrt-mt798x-24.10/padavanonly.config
-           360T7/immortalwrt-mt798x-24.10/padavanonly.config
+          immortalwrt-mt798x-6.6/padavanonly.config
+           360T7/immortalwrt-mt798x-6.6/padavanonly.config
