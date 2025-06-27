@@ -14,6 +14,8 @@ https://github.com/XTLS/Xray-core
 
 https://github.com/SagerNet/sing-box
 
+https://github.com/XIU2/CloudflareSpeedTest
+
 
 https://github.com/najloa/Sing-Box
 
