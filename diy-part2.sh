@@ -9,16 +9,16 @@
 # See /LICENSE for more information.
 # find . -type d -name "passwall"
 #sed -i 's/3/8/' package/network/services/ppp/files/lib/netifd/ppp-down
-sed -i 's/192.168.1.1/192.168.10.1/' package/base-files/files/bin/config_generate
-sed -i "s/hostname='[^']*'/hostname='OpenWrt'/" package/base-files/files/bin/config_generate
-sed -i 's/immortalwrt.lan/OpenWrt.lan/' feeds/luci/modules/luci-mod-system/htdocs/luci-static/resources/view/system/flash.js
+sed -i 's/192.168.1.1/192.168.10.1/' ./package/base-files/files/bin/config_generate
+sed -i "s/hostname='[^']*'/hostname='OpenWrt'/" ./package/base-files/files/bin/config_generate
+sed -i 's/immortalwrt.lan/OpenWrt.lan/' ./feeds/luci/modules/luci-mod-system/htdocs/luci-static/resources/view/system/flash.js
 grep ".lan" ./feeds/luci/modules/luci-mod-system/htdocs/luci-static/resources/view/system/flash.js
 cat /proc/version
-sed -i 's/ImmortalWrt-2.4G/NW2.4G/' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
-sed -i 's/ImmortalWrt-5G/NW/' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
-sed -i 's/ImmortalWrt-6G/NW6G/' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
-sed -i 's/encryption=none/encryption=sae-mixed/' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
-sed -i '/encryption=sae-mixed/a \ \ \ \ set wireless.default_${dev}.key=blue1235' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
+sed -i 's/ImmortalWrt-2.4G/NW2.4G/' ./package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
+sed -i 's/ImmortalWrt-5G/NW/' ./package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
+sed -i 's/ImmortalWrt-6G/NW6G/' ./package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
+sed -i 's/encryption=none/encryption=sae-mixed/' ./package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
+sed -i '/encryption=sae-mixed/a \ \ \ \ set wireless.default_${dev}.key=blue1235' ./package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
 #passwall
 git clone --depth 1 https://github.com/xiaorouji/openwrt-passwall-packages.git package/passwall-packages
 #passwall2
@@ -90,3 +90,10 @@ grep "cbi-button-apply" ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/
 #git clone --depth 1 https://github.com/immortalwrt/packages.git package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && \cp -rf ./package/immortalwrt-packages/lang/golang ./feeds/packages/lang/
 # 更新 haproxy
 #cd ./package/immortalwrt-packages && git fetch origin 0c43aa312737634bd564c1ea46e74582c4bdf550 && git checkout 0c43aa312737634bd564c1ea46e74582c4bdf550 && cd .. && cd .. && rm -rf ./feeds/packages/net/haproxy && \cp -rf ./package/immortalwrt-packages/net/haproxy ./feeds/packages/net/ && rm -rf ./package/immortalwrt-packages
+# openwrt-cdnspeedtest & luci-app-cloudflarespeedtest
+#git clone https://github.com/immortalwrt-collections/openwrt-cdnspeedtest.git package/openwrt-cdnspeedtest
+#sed -i 's/9e120c31dadad329b54b5d87047db70bf16b5d3b82c45ccfaac02522cdb92fdf/SKIP/' ./package/openwrt-cdnspeedtest/cdnspeedtest/Makefile
+#sed -i 's|^PKG_SOURCE_URL:=https://codeload.github.com/XIU2/CloudflareSpeedTest/tar.gz/v$(PKG_VERSION)?|PKG_SOURCE_URL:=https://github.com/XIU2/CloudflareSpeedTest/archive/refs/heads/master.tar.gz|' ./package/openwrt-cdnspeedtest/cdnspeedtest/Makefile
+#\cp -rf ./package/openwrt-cdnspeedtest/cdnspeedtest ./feeds/packages/net/ && rm -rf ./package/openwrt-cdnspeedtest
+#git clone https://github.com/mingxiaoyu/luci-app-cloudflarespeedtest.git package/cloudflarespeedtest
+#\cp -rf ./package/cloudflarespeedtest/applications/luci-app-cloudflarespeedtest ./package/ && rm -rf ./package/cloudflarespeedtest
