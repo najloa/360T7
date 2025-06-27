@@ -48,6 +48,7 @@ rm -rf ./feeds/packages/net/trojan-plus && \cp -rf ./package/passwall-packages/t
 rm -rf ./feeds/packages/net/tuic-client && \cp -rf ./package/passwall-packages/tuic-client ./feeds/packages/net/
 rm -rf ./feeds/packages/net/xray-plugin && \cp -rf ./package/passwall-packages/xray-plugin ./feeds/packages/net/
 \cp -rf ./package/passwall-packages/geoview ./feeds/packages/net/
+rm -rf ./package/passwall-packages
 # 修改 ./feeds/luci/applications/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
 sed -i 's|https://fastly.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geoip.dat|https://github.com/najloa/geoip/releases/latest/download/geoip.dat|g' ./feeds/luci/applications/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
 sed -i 's|https://fastly.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geosite.dat|https://github.com/najloa/geoip/releases/latest/download/geosite.dat|g' ./feeds/luci/applications/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
