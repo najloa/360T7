@@ -15,7 +15,8 @@ https://github.com/XTLS/Xray-core
 https://github.com/SagerNet/sing-box
 
 https://github.com/XIU2/CloudflareSpeedTest
-
+https://github.com/immortalwrt-collections/openwrt-cdnspeedtest
+https://github.com/mingxiaoyu/luci-app-cloudflarespeedtest
 
 https://github.com/najloa/Sing-Box
 
