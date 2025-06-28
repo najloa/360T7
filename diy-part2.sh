@@ -93,9 +93,9 @@ grep "cbi-button-apply" ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/
 # openwrt-cdnspeedtest & luci-app-cloudflarespeedtest
 git clone https://github.com/immortalwrt-collections/openwrt-cdnspeedtest.git package/openwrt-cdnspeedtest
 sed -i 's|^PKG_SOURCE:=.*|PKG_SOURCE:=master.tar.gz|' ./package/openwrt-cdnspeedtest/cdnspeedtest/Makefile
-sed -i 's|^PKG_SOURCE_URL:.*|PKG_SOURCE_URL:=https://github.com/XIU2/CloudflareSpeedTest/archive/|' ./package/openwrt-cdnspeedtest/cdnspeedtest/Makefile
-sed -i 's|^PKG_HASH:=.*|PKG_HASH:=f94bea8ddf1f76e99cb2c0e9c03406094da1d5e642e37372399be7d36cd89499|' ./package/openwrt-cdnspeedtest/cdnspeedtest/Makefile
-sed -i '/^PKG_SOURCE_URL:=/a PKG_BUILD_DIR:=$(BUILD_DIR)/CloudflareSpeedTest-master' ./package/openwrt-cdnspeedtest/cdnspeedtest/Makefile
+sed -i 's|^PKG_SOURCE_URL:.*|PKG_SOURCE_URL:=https://github.com/XIU2/CloudflareSpeedTest/archive/refs/heads/|' ./package/openwrt-cdnspeedtest/cdnspeedtest/Makefile
+sed -i 's|^PKG_HASH:=.*|PKG_HASH:=ca067c0a1de9f90849978fdf0e06c0c259bd366eba77c73bfd2c83df0d593e03|' ./package/openwrt-cdnspeedtest/cdnspeedtest/Makefile
+#sed -i '/^PKG_SOURCE_URL:=/a PKG_BUILD_DIR:=$(BUILD_DIR)/CloudflareSpeedTest-master' ./package/openwrt-cdnspeedtest/cdnspeedtest/Makefile
 \cp -rf ./package/openwrt-cdnspeedtest/cdnspeedtest ./feeds/packages/net/ && rm -rf ./package/openwrt-cdnspeedtest
 git clone https://github.com/mingxiaoyu/luci-app-cloudflarespeedtest.git package/cloudflarespeedtest
 \cp -rf ./package/cloudflarespeedtest/applications/luci-app-cloudflarespeedtest ./package/ && rm -rf ./package/cloudflarespeedtest
