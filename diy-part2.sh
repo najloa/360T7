@@ -91,9 +91,9 @@ grep "cbi-button-apply" ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/
 # 更新 haproxy
 #cd ./package/immortalwrt-packages && git fetch origin 0c43aa312737634bd564c1ea46e74582c4bdf550 && git checkout 0c43aa312737634bd564c1ea46e74582c4bdf550 && cd .. && cd .. && rm -rf ./feeds/packages/net/haproxy && \cp -rf ./package/immortalwrt-packages/net/haproxy ./feeds/packages/net/ && rm -rf ./package/immortalwrt-packages
 # openwrt-cdnspeedtest & luci-app-cloudflarespeedtest
-#git clone https://github.com/immortalwrt-collections/openwrt-cdnspeedtest.git package/openwrt-cdnspeedtest
-#sed -i 's/9e120c31dadad329b54b5d87047db70bf16b5d3b82c45ccfaac02522cdb92fdf/SKIP/' ./package/openwrt-cdnspeedtest/cdnspeedtest/Makefile
-#sed -i 's|^PKG_SOURCE_URL:=https://codeload.github.com/XIU2/CloudflareSpeedTest/tar.gz/v$(PKG_VERSION)?|PKG_SOURCE_URL:=https://github.com/XIU2/CloudflareSpeedTest/archive/refs/heads/master.tar.gz|' ./package/openwrt-cdnspeedtest/cdnspeedtest/Makefile
-#\cp -rf ./package/openwrt-cdnspeedtest/cdnspeedtest ./feeds/packages/net/ && rm -rf ./package/openwrt-cdnspeedtest
-#git clone https://github.com/mingxiaoyu/luci-app-cloudflarespeedtest.git package/cloudflarespeedtest
-#\cp -rf ./package/cloudflarespeedtest/applications/luci-app-cloudflarespeedtest ./package/ && rm -rf ./package/cloudflarespeedtest
+git clone https://github.com/immortalwrt-collections/openwrt-cdnspeedtest.git package/openwrt-cdnspeedtest
+sed -i 's/9e120c31dadad329b54b5d87047db70bf16b5d3b82c45ccfaac02522cdb92fdf/SKIP/' ./package/openwrt-cdnspeedtest/cdnspeedtest/Makefile
+sed -i 's|^PKG_SOURCE_URL:=https://codeload.github.com/XIU2/CloudflareSpeedTest/tar.gz/v$(PKG_VERSION)?|PKG_SOURCE_URL:=https://github.com/XIU2/CloudflareSpeedTest/archive/refs/heads/master.tar.gz|' ./package/openwrt-cdnspeedtest/cdnspeedtest/Makefile
+\cp -rf ./package/openwrt-cdnspeedtest/cdnspeedtest ./feeds/packages/net/ && rm -rf ./package/openwrt-cdnspeedtest
+git clone https://github.com/mingxiaoyu/luci-app-cloudflarespeedtest.git package/cloudflarespeedtest
+\cp -rf ./package/cloudflarespeedtest/applications/luci-app-cloudflarespeedtest ./package/ && rm -rf ./package/cloudflarespeedtest
