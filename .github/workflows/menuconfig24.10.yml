@@ -44,6 +44,12 @@ jobs:
 
         ./scripts/feeds update -a
         ./scripts/feeds install -a
+        sed -i 's|^PKG_SOURCE:=.*|PKG_SOURCE:=master.tar.gz|' feeds/cdnspeedtest/cdnspeedtest/Makefile
+        sed -i 's|^PKG_SOURCE_URL:.*|PKG_SOURCE_URL:=https://github.com/XIU2/CloudflareSpeedTest/archive/refs/heads/|' feeds/cdnspeedtest/cdnspeedtest/Makefile
+        sed -i 's|^PKG_HASH:=.*|PKG_HASH:=ca067c0a1de9f90849978fdf0e06c0c259bd366eba77c73bfd2c83df0d593e03|' feeds/cdnspeedtest/cdnspeedtest/Makefile
+        sed -i 's|^PKG_SOURCE:=.*|PKG_SOURCE:=master.tar.gz|' feeds/packages/net/cdnspeedtest/Makefile
+        sed -i 's|^PKG_SOURCE_URL:.*|PKG_SOURCE_URL:=https://github.com/XIU2/CloudflareSpeedTest/archive/refs/heads/|' feeds/packages/net/cdnspeedtest/Makefile
+        sed -i 's|^PKG_HASH:=.*|PKG_HASH:=ca067c0a1de9f90849978fdf0e06c0c259bd366eba77c73bfd2c83df0d593e03|' feeds/packages/net/cdnspeedtest/Makefile
         git clone https://github.com/xiaorouji/openwrt-passwall.git package/passwall
         git clone https://github.com/xiaorouji/openwrt-passwall-packages.git package/passwall-packages
         git clone https://github.com/immortalwrt/packages.git immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && mv ./immortalwrt-packages/lang/golang feeds/packages/lang/golang && rm -rf ./immortalwrt-packages
@@ -52,6 +58,13 @@ jobs:
     - name: Setup tmate session 步骤：【输入q 命令cd immortalwrt-mt798x-6.6 && make menuconfig 结束运行sudo touch /continue】 # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
       uses: mxschmitt/action-tmate@v3
       timeout-minutes: 30
+
+    - name: cdnspeedtest
+      run: |
+        cd immortalwrt-mt798x-6.6
+        find ./ -type d -name '*cdnspeedtest*'
+        make package/cdnspeedtest/compile V=s
+        find ./ -type d -name '*cdnspeedtest*'
 
     - name: config
       run: |
@@ -64,4 +77,4 @@ jobs:
         name: config
         path: |
           immortalwrt-mt798x-6.6/padavanonly.config
-           360T7/immortalwrt-mt798x-6.6/padavanonly.config
+          360T7/immortalwrt-mt798x-6.6/padavanonly.config
