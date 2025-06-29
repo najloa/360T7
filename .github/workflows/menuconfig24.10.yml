@@ -45,12 +45,12 @@ jobs:
         ./scripts/feeds update -a
         ./scripts/feeds install -a
         ./scripts/feeds install golang cdnspeedtest
-        #sed -i 's|^PKG_SOURCE:=.*|PKG_SOURCE:=master.tar.gz|' feeds/cdnspeedtest/cdnspeedtest/Makefile
-        #sed -i 's|^PKG_SOURCE_URL:.*|PKG_SOURCE_URL:=https://github.com/XIU2/CloudflareSpeedTest/archive/refs/heads/|' feeds/cdnspeedtest/cdnspeedtest/Makefile
-        #sed -i 's|^PKG_HASH:=.*|PKG_HASH:=ca067c0a1de9f90849978fdf0e06c0c259bd366eba77c73bfd2c83df0d593e03|' feeds/cdnspeedtest/cdnspeedtest/Makefile
-        #sed -i 's|^PKG_SOURCE:=.*|PKG_SOURCE:=master.tar.gz|' feeds/packages/net/cdnspeedtest/Makefile
-        #sed -i 's|^PKG_SOURCE_URL:.*|PKG_SOURCE_URL:=https://github.com/XIU2/CloudflareSpeedTest/archive/refs/heads/|' feeds/packages/net/cdnspeedtest/Makefile
-        #sed -i 's|^PKG_HASH:=.*|PKG_HASH:=ca067c0a1de9f90849978fdf0e06c0c259bd366eba77c73bfd2c83df0d593e03|' feeds/packages/net/cdnspeedtest/Makefile
+        sed -i 's|^PKG_SOURCE:=.*|PKG_SOURCE:=master.tar.gz|' feeds/cdnspeedtest/cdnspeedtest/Makefile
+        sed -i 's|^PKG_SOURCE_URL:.*|PKG_SOURCE_URL:=https://github.com/XIU2/CloudflareSpeedTest/archive/refs/heads/|' feeds/cdnspeedtest/cdnspeedtest/Makefile
+        sed -i 's|^PKG_HASH:=.*|PKG_HASH:=ca067c0a1de9f90849978fdf0e06c0c259bd366eba77c73bfd2c83df0d593e03|' feeds/cdnspeedtest/cdnspeedtest/Makefile
+        sed -i 's|^PKG_SOURCE:=.*|PKG_SOURCE:=master.tar.gz|' feeds/packages/net/cdnspeedtest/Makefile
+        sed -i 's|^PKG_SOURCE_URL:.*|PKG_SOURCE_URL:=https://github.com/XIU2/CloudflareSpeedTest/archive/refs/heads/|' feeds/packages/net/cdnspeedtest/Makefile
+        sed -i 's|^PKG_HASH:=.*|PKG_HASH:=ca067c0a1de9f90849978fdf0e06c0c259bd366eba77c73bfd2c83df0d593e03|' feeds/packages/net/cdnspeedtest/Makefile
         git clone https://github.com/xiaorouji/openwrt-passwall.git package/passwall
         git clone https://github.com/xiaorouji/openwrt-passwall-packages.git package/passwall-packages
         #git clone https://github.com/immortalwrt/packages.git immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && mv ./immortalwrt-packages/lang/golang feeds/packages/lang/golang && rm -rf ./immortalwrt-packages
@@ -75,7 +75,6 @@ jobs:
           immortalwrt-mt798x-6.6/padavanonly.config
           360T7/immortalwrt-mt798x-6.6/padavanonly.config
 
-
     - name: cdnspeedtest
       run: |
         cd immortalwrt-mt798x-6.6
@@ -84,7 +83,21 @@ jobs:
         make toolchain/install V=s
         make target/compile V=s
         make package/cdnspeedtest/compile V=s
-        find ./staging_dir/ -name 'ld-musl-*.so*'
 
+    - name: ipk
+      run: |
+        cd immortalwrt-mt798x-6.6
+        find ./staging_dir/ -name 'ld-musl-*.so*'
         find ./ -type d -name '*cdnspeedtest*'
         find ./ -type f -name '*cdnspeedtest*.ipk'
+
+    - name: Locate cdnspeedtest .ipk
+      run: |
+        mkdir -p ipk-out
+        find ./ -type f -name 'cdnspeedtest*.ipk' -exec cp {} ipk-out/ \;
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ipk
+        path: ipk-out/
