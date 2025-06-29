@@ -56,17 +56,16 @@ jobs:
         #git clone https://github.com/immortalwrt/packages.git immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && mv ./immortalwrt-packages/lang/golang feeds/packages/lang/golang && rm -rf ./immortalwrt-packages
         cp -f defconfig/mt7981-ax3000.config .config
 
-    - name: Setup tmate session 步骤：【输入q 命令cd immortalwrt-mt798x-6.6 && make menuconfig 结束运行sudo touch /continue】 # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
-      uses: mxschmitt/action-tmate@v3
-      timeout-minutes: 30
+    #- name: Setup tmate session 步骤：【输入q 命令cd immortalwrt-mt798x-6.6 && make menuconfig 结束运行sudo touch /continue】 # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
+    #  uses: mxschmitt/action-tmate@v3
+    #  timeout-minutes: 30
 
     - name: config
       run: |
+        mv ./config/cdnspeedtest.config immortalwrt-mt798x-6.6/.config
         cd immortalwrt-mt798x-6.6
         #mv .config padavanonly.config
         cp -f .config padavanonly.config
-        
-        find ./ -type d -name '*cdnspeedtest*'
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -81,7 +80,6 @@ jobs:
       run: |
         cd immortalwrt-mt798x-6.6
         make defconfig
-        find ./staging_dir/ -name 'ld-musl-*.so*'
 
         make toolchain/install V=s
         make target/compile V=s
@@ -89,3 +87,4 @@ jobs:
         find ./staging_dir/ -name 'ld-musl-*.so*'
 
         find ./ -type d -name '*cdnspeedtest*'
+        find ./ -type f -name '*cdnspeedtest*.ipk'
