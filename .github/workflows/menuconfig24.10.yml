@@ -40,6 +40,8 @@ jobs:
         git clone -b openwrt-24.10-6.6 https://github.com/padavanonly/immortalwrt-mt798x-6.6 immortalwrt-mt798x-6.6
         cd immortalwrt-mt798x-6.6
         echo "src-git nikki https://github.com/nikkinikki-org/OpenWrt-nikki.git;main" >> "feeds.conf.default"
+        echo "src-git cdnspeedtest https://github.com/immortalwrt-collections/openwrt-cdnspeedtest.git" >> "feeds.conf.default"
+
         ./scripts/feeds update -a
         ./scripts/feeds install -a
         git clone https://github.com/xiaorouji/openwrt-passwall.git package/passwall
