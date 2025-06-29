@@ -80,5 +80,12 @@ jobs:
     - name: cdnspeedtest
       run: |
         cd immortalwrt-mt798x-6.6
+        make defconfig
+        find ./staging_dir/ -name 'ld-musl-*.so*'
+
+        make toolchain/install V=s
+        make target/compile V=s
         make package/cdnspeedtest/compile V=s
+        find ./staging_dir/ -name 'ld-musl-*.so*'
+
         find ./ -type d -name '*cdnspeedtest*'
