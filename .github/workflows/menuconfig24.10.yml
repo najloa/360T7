@@ -16,39 +16,20 @@ jobs:
         go-version: 'stable'
     - run: go version
 
-    - name: Initialization environment
-      env:
-        DEBIAN_FRONTEND: noninteractive
-      run: |
-        sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-        sudo docker image prune --all --force
-        sudo -E apt-get -qq update
-        sudo -E apt-get -qq install ack antlr3 asciidoc autoconf automake autopoint binutils bison \
-        build-essential bzip2 ccache cmake cpio curl device-tree-compiler fastjar flex gawk gettext \
-        gcc-multilib g++-multilib git gperf haveged help2man intltool libc6-dev-i386 libelf-dev \
-        libfuse-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev \
-        libncursesw5-dev libpython3-dev libreadline-dev libssl-dev libtool lrzsz mkisofs msmtp \
-        ninja-build p7zip p7zip-full patch pkgconf python2.7 python3 python3-pyelftools \
-        python3-setuptools qemu-utils rsync scons squashfs-tools subversion swig texinfo \
-        uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev clang g++ libncurses-dev \
-        python3-distutils file devscripts debhelper libjson-c-dev
-        sudo -E apt-get -qq autoremove --purge
-        sudo -E apt-get -qq clean
-
     - name: Download
       run: |
-        git clone -b openwrt-24.10-6.6 https://github.com/padavanonly/immortalwrt-mt798x-6.6 immortalwrt-mt798x-6.6
-        cd immortalwrt-mt798x-6.6
+        sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
+        git clone -b openwrt-24.10-6.6 --single-branch --filter=blob:none https://github.com/padavanonly/immortalwrt-mt798x-6.6 immortalwrt-mt798x-24.10
+        cd immortalwrt-mt798x-24.10
+        git clone https://github.com/xiaorouji/openwrt-passwall.git package/passwall
+        git clone https://github.com/xiaorouji/openwrt-passwall-packages.git package/passwall-packages
         echo "src-git nikki https://github.com/nikkinikki-org/OpenWrt-nikki.git;main" >> "feeds.conf.default"
         ./scripts/feeds update -a
         ./scripts/feeds install -a
-        git clone https://github.com/xiaorouji/openwrt-passwall.git package/passwall
-        git clone https://github.com/xiaorouji/openwrt-passwall-packages.git package/passwall-packages
-        #git clone https://github.com/immortalwrt/packages.git immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && mv ./immortalwrt-packages/lang/golang feeds/packages/lang/golang && rm -rf ./immortalwrt-packages
         cp -f defconfig/mt7981-ax3000.config .config
 
     - name: 【步骤】
-      run: echo "【输入q 然后cd immortalwrt-mt798x-6.6 && make menuconfig 结束sudo touch /continue】"
+      run: echo "【输入q 然后cd immortalwrt-mt798x-24.10 && make menuconfig 结束sudo touch /continue】"
 
     - name: Setup tmate session # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
       uses: mxschmitt/action-tmate@v3
@@ -56,7 +37,7 @@ jobs:
 
     - name: config
       run: |
-        cd immortalwrt-mt798x-6.6
+        cd immortalwrt-mt798x-24.10
         cp -f .config padavanonly.config
 
     - name: Upload artifact
@@ -64,4 +45,4 @@ jobs:
       with:
         name: config
         path: |
-          immortalwrt-mt798x-6.6/padavanonly.config
+          immortalwrt-mt798x-24.10/padavanonly.config
