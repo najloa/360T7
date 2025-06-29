@@ -40,29 +40,23 @@ jobs:
         git clone -b openwrt-24.10-6.6 https://github.com/padavanonly/immortalwrt-mt798x-6.6 immortalwrt-mt798x-6.6
         cd immortalwrt-mt798x-6.6
         echo "src-git nikki https://github.com/nikkinikki-org/OpenWrt-nikki.git;main" >> "feeds.conf.default"
-        echo "src-git cdnspeedtest https://github.com/immortalwrt-collections/openwrt-cdnspeedtest.git" >> "feeds.conf.default"
-
         ./scripts/feeds update -a
         ./scripts/feeds install -a
-        ./scripts/feeds install golang cdnspeedtest
-        sed -i 's|^PKG_VERSION:=.*|PKG_VERSION:=2.3.0|' feeds/cdnspeedtest/cdnspeedtest/Makefile
-        sed -i 's|^PKG_HASH:=.*|PKG_HASH:=a6ff836e25ec9fb062cebf1beb509bbb82a0d794ad0cdfac06d8d68888c60c45|' feeds/cdnspeedtest/cdnspeedtest/Makefile
-        sed -i 's|^PKG_VERSION:=.*|PKG_VERSION:=2.3.0|' feeds/packages/net/cdnspeedtest/Makefile
-        sed -i 's|^PKG_HASH:=.*|PKG_HASH:=a6ff836e25ec9fb062cebf1beb509bbb82a0d794ad0cdfac06d8d68888c60c45|' feeds/packages/net/cdnspeedtest/Makefile
         git clone https://github.com/xiaorouji/openwrt-passwall.git package/passwall
         git clone https://github.com/xiaorouji/openwrt-passwall-packages.git package/passwall-packages
         #git clone https://github.com/immortalwrt/packages.git immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && mv ./immortalwrt-packages/lang/golang feeds/packages/lang/golang && rm -rf ./immortalwrt-packages
         cp -f defconfig/mt7981-ax3000.config .config
 
-    #- name: Setup tmate session 步骤：【输入q 命令cd immortalwrt-mt798x-6.6 && make menuconfig 结束运行sudo touch /continue】 # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
-    #  uses: mxschmitt/action-tmate@v3
-    #  timeout-minutes: 30
+    - name: 【步骤】
+      run: echo "【输入q 然后cd immortalwrt-mt798x-6.6 && make menuconfig 结束sudo touch /continue】"
+
+    - name: Setup tmate session # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
+      uses: mxschmitt/action-tmate@v3
+      timeout-minutes: 30
 
     - name: config
       run: |
-        mv ./config/cdnspeedtest.config immortalwrt-mt798x-6.6/.config
         cd immortalwrt-mt798x-6.6
-        #mv .config padavanonly.config
         cp -f .config padavanonly.config
 
     - name: Upload artifact
@@ -71,31 +65,3 @@ jobs:
         name: config
         path: |
           immortalwrt-mt798x-6.6/padavanonly.config
-          360T7/immortalwrt-mt798x-6.6/padavanonly.config
-
-    - name: cdnspeedtest
-      run: |
-        cd immortalwrt-mt798x-6.6
-        make defconfig
-
-        make toolchain/install V=s
-        make target/compile V=s
-        make package/cdnspeedtest/compile V=s
-
-    - name: ipk
-      run: |
-        cd immortalwrt-mt798x-6.6
-        find ./staging_dir/ -name 'ld-musl-*.so*'
-        find ./ -type d -name '*cdnspeedtest*'
-        find ./ -type f -name '*cdnspeedtest*.ipk'
-
-    - name: Locate cdnspeedtest .ipk
-      run: |
-        mkdir -p ipk-out
-        find ./ -type f -name 'cdnspeedtest*.ipk' -exec cp {} ipk-out/ \;
-
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: ipk
-        path: ipk-out/
