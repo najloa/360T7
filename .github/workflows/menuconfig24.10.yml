@@ -60,18 +60,13 @@ jobs:
       uses: mxschmitt/action-tmate@v3
       timeout-minutes: 30
 
-    - name: cdnspeedtest
-      run: |
-        cd immortalwrt-mt798x-6.6
-        find ./ -type d -name '*cdnspeedtest*'
-        make package/cdnspeedtest/compile V=s
-        find ./ -type d -name '*cdnspeedtest*'
-
     - name: config
       run: |
         cd immortalwrt-mt798x-6.6
         #mv .config padavanonly.config
         cp -f .config padavanonly.config
+        
+        find ./ -type d -name '*cdnspeedtest*'
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -80,3 +75,10 @@ jobs:
         path: |
           immortalwrt-mt798x-6.6/padavanonly.config
           360T7/immortalwrt-mt798x-6.6/padavanonly.config
+
+
+    - name: cdnspeedtest
+      run: |
+        cd immortalwrt-mt798x-6.6
+        make package/cdnspeedtest/compile V=s
+        find ./ -type d -name '*cdnspeedtest*'
