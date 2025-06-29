@@ -70,7 +70,8 @@ jobs:
     - name: config
       run: |
         cd immortalwrt-mt798x-6.6
-        mv .config padavanonly.config
+        #mv .config padavanonly.config
+        cp -f .config padavanonly.config
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
