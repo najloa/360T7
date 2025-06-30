@@ -60,6 +60,13 @@ jobs:
     - name: Update feeds
       run: cd openwrt && ./scripts/feeds update -a
 
+    - name: passwall package
+      run: |
+        cd openwrt
+        rm -rf feeds/luci/applications/luci-app-passwall
+        rm -rf package/feeds/luci/luci-app-passwall
+        ./scripts/feeds install -a -p passwall
+
     - name: Install feeds
       run: cd openwrt && ./scripts/feeds install -a
 
