@@ -24,6 +24,11 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
+    - uses: actions/setup-go@v5
+      with:
+        go-version: 'stable'
+    - run: go version
+
     - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
@@ -60,7 +65,6 @@ jobs:
         cd openwrt
         rm -rf feeds/luci/applications/luci-app-passwall
         rm -rf package/feeds/luci/luci-app-passwall
-        rm -rf feeds/packages/net/chinadns-ng
         ./scripts/feeds install -a -p passwall
 
     - name: Install feeds
