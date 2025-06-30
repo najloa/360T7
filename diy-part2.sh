@@ -49,7 +49,7 @@ rm -f ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/fonts/TypoGr
 \cp -f $GITHUB_WORKSPACE/argon/fonts/* ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/fonts
 \cp -f $GITHUB_WORKSPACE/argon/cascade.css ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/css/cascade.css
 # 登录界面版本信息优化
-sed -i -E 's/ \(\<%= ver\.luciversion %\>\)//g; s/\|[[:space:]]*\<%= ver\.distversion %\>//g' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/footer_login.htm
+sed -i 's/ ([<]%=\s*ver\.luciversion\s*%>)//g' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/footer_login.htm
 sed -i '/<%= ver\.distversion %>/d' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/footer_login.htm
 sed -i 's/ |$//' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/footer_login.htm
 
