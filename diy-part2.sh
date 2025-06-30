@@ -43,14 +43,18 @@ sed -i 's|local excluded_domain = {[^}]*}|local excluded_domain = {}|g' ./feeds/
 git clone --depth 1 https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon && rm -rf ./feeds/luci/themes/luci-theme-argon && \cp -rf ./package/luci-theme-argon ./feeds/luci/themes/
 git clone --depth 1 https://github.com/jerrykuku/luci-app-argon-config.git package/luci-app-argon-config && rm -rf ./feeds/luci/applications/luci-app-argon-config && \cp -rf ./package/luci-app-argon-config ./feeds/luci/applications/
 # argon主题美化
-find ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/fonts -type f -name "*"
-#sed -i 's/TypoGraphica/Monoton/' ./feeds/luci/themes/luci-theme-argon/less/fonts.less
-#\cp -f $GITHUB_WORKSPACE/cascade.less ./feeds/luci/themes/luci-theme-argon/less/cascade.less
+# find ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/fonts -type f -name "*"
+# sed -i 's/TypoGraphica/Monoton/' ./feeds/luci/themes/luci-theme-argon/less/fonts.less
+# \cp -f $GITHUB_WORKSPACE/cascade.less ./feeds/luci/themes/luci-theme-argon/less/cascade.less
 # 替换字体
 rm -f ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/fonts/TypoGraphica*
 \cp -f $GITHUB_WORKSPACE/argon/fonts/* ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/fonts
 \cp -f $GITHUB_WORKSPACE/argon/cascade.css ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/css/cascade.css
 # 登录界面版本信息优化
-\cp -f $GITHUB_WORKSPACE/argon/footer_login.htm ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/footer_login.htm
-sed -i 's/<%:Log in%>/<%:Login%>/' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/sysauth.htm
+sed -i -E 's/ \(\<%= ver\.luciversion %\>\)//g; s/\|[[:space:]]*\<%= ver\.distversion %\>//g' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/footer_login.htm
+sed -i '/<%= ver\.distversion %>/d' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/footer_login.htm
+sed -i 's/ |$//' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/footer_login.htm
+
 grep "cbi-button-apply" ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/sysauth.htm
+sed -i 's/<%:Log in%>/<%:Login%>/' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/sysauth.htm
+sed -i 's|<%=media%>/img/argon\.svg||g' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/sysauth.htm
