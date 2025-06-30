@@ -18,6 +18,7 @@ sed -i '/encryption=sae-mixed/a \ \ \ \ set wireless.default_${dev}.key=blue1235
 #
 # find ./ -type f -name 'wrtbwmon'
 # sed -i "/option enabled '1'/d" ./package/mtk/applications/wrtbwmon/net/etc/config/wrtbwmon
+# rm -rf feeds/packages/net/chinadns-ng
 #
 # find ./ -type d -name "passwall"
 # find ./ -type f -name 'rule.lua'
