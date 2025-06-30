@@ -16,8 +16,8 @@ sed -i 's/immortalwrt.lan/openwrt.lan/' ./feeds/luci/modules/luci-mod-system/htd
 sed -i 's/encryption=none/encryption=sae-mixed/' ./package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
 sed -i '/encryption=sae-mixed/a \ \ \ \ set wireless.default_${dev}.key=blue1235' ./package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
 #
-find ./ -type f -name 'wrtbwmon'
-sed -i "/option enabled '1'/d" ./package/mtk/applications/wrtbwmon/net/etc/config/wrtbwmon
+# find ./ -type f -name 'wrtbwmon'
+# sed -i "/option enabled '1'/d" ./package/mtk/applications/wrtbwmon/net/etc/config/wrtbwmon
 #
 # find ./ -type d -name "passwall"
 # find ./ -type f -name 'rule.lua'
