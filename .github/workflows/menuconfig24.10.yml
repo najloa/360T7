@@ -21,7 +21,6 @@ jobs:
         sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
         git clone -b openwrt-24.10-6.6 --single-branch --filter=blob:none https://github.com/padavanonly/immortalwrt-mt798x-6.6 immortalwrt-mt798x-24.10
         cd immortalwrt-mt798x-24.10
-        echo "src-git nikki https://github.com/nikkinikki-org/OpenWrt-nikki.git;main" >> "feeds.conf.default"
         # 第一步：添加 passwall feed（只需一次）
         echo "src-git passwall https://github.com/xiaorouji/openwrt-passwall.git;main" >> feeds.conf.default
         echo "src-git passwall_packages https://github.com/xiaorouji/openwrt-passwall-packages.git;main" >> "feeds.conf.default"
@@ -42,7 +41,7 @@ jobs:
         ./scripts/feeds install -a -p passwall
 
         # 第六步：现在可以放心全装了，luci 的版本已不会被拉回
-        ./scripts/feeds install -a
+        #./scripts/feeds install -a
 
         cp -f defconfig/mt7981-ax3000.config .config
 
