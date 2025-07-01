@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: '>=1.24.2'
+          go-version: 'stable'
       - run: go version
 
       - name: environment
@@ -22,37 +22,33 @@ jobs:
         run: |
           git clone --depth=1 https://github.com/hanwckf/immortalwrt-mt798x.git
           cd immortalwrt-mt798x
-          # 第一步：添加 passwall feed（只需一次）
-          echo "src-git passwall https://github.com/xiaorouji/openwrt-passwall.git;main" >> feeds.conf.default
-          echo "src-git passwall_packages https://github.com/xiaorouji/openwrt-passwall-packages.git;main" >> "feeds.conf.default"
-
+          # 第一步：添加 passwall feed
+          echo "src-git passwall https://github.com/xiaorouji/openwrt-passwall.git;main" >> "feeds.conf.default"
+          echo "src-git passwall-packages https://github.com/xiaorouji/openwrt-passwall-packages.git;main" >> "feeds.conf.default"
           # 第二步：更新所有 feed（下载最新包）
-          ./scripts/feeds update -a
+          #./scripts/feeds update -a
 
           # 版本
-          grep PKG_VERSION feeds/passwall/luci-app-passwall/Makefile
+          #grep PKG_VERSION feeds/passwall/luci-app-passwall/Makefile
 
           # 第三步：删除 luci feed 中的旧版本（必须！就是为了防止 install -a 拉回来）
-          rm -rf feeds/luci/applications/luci-app-passwall
+          #rm -rf feeds/luci/applications/luci-app-passwall
           # 删除
-          rm -rf feeds/packages/net/chinadns-ng
-
+          #rm -rf feeds/packages/net/chinadns-ng
           # 第四步（可选）：清除以前装的链接
-          rm -rf package/feeds/luci/luci-app-passwall
-
+          #rm -rf package/feeds/luci/luci-app-passwall
           # 第五步：安装 passwall 中的包
-          ./scripts/feeds install -a -p passwall
-
+          #./scripts/feeds install -a -p passwall
           # 第六步：现在可以放心全装了，luci 的版本已不会被拉回
-          ./scripts/feeds install -a
+          #./scripts/feeds install -a
           cp -f defconfig/mt7981-ax3000.config .config
 
       - name: 【步骤】
-        run: echo "【输入q 然后cd immortalwrt-mt798x-24.10 && make menuconfig 结束sudo touch /continue】"
+        run: echo "【输入q 然后cd immortalwrt-mt798x && make menuconfig 结束sudo touch /continue】"
 
       - name: Setup tmate session # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
         uses: mxschmitt/action-tmate@v3
-        timeout-minutes: 30
+        timeout-minutes: 50
 
       - name: config
         run: |
