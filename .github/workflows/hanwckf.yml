@@ -33,6 +33,9 @@ jobs:
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
+        sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+        sudo docker image prune --all --force
+        sudo -E apt-get -qq update
         #sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
         sudo -E apt-get -qq install ack antlr3 asciidoc autoconf automake autopoint binutils bison \
         build-essential bzip2 ccache cmake cpio curl device-tree-compiler fastjar flex gawk gettext \
@@ -43,6 +46,8 @@ jobs:
         python3-setuptools qemu-utils rsync scons squashfs-tools subversion swig texinfo \
         uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev clang g++ libncurses-dev \
         python3-distutils file devscripts debhelper libjson-c-dev
+        sudo -E apt-get -qq autoremove --purge
+        sudo -E apt-get -qq clean
         sudo timedatectl set-timezone "$TZ"
         sudo mkdir -p /workdir
         sudo chown $USER:$GROUPS /workdir
