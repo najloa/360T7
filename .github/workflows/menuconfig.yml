@@ -2,12 +2,10 @@ name: menuconfig
 
 on:
   workflow_dispatch:
-    inputs:
 
 jobs:
   build:
     runs-on: ubuntu-22.04
-
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -18,34 +16,48 @@ jobs:
       - name: environment
         run: sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
 
-      - name: Download
+      - name: download
         run: |
-          git clone --depth=1 https://github.com/hanwckf/immortalwrt-mt798x.git
+          git clone -b openwrt-21.02 --single-branch --filter=blob:none https://github.com/hanwckf/immortalwrt-mt798x
           cd immortalwrt-mt798x
-          # 第一步：添加 passwall feed
-          echo "src-git passwall https://github.com/xiaorouji/openwrt-passwall.git;main" >> "feeds.conf.default"
-          echo "src-git passwall-packages https://github.com/xiaorouji/openwrt-passwall-packages.git;main" >> "feeds.conf.default"
-          # 第二步：更新所有 feed（下载最新包）
-          #./scripts/feeds update -a
-
-          # 版本
-          #grep PKG_VERSION feeds/passwall/luci-app-passwall/Makefile
-
-          # 第三步：删除 luci feed 中的旧版本（必须！就是为了防止 install -a 拉回来）
-          #rm -rf feeds/luci/applications/luci-app-passwall
-          # 删除
-          #rm -rf feeds/packages/net/chinadns-ng
-          # 第四步（可选）：清除以前装的链接
-          #rm -rf package/feeds/luci/luci-app-passwall
-          # 第五步：安装 passwall 中的包
-          #./scripts/feeds install -a -p passwall
-          # 第六步：现在可以放心全装了，luci 的版本已不会被拉回
-          #./scripts/feeds install -a
+          # MT7981
           cp -f defconfig/mt7981-ax3000.config .config
+          # add feed
+          echo "src-git passwall https://github.com/xiaorouji/openwrt-passwall.git;main" >> "feeds.conf.default"
+          echo "src-git-full passwall_packages https://github.com/xiaorouji/openwrt-passwall-packages.git;main" >> "feeds.conf.default"
+          # update feeds
+          ./scripts/feeds update -a
+          # 删除旧包
+          find . -type d -name "passwall*"
+          grep PKG_VERSION feeds/passwall/luci-app-passwall/Makefile
+          rm -rf ./feeds/luci/applications/luci-app-passwall
+          rm -rf ./feeds/packages/net/chinadns-ng
+          rm -rf ./feeds/packages/net/geoview
+          rm -rf ./feeds/packages/net/ipt2socks
+          rm -rf ./feeds/packages/net/microsocks
+          rm -rf ./feeds/packages/net/tcping
+          # 强制新包
+          ./scripts/feeds install -f -p passwall luci-app-passwall
+          ./scripts/feeds install -f -p passwall_packages chinadns-ng
+          ./scripts/feeds install -f -p passwall_packages geoview
+          ./scripts/feeds install -f -p passwall_packages ipt2socks
+          ./scripts/feeds install -f -p passwall_packages microsocks
+          ./scripts/feeds install -f -p passwall_packages tcping
+          # 替换规则
+          find . -type f -name "rule.lua"
+          ./feeds/passwall/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
+          find . -type f -name "0_default_config"
+          ./feeds/passwall/luci-app-passwall/root/usr/share/passwall/0_default_config
+          find . -type f -name "rule_update.lua"
+          ./feeds/passwall/luci-app-passwall/root/usr/share/passwall/rule_update.lua
+          # 更新主题
+          git clone https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon
+          git clone https://github.com/jerrykuku/luci-app-argon-config.git package/luci-app-argon-config
+          # install feeds
+          ./scripts/feeds install -a
 
       - name: 【步骤】
         run: echo "【输入q 然后cd immortalwrt-mt798x && make menuconfig 结束sudo touch /continue】"
-
       - name: Setup tmate session # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
         uses: mxschmitt/action-tmate@v3
         timeout-minutes: 50
