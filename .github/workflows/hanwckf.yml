@@ -22,12 +22,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
-
-    - uses: actions/setup-go@v5
-      with:
-        go-version: 'stable'
-    - run: go version
+      uses: actions/checkout@main
 
     - name: Initialization environment
       env:
@@ -36,16 +31,7 @@ jobs:
         sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
         sudo docker image prune --all --force
         sudo -E apt-get -qq update
-        #sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
-        sudo -E apt-get -qq install ack antlr3 asciidoc autoconf automake autopoint binutils bison \
-        build-essential bzip2 ccache cmake cpio curl device-tree-compiler fastjar flex gawk gettext \
-        gcc-multilib g++-multilib git gperf haveged help2man intltool libc6-dev-i386 libelf-dev \
-        libfuse-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev \
-        libncursesw5-dev libpython3-dev libreadline-dev libssl-dev libtool lrzsz mkisofs msmtp \
-        ninja-build p7zip p7zip-full patch pkgconf python2.7 python3 python3-pyelftools \
-        python3-setuptools qemu-utils rsync scons squashfs-tools subversion swig texinfo \
-        uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev clang g++ libncurses-dev \
-        python3-distutils file devscripts debhelper libjson-c-dev
+        sudo -E apt-get -qq install ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential bzip2 ccache cmake cpio curl device-tree-compiler fastjar flex gawk gettext gcc-multilib g++-multilib git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libfuse-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libpython3-dev libreadline-dev libssl-dev libtool lrzsz mkisofs msmtp ninja-build p7zip p7zip-full patch pkgconf python2.7 python3 python3-pyelftools python3-setuptools qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev
         sudo -E apt-get -qq autoremove --purge
         sudo -E apt-get -qq clean
         sudo timedatectl set-timezone "$TZ"
@@ -56,30 +42,18 @@ jobs:
       working-directory: /workdir
       run: |
         df -hT $PWD
-        git clone --depth 1 $REPO_URL -b $REPO_BRANCH openwrt
+        git clone $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
     - name: Load custom feeds
       run: |
-        # [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
+        [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
         chmod +x $DIY_P1_SH
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P1_SH
 
     - name: Update feeds
       run: cd openwrt && ./scripts/feeds update -a
-
-    - name: passwall package
-      run: |
-        cd openwrt
-        find . -type d -name "passwall"
-        find . -type d -name "chinadns-ng"
-        find . -type d -name "geoview"
-        grep PKG_VERSION feeds/passwall/luci-app-passwall/Makefile
-        rm -rf feeds/luci/applications/luci-app-passwall
-        rm -rf package/feeds/luci/luci-app-passwall
-        rm -rf feeds/packages/net/chinadns-ng
-        ./scripts/feeds install -a -p passwall
 
     - name: Install feeds
       run: cd openwrt && ./scripts/feeds install -a
