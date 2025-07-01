@@ -30,7 +30,6 @@ jobs:
         sudo timedatectl set-timezone "Asia/Shanghai"
 
     - name: Clone source code
-      working-directory: /workdir
       run: |
         df -hT $PWD
         wget -q https://downloads.openwrt.org/releases/23.05.0/targets/mediatek/filogic/openwrt-sdk-23.05.0-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64.tar.xz
