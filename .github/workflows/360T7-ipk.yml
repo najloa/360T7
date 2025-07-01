@@ -71,11 +71,31 @@ jobs:
         make package/luci-app-passwall/compile V=99
         #make package/sing-box/compile V=99
         #make package/xray-core/compile V=99
+        #make package/coreutils/compile V=99
+        #make package/coreutils-base64/compile V=99
+        #make package/coreutils-nohup/compile V=99
+        #make package/chinadns-ng/compile V=99
+        #make package/dns2socks/compile V=99
+        #make package/ip-full/compile V=99
+        #make package/libuci-lua/compile V=99
+        #make package/microsocks/compile V=99
+        #make package/tcping/compile V=99
+        #make package/luci-lua-runtime/compile V=99
 
     - name: Locate .ipk
       run: |
         mkdir -p ipk-out
         find ./ -type f -name '*passwall*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*coreutils*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*coreutils-base64*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*coreutils-nohup*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*chinadns-ng*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*dns2socks*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*ip-full*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*libuci-lua*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*microsocks*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*tcping*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*luci-lua-runtime*.ipk' -exec cp {} ipk-out/ \;
 
     - name: Upload directory
       uses: actions/upload-artifact@main
