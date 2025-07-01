@@ -53,8 +53,6 @@ jobs:
         ./scripts/feeds install -a -f -p passwall_packages
         ./scripts/feeds install luci-app-passwall
         ./scripts/feeds install luci-base
-        make package/luci-base/compile V=99
-        make defconfig
 
     - name: 【步骤】
       run: echo "【输入q 然后cd openwrt-sdk-23.05.0-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64 && make menuconfig 结束sudo touch /continue】"
@@ -65,6 +63,8 @@ jobs:
     - name: build
       run: |
         cd openwrt-sdk-23.05.0-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64
+        make package/luci-base/compile V=99
+        make defconfig
         make download -j8 V=s
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
