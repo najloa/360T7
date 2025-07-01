@@ -66,6 +66,11 @@ jobs:
           path: |
             immortalwrt-mt798x/hanwckf.config
 
+      - name: make
+        run: |
+          cd immortalwrt-mt798x
+          make -j$(nproc)
+
       - name: Delete workflow runs
         uses: Mattraks/delete-workflow-runs@main
         with:
