@@ -1,4 +1,4 @@
-name: menuconfig
+name: 360T7-config
 
 on:
   workflow_dispatch:
