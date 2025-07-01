@@ -56,7 +56,7 @@ jobs:
 
     - name: Load custom feeds
       run: |
-        [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
+        # [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
         chmod +x $DIY_P1_SH
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P1_SH
@@ -67,10 +67,14 @@ jobs:
     - name: passwall package
       run: |
         cd openwrt
+        find . -type d -name "passwall"
+        find . -type d -name "chinadns-ng"
+        find . -type d -name "geoview"
+        grep PKG_VERSION feeds/passwall/luci-app-passwall/Makefile
         rm -rf feeds/luci/applications/luci-app-passwall
         rm -rf package/feeds/luci/luci-app-passwall
+        rm -rf feeds/packages/net/chinadns-ng
         ./scripts/feeds install -a -p passwall
-        find . -type d -name "geoview"
 
     - name: Install feeds
       run: cd openwrt && ./scripts/feeds install -a
