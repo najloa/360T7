@@ -24,11 +24,11 @@ jobs:
           cp -f defconfig/mt7981-ax3000.config .config
           # add feed
           echo "src-git passwall https://github.com/xiaorouji/openwrt-passwall.git;main" >> "feeds.conf.default"
-          echo "src-git-full passwall_packages https://github.com/xiaorouji/openwrt-passwall-packages.git;main" >> "feeds.conf.default"
+          echo "src-git passwall_packages https://github.com/xiaorouji/openwrt-passwall-packages.git;main" >> "feeds.conf.default"
           # update feeds
           ./scripts/feeds update -a
           # 删除旧包
-          find . -type d -name "passwall*"
+          find . -type d -name "*passwall*"
           grep PKG_VERSION feeds/passwall/luci-app-passwall/Makefile
           rm -rf ./feeds/luci/applications/luci-app-passwall
           rm -rf ./feeds/packages/net/chinadns-ng
@@ -58,11 +58,25 @@ jobs:
           sed -i 's|https://fastly.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geosite.dat|https://github.com/najloa/geoip/releases/latest/download/geosite.dat|g' ./feeds/passwall/luci-app-passwall/root/usr/share/passwall/rule_update.lua
           sed -i 's|https://fastly.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/gfw.txt|https://raw.githubusercontent.com/najloa/geoip/rules/proxy-list.txt|g' ./feeds/passwall/luci-app-passwall/root/usr/share/passwall/rule_update.lua
           sed -i 's|local excluded_domain = {[^}]*}|local excluded_domain = {}|g' ./feeds/passwall/luci-app-passwall/root/usr/share/passwall/rule_update.lua
-          # 更新主题
-          git clone https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon
-          git clone https://github.com/jerrykuku/luci-app-argon-config.git package/luci-app-argon-config
           # install feeds
           ./scripts/feeds install -a
+          # argon主题
+          find package -type d -name "*argon*"
+          rm -rf ./feeds/luci/applications/luci-app-argon-config
+          rm -rf ./feeds/luci/themes/luci-theme-argon
+          git clone https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon
+          git clone https://github.com/jerrykuku/luci-app-argon-config.git package/luci-app-argon-config
+          # 替换GO版本
+          git clone --depth 1 https://github.com/immortalwrt/packages.git package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && \cp -rf ./package/immortalwrt-packages/lang/golang ./feeds/packages/lang/ && ./package/immortalwrt-packages
+          #
+          sed -i 's/192.168.1.1/192.168.10.1/' ./package/base-files/files/bin/config_generate
+          sed -i "s/hostname='ImmortalWrt'/hostname='OpenWrt'/" ./package/base-files/files/bin/config_generate
+          sed -i 's/ImmortalWrt-2.4G/NW/' ./package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
+          sed -i 's/ImmortalWrt-5G/NW/' ./package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
+          sed -i 's/36/auto/' ./package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
+          sed -i 's/immortalwrt.lan/openwrt.lan/' ./feeds/luci/modules/luci-mod-system/htdocs/luci-static/resources/view/system/flash.js
+          sed -i 's/encryption=none/encryption=sae-mixed/' ./package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
+          sed -i '/encryption=sae-mixed/a \ \ \ \ set wireless.default_${dev}.key=blue1235' ./package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
 
       - name: 【步骤】
         run: echo "【输入q 然后cd immortalwrt-mt798x && make menuconfig 结束sudo touch /continue】"
