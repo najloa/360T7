@@ -85,8 +85,8 @@ jobs:
         sed -i 's|https://fastly.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/gfw.txt|https://raw.githubusercontent.com/najloa/geoip/rules/proxy-list.txt|g' ./feeds/passwall/luci-app-passwall/root/usr/share/passwall/rule_update.lua
         sed -i 's|local excluded_domain = {[^}]*}|local excluded_domain = {}|g' ./feeds/passwall/luci-app-passwall/root/usr/share/passwall/rule_update.lua
         make package/luci-app-passwall/compile V=99
-        #make package/geoview/compile V=99
-        #make package/sing-box/compile V=99
+        make package/geoview/compile V=99
+        make package/sing-box/compile V=99
         #make package/xray-core/compile V=99
         #make package/coreutils/compile V=99
         #make package/coreutils-base64/compile V=99
@@ -120,6 +120,7 @@ jobs:
         find ./ -type f -name '*luci-lua-runtime*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*ucode-mod-lua*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*iptables-zz-legacy*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*xtables-legacy*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*unzip*.ipk' -exec cp {} ipk-out/ \;
 
     - name: Upload directory
