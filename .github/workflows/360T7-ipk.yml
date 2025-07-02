@@ -105,6 +105,7 @@ jobs:
         find ./ -type f -name '*passwall*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*geoview*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*sing-box*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*kmod-netlink-diag*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*coreutils_*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*coreutils-base64*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*coreutils-nohup*.ipk' -exec cp {} ipk-out/ \;
