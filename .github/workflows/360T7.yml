@@ -62,11 +62,15 @@ jobs:
         find . -type d -name "*passwall*"
         grep PKG_VERSION feeds/passwall/luci-app-passwall/Makefile
         rm -rf ./feeds/luci/applications/luci-app-passwall
+        rm -rf ./feeds/packages/net/chinadns-ng
+        rm -rf ./feeds/packages/net/dns2socks
         rm -rf ./feeds/packages/net/ipt2socks
         rm -rf ./feeds/packages/net/microsocks
         rm -rf ./feeds/packages/net/tcping
         # 强制新包
         ./scripts/feeds install -f -p passwall luci-app-passwall
+        ./scripts/feeds install -f -p passwall_packages chinadns-ng
+        ./scripts/feeds install -f -p passwall_packages dns2socks
         ./scripts/feeds install -f -p passwall_packages ipt2socks
         ./scripts/feeds install -f -p passwall_packages microsocks
         ./scripts/feeds install -f -p passwall_packages tcping
