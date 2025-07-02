@@ -87,7 +87,7 @@ jobs:
         make package/luci-app-passwall/compile V=99
         make package/geoview/compile V=99
         make package/sing-box/compile V=99
-        make package/xray-core/compile V=99
+        #make package/xray-core/compile V=99
 
     - name: Locate .ipk
       run: |
@@ -95,7 +95,7 @@ jobs:
         find ./ -type f -name '*passwall*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*geoview*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*sing-box*.ipk' -exec cp {} ipk-out/ \;
-        find ./ -type f -name '*xray-core*.ipk' -exec cp {} ipk-out/ \;
+        #find ./ -type f -name '*xray-core*.ipk' -exec cp {} ipk-out/ \;
 
     - name: Upload directory
       uses: actions/upload-artifact@main
