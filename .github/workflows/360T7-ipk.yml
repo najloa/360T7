@@ -63,6 +63,7 @@ jobs:
     - name: build
       run: |
         cd openwrt-sdk-23.05.0-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64
+        \cp -f $GITHUB_WORKSPACE/config/ipk.config .config
         make package/luci-base/compile V=99
         make defconfig
         make download -j8 V=s
@@ -109,6 +110,7 @@ jobs:
         find ./ -type f -name '*coreutils-nohup*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*chinadns-ng*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*dns2socks*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*ipt2socks*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*ip-full*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*libbpf*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*libnl-tiny*.ipk' -exec cp {} ipk-out/ \;
