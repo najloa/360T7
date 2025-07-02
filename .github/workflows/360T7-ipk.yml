@@ -113,14 +113,18 @@ jobs:
         find ./ -type f -name '*ipt2socks*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*ip-full*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*libbpf*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*libelf*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*libnl-tiny*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*libuci-lua*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*microsocks*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*tcping*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*luci-lua-runtime*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*ucode-mod-lua*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*libucode*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*iptables-zz-legacy*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*xtables-legacy*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*libiptext*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*libxtables*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*unzip*.ipk' -exec cp {} ipk-out/ \;
 
     - name: Upload directory
