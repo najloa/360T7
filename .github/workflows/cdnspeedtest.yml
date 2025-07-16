@@ -37,22 +37,22 @@ jobs:
 
     - name: Download
       run: |
-        git clone -b openwrt-24.10-6.6 https://github.com/padavanonly/immortalwrt-mt798x-6.6 immortalwrt-mt798x-6.6
-        cd immortalwrt-mt798x-6.6
+        git clone --depth=1 https://github.com/hanwckf/immortalwrt-mt798x.git immortalwrt-mt798x
+        cd immortalwrt-mt798x
         echo "src-git cdnspeedtest https://github.com/immortalwrt-collections/openwrt-cdnspeedtest.git" >> "feeds.conf.default"
 
         ./scripts/feeds update -a
         ./scripts/feeds install -a
         ./scripts/feeds install golang cdnspeedtest
-        sed -i 's|^PKG_VERSION:=.*|PKG_VERSION:=2.3.0|' feeds/cdnspeedtest/cdnspeedtest/Makefile
-        sed -i 's|^PKG_HASH:=.*|PKG_HASH:=a6ff836e25ec9fb062cebf1beb509bbb82a0d794ad0cdfac06d8d68888c60c45|' feeds/cdnspeedtest/cdnspeedtest/Makefile
-        sed -i 's|^PKG_VERSION:=.*|PKG_VERSION:=2.3.0|' feeds/packages/net/cdnspeedtest/Makefile
-        sed -i 's|^PKG_HASH:=.*|PKG_HASH:=a6ff836e25ec9fb062cebf1beb509bbb82a0d794ad0cdfac06d8d68888c60c45|' feeds/packages/net/cdnspeedtest/Makefile
-        mv ./config/cdnspeedtest.config immortalwrt-mt798x-6.6/.config
+        sed -i 's|^PKG_VERSION:=.*|PKG_VERSION:=2.3.2|' feeds/cdnspeedtest/cdnspeedtest/Makefile
+        sed -i 's|^PKG_HASH:=.*|PKG_HASH:=9fee9a671b3435c8d9fe123e304fe383ffc0fcb341b19a54cb17d57b96645a91|' feeds/cdnspeedtest/cdnspeedtest/Makefile
+        sed -i 's|^PKG_VERSION:=.*|PKG_VERSION:=2.3.2|' feeds/packages/net/cdnspeedtest/Makefile
+        sed -i 's|^PKG_HASH:=.*|PKG_HASH:=9fee9a671b3435c8d9fe123e304fe383ffc0fcb341b19a54cb17d57b96645a91|' feeds/packages/net/cdnspeedtest/Makefile
+        mv ./config/cdnspeedtest.config immortalwrt-mt798x/.config
 
     - name: cdnspeedtest
       run: |
-        cd immortalwrt-mt798x-6.6
+        cd immortalwrt-mt798x
         make defconfig
 
         make toolchain/install V=s
@@ -61,7 +61,7 @@ jobs:
 
     - name: ipk
       run: |
-        cd immortalwrt-mt798x-6.6
+        cd immortalwrt-mt798x
         find ./staging_dir/ -name 'ld-musl-*.so*'
         find ./ -type d -name '*cdnspeedtest*'
         find ./ -type f -name '*cdnspeedtest*.ipk'
