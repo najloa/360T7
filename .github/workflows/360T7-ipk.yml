@@ -65,11 +65,53 @@ jobs:
     - name: 替换GO版本
       run: cd immortalwrt-mt798x && git clone --depth 1 https://github.com/immortalwrt/packages.git package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && \cp -rf ./package/immortalwrt-packages/lang/golang ./feeds/packages/lang/ && rm -rf ./package/immortalwrt-packages
 
-    - name: 【步骤】
-      run: echo "【输入q 然后cd immortalwrt-mt798x && make menuconfig 结束sudo touch /continue】"
-    - name: Setup tmate session # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
-      uses: mxschmitt/action-tmate@v3
-      timeout-minutes: 30
+    #- name: 【步骤】
+      #run: echo "【输入q 然后cd openwrt-sdk-23.05.0-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64 && make menuconfig 结束sudo touch /continue】"
+    #- name: Setup tmate session # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
+      #uses: mxschmitt/action-tmate@v3
+      #timeout-minutes: 30
+
+    - name: build
+      run: |
+        cd immortalwrt-mt798x
+        \cp -f $GITHUB_WORKSPACE/config/ipk.config .config
+        make package/luci-base/compile V=99
+        make defconfig
+        make download -j8 V=s
+        find dl -size -1024c -exec ls -l {} \;
+        find dl -size -1024c -exec rm -f {} \;
+        # 替换规则
+        find . -type f -name "rule.lua"
+        find . -type f -name "rule.lua"
+        sed -i 's|https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat|https://github.com/najloa/geoip/releases/latest/download/geoip.dat|g' ./feeds/passwall/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
+        sed -i 's|https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat|https://github.com/najloa/geoip/releases/latest/download/geosite.dat|g' ./feeds/passwall/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
+        sed -i 's|https://fastly.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/gfw.txt|https://github.com/najloa/geoip/releases/latest/download/proxy-list.txt|g' ./feeds/passwall/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
+        sed -i 's|https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat|https://github.com/najloa/geoip/releases/latest/download/geoip.dat|g' ./feeds/passwall/luci-app-passwall/root/usr/share/passwall/0_default_config
+        sed -i 's|https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat|https://github.com/najloa/geoip/releases/latest/download/geosite.dat|g' ./feeds/passwall/luci-app-passwall/root/usr/share/passwall/0_default_config
+        sed -i 's|https://fastly.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/gfw.txt|https://github.com/najloa/geoip/releases/latest/download/proxy-list.txt|g' ./feeds/passwall/luci-app-passwall/root/usr/share/passwall/0_default_config
+        sed -i 's|https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat|https://github.com/najloa/geoip/releases/latest/download/geoip.dat|g' ./feeds/passwall/luci-app-passwall/root/usr/share/passwall/rule_update.lua
+        sed -i 's|https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat|https://github.com/najloa/geoip/releases/latest/download/geosite.dat|g' ./feeds/passwall/luci-app-passwall/root/usr/share/passwall/rule_update.lua
+        sed -i 's|https://fastly.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/gfw.txt|https://github.com/najloa/geoip/releases/latest/download/proxy-list.txt|g' ./feeds/passwall/luci-app-passwall/root/usr/share/passwall/rule_update.lua
+        sed -i 's|local excluded_domain = {[^}]*}|local excluded_domain = {}|g' ./feeds/passwall/luci-app-passwall/root/usr/share/passwall/rule_update.lua        #sed -i 's|GO_PKG_LDFLAGS_X:=$(GO_PKG)/constant.Version=v$(PKG_VERSION)|GO_PKG_LDFLAGS_X:=$(GO_PKG)/constant.Version=v$(PKG_VERSION) -s -w -buildid=|g' ./feeds/passwall_packages/sing-box/Makefile
+        #sed -i '61s/default y/default n/' ./feeds/passwall_packages/sing-box/Makefile
+        make package/luci-app-passwall/compile V=99
+        make package/geoview/compile V=99
+        make package/sing-box/compile V=99
+        make package/xray-core/compile V=99
+
+    - name: Locate .ipk
+      run: |
+        mkdir -p ipk-out
+        find ./ -type f -name '*passwall*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*geoview*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*sing-box*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*xray-core*.ipk' -exec cp {} ipk-out/ \;
+
+    - name: Upload directory
+      uses: actions/upload-artifact@main
+      with:
+        name: ipk
+        path: ipk-out/
 
     - name: config
       run: |
