@@ -18,11 +18,41 @@ jobs:
       - name: download
         run: git clone --depth=1 https://github.com/hanwckf/immortalwrt-mt798x.git
 
+      - name: feed
+        run: |
+          echo "src-git passwall https://github.com/xiaorouji/openwrt-passwall.git;main" >> "feeds.conf.default"
+          echo "src-git passwall_packages https://github.com/xiaorouji/openwrt-passwall-packages.git;main" >> "feeds.conf.default"
+
+      - name: update
+        run: cd immortalwrt-mt798x && ./scripts/feeds update -a
+
+      - name: del
+        run: |
+          cd immortalwrt-mt798x
+          rm -rf ./feeds/luci/applications/luci-app-passwall
+          rm -rf ./feeds/packages/net/chinadns-ng
+          rm -rf ./feeds/packages/net/dns2socks
+          rm -rf ./feeds/packages/net/ipt2socks
+          rm -rf ./feeds/packages/net/microsocks
+          rm -rf ./feeds/packages/net/tcping
+          ./scripts/feeds install -f -p passwall luci-app-passwall
+          ./scripts/feeds install -f -p passwall_packages chinadns-ng
+          ./scripts/feeds install -f -p passwall_packages dns2socks
+          ./scripts/feeds install -f -p passwall_packages ipt2socks
+          ./scripts/feeds install -f -p passwall_packages microsocks
+          ./scripts/feeds install -f -p passwall_packages tcping
+
+      - name: install
+        run: cd immortalwrt-mt798x && ./scripts/feeds install -a
+
+      - name: cp
+        run: cd immortalwrt-mt798x && cp -f defconfig/mt7981-ax3000.config .config
+
       - name: 【步骤】
         run: echo "【输入q 然后cd immortalwrt-mt798x && make menuconfig 结束sudo touch /continue】"
       - name: Setup tmate session # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
         uses: mxschmitt/action-tmate@v3
-        timeout-minutes: 30
+        timeout-minutes: 60
 
       - name: config
         run: |
