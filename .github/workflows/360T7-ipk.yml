@@ -46,18 +46,24 @@ jobs:
     - name: del
       run: |
         cd immortalwrt-mt798x
+        find . -type d -name "sing-box"
+        find . -type d -name "xray-core"
         rm -rf ./feeds/luci/applications/luci-app-passwall
         rm -rf ./feeds/packages/net/chinadns-ng
         rm -rf ./feeds/packages/net/dns2socks
         rm -rf ./feeds/packages/net/ipt2socks
         rm -rf ./feeds/packages/net/microsocks
         rm -rf ./feeds/packages/net/tcping
+        rm -rf ./feeds/packages/net/sing-box
+        rm -rf ./feeds/packages/net/xray-core
         ./scripts/feeds install -f -p passwall luci-app-passwall
         ./scripts/feeds install -f -p passwall_packages chinadns-ng
         ./scripts/feeds install -f -p passwall_packages dns2socks
         ./scripts/feeds install -f -p passwall_packages ipt2socks
         ./scripts/feeds install -f -p passwall_packages microsocks
         ./scripts/feeds install -f -p passwall_packages tcping
+        ./scripts/feeds install -f -p passwall_packages sing-box
+        ./scripts/feeds install -f -p passwall_packages xray-core
         find . -type f -name "rule.lua"
         sed -i 's|https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat|https://github.com/najloa/geoip/releases/latest/download/geoip.dat|g' ./feeds/passwall/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
         sed -i 's|https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat|https://github.com/najloa/geoip/releases/latest/download/geosite.dat|g' ./feeds/passwall/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
