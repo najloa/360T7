@@ -32,89 +32,52 @@ jobs:
     - name: Clone source code
       run: |
         df -hT $PWD
-        wget -q https://downloads.openwrt.org/releases/23.05.0/targets/mediatek/filogic/openwrt-sdk-23.05.0-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64.tar.xz
-        tar -xJf openwrt-sdk-23.05.0-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+        git clone --depth=1 https://github.com/hanwckf/immortalwrt-mt798x.git
 
     - name: add feeds
       run: |
-        cd openwrt-sdk-23.05.0-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64
+        cd immortalwrt-mt798x
         echo "src-git passwall https://github.com/xiaorouji/openwrt-passwall.git;main" >> "feeds.conf.default"
         echo "src-git passwall_packages https://github.com/xiaorouji/openwrt-passwall-packages.git;main" >> "feeds.conf.default"
 
     - name: Update feeds
-      run: cd openwrt-sdk-23.05.0-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64 && ./scripts/feeds update -a
+      run: cd immortalwrt-mt798x && ./scripts/feeds update -a
+
+    - name: del
+      run: |
+        cd immortalwrt-mt798x
+        rm -rf ./feeds/luci/applications/luci-app-passwall
+        rm -rf ./feeds/packages/net/chinadns-ng
+        rm -rf ./feeds/packages/net/dns2socks
+        rm -rf ./feeds/packages/net/ipt2socks
+        rm -rf ./feeds/packages/net/microsocks
+        rm -rf ./feeds/packages/net/tcping
+        ./scripts/feeds install -f -p passwall luci-app-passwall
+        ./scripts/feeds install -f -p passwall_packages chinadns-ng
+        ./scripts/feeds install -f -p passwall_packages dns2socks
+        ./scripts/feeds install -f -p passwall_packages ipt2socks
+        ./scripts/feeds install -f -p passwall_packages microsocks
+        ./scripts/feeds install -f -p passwall_packages tcping
 
     - name: 替换GO版本
-      run: cd openwrt-sdk-23.05.0-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64 && git clone --depth 1 https://github.com/immortalwrt/packages.git package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && \cp -rf ./package/immortalwrt-packages/lang/golang ./feeds/packages/lang/ && rm -rf ./package/immortalwrt-packages
+      run: cd immortalwrt-mt798x && git clone --depth 1 https://github.com/immortalwrt/packages.git package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && \cp -rf ./package/immortalwrt-packages/lang/golang ./feeds/packages/lang/ && rm -rf ./package/immortalwrt-packages
 
-    - name: passwall
-      run: |
-        cd openwrt-sdk-23.05.0-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64
-        ./scripts/feeds install -a -f -p passwall_packages
-        ./scripts/feeds install luci-app-passwall
-        ./scripts/feeds install luci-base
-
-    #- name: 【步骤】
-      #run: echo "【输入q 然后cd openwrt-sdk-23.05.0-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64 && make menuconfig 结束sudo touch /continue】"
-    #- name: Setup tmate session # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
-      #uses: mxschmitt/action-tmate@v3
-      #timeout-minutes: 30
-
-    - name: build
-      run: |
-        cd openwrt-sdk-23.05.0-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64
-        \cp -f $GITHUB_WORKSPACE/config/ipk.config .config
-        make package/luci-base/compile V=99
-        make defconfig
-        make download -j8 V=s
-        find dl -size -1024c -exec ls -l {} \;
-        find dl -size -1024c -exec rm -f {} \;
-        # 替换规则
-        find . -type f -name "rule.lua"
-        sed -i 's|https://fastly.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geoip.dat|https://github.com/najloa/geoip/releases/latest/download/geoip.dat|g' ./feeds/passwall/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
-        sed -i 's|https://fastly.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geosite.dat|https://github.com/najloa/geoip/releases/latest/download/geosite.dat|g' ./feeds/passwall/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
-        sed -i 's|translate("Loyalsoldier/geosite")|translate("najloa/geosite")|g' ./feeds/passwall/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
-        sed -i 's|translate("Loyalsoldier/geoip")|translate("najloa/geoip")|g' ./feeds/passwall/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
-        sed -i 's|translate("Loyalsoldier/v2ray-rules-dat")|translate("najloa/v2ray-rules-dat")|g' ./feeds/passwall/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
-        sed -i 's|https://fastly.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/gfw.txt|https://raw.githubusercontent.com/najloa/geoip/rules/proxy-list.txt|g' ./feeds/passwall/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
-        sed -i 's|https://fastly.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geoip.dat|https://github.com/najloa/geoip/releases/latest/download/geoip.dat|g' ./feeds/passwall/luci-app-passwall/root/usr/share/passwall/0_default_config
-        sed -i 's|https://fastly.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geosite.dat|https://github.com/najloa/geoip/releases/latest/download/geosite.dat|g' ./feeds/passwall/luci-app-passwall/root/usr/share/passwall/0_default_config
-        sed -i 's|https://fastly.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/gfw.txt|https://raw.githubusercontent.com/najloa/geoip/rules/proxy-list.txt|g' ./feeds/passwall/luci-app-passwall/root/usr/share/passwall/0_default_config
-        sed -i 's|https://fastly.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geoip.dat|https://github.com/najloa/geoip/releases/latest/download/geoip.dat|g' ./feeds/passwall/luci-app-passwall/root/usr/share/passwall/rule_update.lua
-        sed -i 's|https://fastly.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geosite.dat|https://github.com/najloa/geoip/releases/latest/download/geosite.dat|g' ./feeds/passwall/luci-app-passwall/root/usr/share/passwall/rule_update.lua
-        sed -i 's|https://fastly.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/gfw.txt|https://raw.githubusercontent.com/najloa/geoip/rules/proxy-list.txt|g' ./feeds/passwall/luci-app-passwall/root/usr/share/passwall/rule_update.lua
-        sed -i 's|local excluded_domain = {[^}]*}|local excluded_domain = {}|g' ./feeds/passwall/luci-app-passwall/root/usr/share/passwall/rule_update.lua
-        #sed -i 's|GO_PKG_LDFLAGS_X:=$(GO_PKG)/constant.Version=v$(PKG_VERSION)|GO_PKG_LDFLAGS_X:=$(GO_PKG)/constant.Version=v$(PKG_VERSION) -s -w -buildid=|g' ./feeds/passwall_packages/sing-box/Makefile
-        #sed -i '61s/default y/default n/' ./feeds/passwall_packages/sing-box/Makefile
-        make package/luci-app-passwall/compile V=99
-        make package/geoview/compile V=99
-        make package/sing-box/compile V=99
-        #make package/xray-core/compile V=99
-
-    - name: Locate .ipk
-      run: |
-        mkdir -p ipk-out
-        find ./ -type f -name '*passwall*.ipk' -exec cp {} ipk-out/ \;
-        find ./ -type f -name '*geoview*.ipk' -exec cp {} ipk-out/ \;
-        find ./ -type f -name '*sing-box*.ipk' -exec cp {} ipk-out/ \;
-        #find ./ -type f -name '*xray-core*.ipk' -exec cp {} ipk-out/ \;
-
-    - name: Upload directory
-      uses: actions/upload-artifact@main
-      with:
-        name: ipk
-        path: ipk-out/
+    - name: 【步骤】
+      run: echo "【输入q 然后cd immortalwrt-mt798x && make menuconfig 结束sudo touch /continue】"
+    - name: Setup tmate session # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
+      uses: mxschmitt/action-tmate@v3
+      timeout-minutes: 30
 
     - name: config
       run: |
-        cd openwrt-sdk-23.05.0-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64
+        cd immortalwrt-mt798x
         cp -f .config ipk.config
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: config
-        path: openwrt-sdk-23.05.0-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64/ipk.config
+        path: immortalwrt-mt798x/ipk.config
 
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@main
