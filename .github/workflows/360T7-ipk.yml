@@ -103,6 +103,7 @@ jobs:
         mkdir -p ipk-out
         find ./ -type f -name '*passwall*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*geoview*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*chinadns-ng*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*sing-box*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*xray-core*.ipk' -exec cp {} ipk-out/ \;
 
