@@ -40,4 +40,4 @@ sed -i 's/ |$//' ./package/luci-theme-argon/luasrc/view/themes/argon/footer_logi
 sed -i 's/<%:Log in%>/<%:Login%>/' ./package/luci-theme-argon/luasrc/view/themes/argon/sysauth.htm
 sed -i 's|<%=media%>/img/argon\.svg||g' ./package/luci-theme-argon/luasrc/view/themes/argon/sysauth.htm
 # golang
-git clone --depth 1 https://github.com/immortalwrt/packages.git package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && \cp -rf ./package/immortalwrt-packages/lang/golang ./feeds/packages/lang/
+#git clone --depth 1 https://github.com/immortalwrt/packages.git package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && \cp -rf ./package/immortalwrt-packages/lang/golang ./feeds/packages/lang/
