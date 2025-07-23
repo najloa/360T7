@@ -60,8 +60,6 @@ jobs:
         cd openwrt
         # 删除旧包
         find . -type d -name "*passwall*"
-        find . -type d -name "*sing-box*"
-        sed -i 's/default y/default n/g' ./feeds/passwall_packages/sing-box/Makefile
         grep PKG_VERSION feeds/passwall/luci-app-passwall/Makefile
         rm -rf ./feeds/luci/applications/luci-app-passwall
         rm -rf ./feeds/packages/net/chinadns-ng
