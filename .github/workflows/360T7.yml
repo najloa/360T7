@@ -69,13 +69,14 @@ jobs:
         rm -rf ./feeds/packages/net/tcping
         #sed -i '/^GO_PKG_LDFLAGS_X:=/a\GO_PKG_LDFLAGS_EXTRA := -s -w -buildid=\nGO_PKG_LDFLAGS := $(GO_PKG_LDFLAGS_X) $(GO_PKG_LDFLAGS_EXTRA)' ./feeds/passwall_packages/sing-box/Makefile
         # 强制新包
-        #git clone -b 3466fbc849ffca621bbb141360b7b486522d4212 https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon && rm -rf ./feeds/luci/themes/luci-theme-argon && \cp -rf ./package/luci-theme-argon ./feeds/luci/themes/
-        ./scripts/feeds install -f -p passwall luci-app-passwall
-        ./scripts/feeds install -f -p passwall_packages chinadns-ng
-        ./scripts/feeds install -f -p passwall_packages dns2socks
-        ./scripts/feeds install -f -p passwall_packages ipt2socks
-        ./scripts/feeds install -f -p passwall_packages microsocks
-        ./scripts/feeds install -f -p passwall_packages tcping
+        #./scripts/feeds install -f -p passwall luci-app-passwall
+        #./scripts/feeds install -f -p passwall_packages chinadns-ng
+        #./scripts/feeds install -f -p passwall_packages dns2socks
+        #./scripts/feeds install -f -p passwall_packages ipt2socks
+        #./scripts/feeds install -f -p passwall_packages microsocks
+        #./scripts/feeds install -f -p passwall_packages tcping
+        # 指定版本
+        cd feeds/passwall && git checkout 3466fbc849ffca621bbb141360b7b486522d4212
         # 替换规则
         find . -type f -name "rule.lua"
         sed -i 's|https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat|https://github.com/najloa/geoip/releases/latest/download/geoip.dat|g' ./feeds/passwall/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
