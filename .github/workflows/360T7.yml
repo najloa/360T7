@@ -60,6 +60,7 @@ jobs:
         cd openwrt
         # 删除旧包
         find . -type d -name "*passwall*"
+        find . -type d -name "*sing-box*"
         grep PKG_VERSION feeds/passwall/luci-app-passwall/Makefile
         rm -rf ./feeds/luci/applications/luci-app-passwall
         rm -rf ./feeds/packages/net/chinadns-ng
@@ -67,6 +68,7 @@ jobs:
         rm -rf ./feeds/packages/net/ipt2socks
         rm -rf ./feeds/packages/net/microsocks
         rm -rf ./feeds/packages/net/tcping
+        sed -i '/^GO_PKG_LDFLAGS_X:=/ s/$/ -s -w -buildid=/' ./feeds/packages/net/sing-box/Makefile
         # 强制新包
         ./scripts/feeds install -f -p passwall luci-app-passwall
         ./scripts/feeds install -f -p passwall_packages chinadns-ng
