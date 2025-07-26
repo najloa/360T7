@@ -59,8 +59,7 @@ jobs:
       run: |
         cd openwrt
         # 删除旧包
-        find . -type d -name "*passwall*"
-        find . -type d -name "*sing-box*"
+        #find . -type d -name "*passwall*"
         grep PKG_VERSION feeds/passwall/luci-app-passwall/Makefile
         rm -rf ./feeds/luci/applications/luci-app-passwall
         rm -rf ./feeds/packages/net/chinadns-ng
@@ -76,6 +75,7 @@ jobs:
         ./scripts/feeds install -f -p passwall_packages ipt2socks
         ./scripts/feeds install -f -p passwall_packages microsocks
         ./scripts/feeds install -f -p passwall_packages tcping
+        find . -type d -name "*passwall*"
         # 替换规则
         find . -type f -name "rule.lua"
         sed -i 's|https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat|https://github.com/najloa/geoip/releases/latest/download/geoip.dat|g' ./feeds/passwall/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
