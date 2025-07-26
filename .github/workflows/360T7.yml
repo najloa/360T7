@@ -76,7 +76,7 @@ jobs:
         #./scripts/feeds install -f -p passwall_packages microsocks
         #./scripts/feeds install -f -p passwall_packages tcping
         # 指定版本
-        cd feeds/passwall && git fetch origin && git checkout 3466fbc849ffca621bbb141360b7b486522d4212
+        cd feeds/passwall && ls && git fetch --unshallow && git checkout 3466fbc849ffca621bbb141360b7b486522d4212
         # 替换规则
         find . -type f -name "rule.lua"
         sed -i 's|https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat|https://github.com/najloa/geoip/releases/latest/download/geoip.dat|g' ./feeds/passwall/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
