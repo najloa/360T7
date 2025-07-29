@@ -68,7 +68,7 @@ jobs:
         rm -rf ./feeds/packages/net/microsocks
         rm -rf ./feeds/packages/net/tcping
         # 指定版本
-        cd feeds/passwall && ls && git fetch --unshallow && git checkout 3466fbc849ffca621bbb141360b7b486522d4212 && cd ../../
+        #cd feeds/passwall && ls && git fetch --unshallow && git checkout 3466fbc849ffca621bbb141360b7b486522d4212 && cd ../../
         #sed -i '/^GO_PKG_LDFLAGS_X:=/a\GO_PKG_LDFLAGS_EXTRA := -s -w -buildid=\nGO_PKG_LDFLAGS := $(GO_PKG_LDFLAGS_X) $(GO_PKG_LDFLAGS_EXTRA)' ./feeds/passwall_packages/sing-box/Makefile
         # 强制新包
         ./scripts/feeds install -f -p passwall luci-app-passwall
