@@ -48,11 +48,12 @@ jobs:
         sed -i 's|^PKG_HASH:=.*|PKG_HASH:=5702724a05389957609e37cce0bc6ab1893ad740817859fabd36f40219bd0e15|' feeds/cdnspeedtest/cdnspeedtest/Makefile
         sed -i 's|^PKG_VERSION:=.*|PKG_VERSION:=2.3.2|' feeds/packages/net/cdnspeedtest/Makefile
         sed -i 's|^PKG_HASH:=.*|PKG_HASH:=5702724a05389957609e37cce0bc6ab1893ad740817859fabd36f40219bd0e15|' feeds/packages/net/cdnspeedtest/Makefile
-        mv ./config/cdnspeedtest.config immortalwrt-mt798x/.config
+        
 
     - name: cdnspeedtest
       run: |
         cd immortalwrt-mt798x
+        \cp -f $GITHUB_WORKSPACE/config/cdnspeedtest.config .config
         make defconfig
 
         make toolchain/install V=s
