@@ -45,9 +45,9 @@ jobs:
         ./scripts/feeds install -a
         ./scripts/feeds install golang cdnspeedtest
         sed -i 's|^PKG_VERSION:=.*|PKG_VERSION:=2.3.2|' feeds/cdnspeedtest/cdnspeedtest/Makefile
-        sed -i 's|^PKG_HASH:=.*|PKG_HASH:=5702724a05389957609e37cce0bc6ab1893ad740817859fabd36f40219bd0e15|' feeds/cdnspeedtest/cdnspeedtest/Makefile
+        sed -i 's|^PKG_HASH:=.*|PKG_HASH:=546ae853364c56f2acf2199a0f1bc0c657cdd3a84fbf11aa001c681078f54720|' feeds/cdnspeedtest/cdnspeedtest/Makefile
         sed -i 's|^PKG_VERSION:=.*|PKG_VERSION:=2.3.2|' feeds/packages/net/cdnspeedtest/Makefile
-        sed -i 's|^PKG_HASH:=.*|PKG_HASH:=5702724a05389957609e37cce0bc6ab1893ad740817859fabd36f40219bd0e15|' feeds/packages/net/cdnspeedtest/Makefile
+        sed -i 's|^PKG_HASH:=.*|PKG_HASH:=546ae853364c56f2acf2199a0f1bc0c657cdd3a84fbf11aa001c681078f54720|' feeds/packages/net/cdnspeedtest/Makefile
         
 
     - name: cdnspeedtest
