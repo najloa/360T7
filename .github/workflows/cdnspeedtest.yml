@@ -39,7 +39,7 @@ jobs:
       run: |
         git clone --depth=1 https://github.com/hanwckf/immortalwrt-mt798x.git immortalwrt-mt798x
         cd immortalwrt-mt798x
-        cp -f defconfig/mt7981-ax3000.config .config
+        #cp -f defconfig/mt7981-ax3000.config .config
         ./scripts/feeds update -a
         ./scripts/feeds install -a
         #find . -type d -name "cdnspeedtest"
@@ -80,6 +80,11 @@ jobs:
         name: ipk
         path: ipk-out/
 
+    - name: Delete workflow runs
+      uses: Mattraks/delete-workflow-runs@main
+      with:
+        retain_days: 0
+        keep_minimum_runs: 0
 #    - name: 【步骤】
 #      run: echo "【输入q 然后cd immortalwrt-mt798x && make menuconfig 结束sudo touch /continue】"
 #    - name: Setup tmate session # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
