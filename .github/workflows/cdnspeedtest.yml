@@ -52,20 +52,48 @@ jobs:
         sed -i 's|^PKG_VERSION:=.*|PKG_VERSION:=2.3.4|' package/cdnspeedtest/Makefile
         sed -i 's|^PKG_HASH:=.*|PKG_HASH:=2003440cc264b213eed55bd64939d2b270fd02b1f008d2b721debf01a88f4cb8|' package/cdnspeedtest/Makefile
         #./scripts/feeds install golang cdnspeedtest
-    - name: 【步骤】
-      run: echo "【输入q 然后cd immortalwrt-mt798x && make menuconfig 结束sudo touch /continue】"
-    - name: Setup tmate session # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
-      uses: mxschmitt/action-tmate@v3
-      timeout-minutes: 30
 
-    - name: config
+    - name: cdnspeedtest
       run: |
         cd immortalwrt-mt798x
-        cp -f .config cdnspeedtest.config
+        \cp -f $GITHUB_WORKSPACE/config/cdnspeedtest.config .config
+        make defconfig
+        make toolchain/install V=s
+        make target/compile V=s
+        make package/cdnspeedtest/compile V=s
+
+    - name: ipk
+      run: |
+        cd immortalwrt-mt798x
+        find ./staging_dir/ -name 'ld-musl-*.so*'
+        find ./ -type d -name '*cdnspeedtest*'
+        find ./ -type f -name '*cdnspeedtest*.ipk'
+
+    - name: Locate cdnspeedtest .ipk
+      run: |
+        mkdir -p ipk-out
+        find ./ -type f -name 'cdnspeedtest*.ipk' -exec cp {} ipk-out/ \;
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: config
-        path: immortalwrt-mt798x/cdnspeedtest.config
+        name: ipk
+        path: ipk-out/
+
+#    - name: 【步骤】
+#      run: echo "【输入q 然后cd immortalwrt-mt798x && make menuconfig 结束sudo touch /continue】"
+#    - name: Setup tmate session # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
+#      uses: mxschmitt/action-tmate@v3
+#      timeout-minutes: 30
+
+#    - name: config
+#      run: |
+#        cd immortalwrt-mt798x
+#        cp -f .config cdnspeedtest.config
+
+#    - name: Upload artifact
+#      uses: actions/upload-artifact@v4
+#      with:
+#        name: config
+#        path: immortalwrt-mt798x/cdnspeedtest.config
 
