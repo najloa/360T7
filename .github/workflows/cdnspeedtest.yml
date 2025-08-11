@@ -39,13 +39,18 @@ jobs:
       run: |
         git clone --depth=1 https://github.com/hanwckf/immortalwrt-mt798x.git immortalwrt-mt798x
         cd immortalwrt-mt798x
+        cp -f defconfig/mt7981-ax3000.config .config
         ./scripts/feeds update -a
         ./scripts/feeds install -a
+        #find . -type d -name "cdnspeedtest"
+        #./feeds/packages/net/cdnspeedtest
+        #./package/cdnspeedtest
+        #grep PKG_VERSION ./package/cdnspeedtest/Makefile
+        rm -rf ./feeds/packages/net/cdnspeedtest
         mkdir -p "package/cdnspeedtest"
         curl -fL "https://raw.githubusercontent.com/immortalwrt/packages/master/net/cdnspeedtest/Makefile" | sed 's,../../lang,$(TOPDIR)/feeds/packages/lang,' > "package/cdnspeedtest/Makefile"
-        
-        #sed -i 's|^PKG_VERSION:=.*|PKG_VERSION:=2.3.4|' package/cdnspeedtest/Makefile
-        #sed -i 's|^PKG_HASH:=.*|PKG_HASH:=2003440cc264b213eed55bd64939d2b270fd02b1f008d2b721debf01a88f4cb8|' package/cdnspeedtest/Makefile
+        sed -i 's|^PKG_VERSION:=.*|PKG_VERSION:=2.3.4|' package/cdnspeedtest/Makefile
+        sed -i 's|^PKG_HASH:=.*|PKG_HASH:=2003440cc264b213eed55bd64939d2b270fd02b1f008d2b721debf01a88f4cb8|' package/cdnspeedtest/Makefile
         #./scripts/feeds install golang cdnspeedtest
     - name: 【步骤】
       run: echo "【输入q 然后cd openwrt-sdk-23.05.0-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64 && make menuconfig 结束sudo touch /continue】"
