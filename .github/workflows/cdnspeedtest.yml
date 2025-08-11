@@ -53,7 +53,7 @@ jobs:
         sed -i 's|^PKG_HASH:=.*|PKG_HASH:=2003440cc264b213eed55bd64939d2b270fd02b1f008d2b721debf01a88f4cb8|' package/cdnspeedtest/Makefile
         #./scripts/feeds install golang cdnspeedtest
     - name: 【步骤】
-      run: echo "【输入q 然后cd openwrt-sdk-23.05.0-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64 && make menuconfig 结束sudo touch /continue】"
+      run: echo "【输入q 然后cd immortalwrt-mt798x && make menuconfig 结束sudo touch /continue】"
     - name: Setup tmate session # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
       uses: mxschmitt/action-tmate@v3
       timeout-minutes: 30
