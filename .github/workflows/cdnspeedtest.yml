@@ -39,41 +39,28 @@ jobs:
       run: |
         git clone --depth=1 https://github.com/hanwckf/immortalwrt-mt798x.git immortalwrt-mt798x
         cd immortalwrt-mt798x
-        echo "src-git cdnspeedtest https://github.com/immortalwrt-collections/openwrt-cdnspeedtest.git" >> "feeds.conf.default"
-
         ./scripts/feeds update -a
         ./scripts/feeds install -a
-        ./scripts/feeds install golang cdnspeedtest
-        sed -i 's|^PKG_VERSION:=.*|PKG_VERSION:=2.3.2|' feeds/cdnspeedtest/cdnspeedtest/Makefile
-        sed -i 's|^PKG_HASH:=.*|PKG_HASH:=c62cd85721421ca15952acfc00c188aa288c828c072d43b28190b7695bd30aba|' feeds/cdnspeedtest/cdnspeedtest/Makefile
-        sed -i 's|^PKG_VERSION:=.*|PKG_VERSION:=2.3.2|' feeds/packages/net/cdnspeedtest/Makefile
-        sed -i 's|^PKG_HASH:=.*|PKG_HASH:=c62cd85721421ca15952acfc00c188aa288c828c072d43b28190b7695bd30aba|' feeds/packages/net/cdnspeedtest/Makefile
+        mkdir -p "package/cdnspeedtest"
+        curl -fL "https://raw.githubusercontent.com/immortalwrt/packages/master/net/cdnspeedtest/Makefile" | sed 's,../../lang,$(TOPDIR)/feeds/packages/lang,' > "package/cdnspeedtest/Makefile"
         
+        #sed -i 's|^PKG_VERSION:=.*|PKG_VERSION:=2.3.4|' package/cdnspeedtest/Makefile
+        #sed -i 's|^PKG_HASH:=.*|PKG_HASH:=2003440cc264b213eed55bd64939d2b270fd02b1f008d2b721debf01a88f4cb8|' package/cdnspeedtest/Makefile
+        #./scripts/feeds install golang cdnspeedtest
+    - name: 【步骤】
+      run: echo "【输入q 然后cd openwrt-sdk-23.05.0-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64 && make menuconfig 结束sudo touch /continue】"
+    - name: Setup tmate session # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
+      uses: mxschmitt/action-tmate@v3
+      timeout-minutes: 30
 
-    - name: cdnspeedtest
+    - name: config
       run: |
         cd immortalwrt-mt798x
-        \cp -f $GITHUB_WORKSPACE/config/cdnspeedtest.config .config
-        make defconfig
-
-        make toolchain/install V=s
-        make target/compile V=s
-        make package/cdnspeedtest/compile V=s
-
-    - name: ipk
-      run: |
-        cd immortalwrt-mt798x
-        find ./staging_dir/ -name 'ld-musl-*.so*'
-        find ./ -type d -name '*cdnspeedtest*'
-        find ./ -type f -name '*cdnspeedtest*.ipk'
-
-    - name: Locate cdnspeedtest .ipk
-      run: |
-        mkdir -p ipk-out
-        find ./ -type f -name 'cdnspeedtest*.ipk' -exec cp {} ipk-out/ \;
+        cp -f .config cdnspeedtest.config
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ipk
-        path: ipk-out/
+        name: config
+        path: immortalwrt-mt798x/cdnspeedtest.config
+
