@@ -42,7 +42,10 @@ jobs:
           ./scripts/feeds install -f -p passwall_packages ipt2socks
           ./scripts/feeds install -f -p passwall_packages microsocks
           ./scripts/feeds install -f -p passwall_packages tcping
-          # argon主题
+
+      - name: argon
+        run: |
+          cd immortalwrt-mt798x
           find package -type d -name "*argon*"
           rm -rf ./feeds/luci/applications/luci-app-argon-config
           rm -rf ./feeds/luci/themes/luci-theme-argon
