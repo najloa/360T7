@@ -42,6 +42,12 @@ jobs:
           ./scripts/feeds install -f -p passwall_packages ipt2socks
           ./scripts/feeds install -f -p passwall_packages microsocks
           ./scripts/feeds install -f -p passwall_packages tcping
+          # argon主题
+          find package -type d -name "*argon*"
+          rm -rf ./feeds/luci/applications/luci-app-argon-config
+          rm -rf ./feeds/luci/themes/luci-theme-argon
+          git clone https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon && rm -rf ./feeds/luci/themes/luci-theme-argon && \cp -rf ./package/luci-theme-argon ./feeds/luci/themes/
+          git clone https://github.com/jerrykuku/luci-app-argon-config.git package/luci-app-argon-config && rm -rf ./feeds/luci/applications/luci-app-argon-config && \cp -rf ./package/luci-app-argon-config ./feeds/luci/applications/
 
       - name: install
         run: cd immortalwrt-mt798x && ./scripts/feeds install -a
