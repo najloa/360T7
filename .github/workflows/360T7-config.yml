@@ -43,20 +43,20 @@ jobs:
           ./scripts/feeds install -f -p passwall_packages microsocks
           ./scripts/feeds install -f -p passwall_packages tcping
 
+      - name: install
+        run: cd immortalwrt-mt798x && ./scripts/feeds install -a
+
+      - name: cp
+        run: cd immortalwrt-mt798x && cp -f defconfig/mt7981-ax3000.config .config
+
       - name: argon
         run: |
           cd immortalwrt-mt798x
           find package -type d -name "*argon*"
           rm -rf ./feeds/luci/applications/luci-app-argon-config
           rm -rf ./feeds/luci/themes/luci-theme-argon
-          git clone https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon && rm -rf ./feeds/luci/themes/luci-theme-argon && \cp -rf ./package/luci-theme-argon ./feeds/luci/themes/
-          git clone https://github.com/jerrykuku/luci-app-argon-config.git package/luci-app-argon-config && rm -rf ./feeds/luci/applications/luci-app-argon-config && \cp -rf ./package/luci-app-argon-config ./feeds/luci/applications/
-
-      - name: install
-        run: cd immortalwrt-mt798x && ./scripts/feeds install -a
-
-      - name: cp
-        run: cd immortalwrt-mt798x && cp -f defconfig/mt7981-ax3000.config .config
+          git clone https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon && rm -rf ./package/luci-theme-argon && rm -rf ./feeds/luci/themes/luci-theme-argon && \cp -rf ./package/luci-theme-argon ./feeds/luci/themes/
+          git clone https://github.com/jerrykuku/luci-app-argon-config.git package/luci-app-argon-config && rm -rf ./package/luci-app-argon-config && rm -rf ./feeds/luci/applications/luci-app-argon-config && \cp -rf ./package/luci-app-argon-config ./feeds/luci/applications/
 
       - name: 【步骤】
         run: echo "【输入q 然后cd immortalwrt-mt798x && make menuconfig 结束sudo touch /continue】"
