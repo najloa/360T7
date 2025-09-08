@@ -22,7 +22,9 @@ git clone https://github.com/xiaorouji/openwrt-passwall-packages package/passwal
 # 移除 openwrt feeds 过时的luci版本
 rm -rf feeds/luci/applications/luci-app-passwall
 git clone https://github.com/xiaorouji/openwrt-passwall package/passwall-luci
-git clone https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon
+# 移除 openwrt feeds 过时的luci版本
+rm -rf feeds/luci/themes/luci-theme-argon
+git clone https://github.com/jerrykuku/luci-theme-argon.git package/theme-argon
 
 # curl -s https://core.telegram.org/resources/cidr.txt > ./feeds/luci/applications/luci-app-passwall/root/usr/share/passwall/rules/proxy_ip
 # : > ./feeds/luci/applications/luci-app-passwall/root/usr/share/passwall/rules/chnlist
