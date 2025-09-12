@@ -30,6 +30,7 @@ https://github.com/najloa/geoip
 
 https://github.com/najloa/v2ray-rules-dat
 
+https://github.com/Loyalsoldier/domain-list-custom
 
 https://github.com/v2fly/domain-list-community
 
