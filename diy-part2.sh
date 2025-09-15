@@ -40,6 +40,9 @@ sed -i 's|local excluded_domain = {[^}]*}|local excluded_domain = {}|g' ./packag
 # curl -s https://core.telegram.org/resources/cidr.txt > ./feeds/passwall/luci-app-passwall/root/usr/share/passwall/rules/proxy_ip
 # : > ./feeds/passwall/luci-app-passwall/root/usr/share/passwall/rules/proxy_host
 
+find . -type f -name "luci.mk"
+sed -i 's/LuCI \$\$branch branch/LuCI \$\$branch/' ./feeds/luci/luci.mk
+
 # argon主题
 # find -type d -name "*argon*"
 # rm -rf feeds/luci/themes/luci-theme-argon
@@ -58,9 +61,9 @@ rm -f ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/fonts/TypoGr
 sed -i 's/TypoGraphica/QuicksandLight/' ./feeds/luci/themes/luci-theme-argon/less/fonts.less
 
 # 登录界面版本信息优化
-sed -i 's/ ([<]%=\s*ver\.luciversion\s*%>)//g' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/footer_login.htm
-sed -i '/<%= ver\.distversion %>/d' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/footer_login.htm
-sed -i 's/ |$//' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/footer_login.htm
+sed -i 's/ (<%= ver\.luciversion %>)//g' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/footer_login.htm
+sed -i 's/[[:space:]]*<%= ver\.distversion %>[[:space:]]*//g' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/footer_login.htm
+sed -i 's#</a>[[:space:]]*/[[:space:]]*#</a>#g' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/footer_login.htm
 sed -i 's|<%=media%>/img/argon\.svg||g' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/sysauth.htm
 # sed -i 's/<%:Log in%>/<%:Login%>/' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/sysauth.htm
 # golang
