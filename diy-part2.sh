@@ -70,8 +70,8 @@ sed -i 's/ (<%= ver\.luciversion %>)//g' ./feeds/luci/themes/luci-theme-argon/lu
 sed -i 's/[[:space:]]*<%= ver\.distversion %>[[:space:]]*//g' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/footer_login.htm
 sed -i 's#</a>[[:space:]]*/[[:space:]]*#</a>#g' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/footer_login.htm
 sed -i 's|<%=media%>/img/argon\.svg||g' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/sysauth.htm
-find . -type f -name "luci.mk"
-sed -i 's/LuCI \$\$branch branch/LuCI \$\$branch/' ./feeds/luci/luci.mk
+#find . -type f -name "luci.mk"
+#sed -i 's/LuCI \$\$branch branch/LuCI \$\$branch/' ./feeds/luci/luci.mk
 # sed -i 's/<%:Log in%>/<%:Login%>/' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/sysauth.htm
 # golang
 git clone --depth 1 https://github.com/immortalwrt/packages.git package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && \cp -rf ./package/immortalwrt-packages/lang/golang ./feeds/packages/lang/ && rm -rf ./package/immortalwrt-packages
