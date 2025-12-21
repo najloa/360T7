@@ -12,36 +12,14 @@ jobs:
 
       - name: Initialization environment
         run: |
-          sudo -E apt-get -qq install ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential bzip2 ccache cmake cpio curl device-tree-compiler fastjar flex gawk gettext gcc-multilib g++-multilib git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libfuse-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libpython3-dev libreadline-dev libssl-dev libtool lrzsz mkisofs msmtp ninja-build p7zip p7zip-full patch pkgconf python2.7 python3 python3-pyelftools python3-setuptools qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev
-          #sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
+          #sudo -E apt-get -qq install ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential bzip2 ccache cmake cpio curl device-tree-compiler fastjar flex gawk gettext gcc-multilib g++-multilib git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libfuse-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libpython3-dev libreadline-dev libssl-dev libtool lrzsz mkisofs msmtp ninja-build p7zip p7zip-full patch pkgconf python2.7 python3 python3-pyelftools python3-setuptools qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev
+          sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
 
       - name: download
         run: git clone https://github.com/hanwckf/immortalwrt-mt798x.git
 
-      # - name: feed
-      #   run: |
-      #     cd immortalwrt-mt798x
-      #     echo "src-git passwall https://github.com/xiaorouji/openwrt-passwall.git;main" >> "feeds.conf.default"
-      #     echo "src-git passwall_packages https://github.com/xiaorouji/openwrt-passwall-packages.git;main" >> "feeds.conf.default"
-
       - name: update
         run: cd immortalwrt-mt798x && ./scripts/feeds update -a
-
-      # - name: del
-      #   run: |
-      #     cd immortalwrt-mt798x
-      #     rm -rf ./feeds/luci/applications/luci-app-passwall
-      #     rm -rf ./feeds/packages/net/chinadns-ng
-      #     rm -rf ./feeds/packages/net/dns2socks
-      #     rm -rf ./feeds/packages/net/ipt2socks
-      #     rm -rf ./feeds/packages/net/microsocks
-      #     rm -rf ./feeds/packages/net/tcping
-      #     ./scripts/feeds install -f -p passwall luci-app-passwall
-      #     ./scripts/feeds install -f -p passwall_packages chinadns-ng
-      #     ./scripts/feeds install -f -p passwall_packages dns2socks
-      #     ./scripts/feeds install -f -p passwall_packages ipt2socks
-      #     ./scripts/feeds install -f -p passwall_packages microsocks
-      #     ./scripts/feeds install -f -p passwall_packages tcping
 
       - name: install
         run: cd immortalwrt-mt798x && ./scripts/feeds install -a
@@ -68,13 +46,13 @@ jobs:
       - name: config
         run: |
           cd immortalwrt-mt798x
-          cp -f .config hanwckf.config
+          cp -f .config 360T7.config
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: hanwckf
-          path: immortalwrt-mt798x/hanwckf.config
+          path: immortalwrt-mt798x/360T7.config
 
       - name: Delete workflow runs
         uses: Mattraks/delete-workflow-runs@main
