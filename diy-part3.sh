@@ -44,6 +44,9 @@ git clone https://github.com/jerrykuku/luci-app-argon-config.git package/luci-ap
 
 # golang
 git clone --depth 1 https://github.com/immortalwrt/packages.git package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && \cp -rf ./package/immortalwrt-packages/lang/golang ./feeds/packages/lang/ && rm -rf ./package/immortalwrt-packages
+# upx
+upx --version
+sed -i '/\$(1)\/usr\/bin\//a \\t-upx -6 $(1)/usr/bin/geoview' package/passwall-packages/geoview/Makefile
 
         # 删除旧包
         # find . -type d -name "*passwall*"
