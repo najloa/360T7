@@ -62,8 +62,8 @@ sed -i 's|local excluded_domain = {[^}]*}|local excluded_domain = {}|g' ./packag
 rm -f ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/fonts/TypoGraphica*
 \cp -f $GITHUB_WORKSPACE/argon/fonts/* ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/fonts
 \cp -f $GITHUB_WORKSPACE/argon/cascade.css ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/css/cascade.css
-\cp -f $GITHUB_WORKSPACE/argon/cascade.less ./feeds/luci/themes/luci-theme-argon/less/cascade.less
-sed -i 's/TypoGraphica/QuicksandLight/' ./feeds/luci/themes/luci-theme-argon/less/fonts.less
+#\cp -f $GITHUB_WORKSPACE/argon/cascade.less ./feeds/luci/themes/luci-theme-argon/less/cascade.less
+#sed -i 's/TypoGraphica/QuicksandLight/' ./feeds/luci/themes/luci-theme-argon/less/fonts.less
 
 # 登录界面版本信息优化
 sed -i 's/ (<%= ver\.luciversion %>)//g' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/footer_login.htm
