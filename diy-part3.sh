@@ -41,6 +41,14 @@ git clone https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-a
 git clone https://github.com/jerrykuku/luci-app-argon-config.git package/luci-app-argon-config
 # 替换默认背景
 \cp -f $GITHUB_WORKSPACE/argon/bg1.jpg ./package/luci-theme-argon/htdocs/luci-static/argon/img/bg1.jpg
+# 替换字体
+rm -f ./package/luci-theme-argon/htdocs/luci-static/argon/fonts/TypoGraphica*
+\cp -f $GITHUB_WORKSPACE/argon/fonts/* ./package/luci-theme-argon/htdocs/luci-static/argon/fonts
+\cp -f $GITHUB_WORKSPACE/argon/cascade.css ./package/luci-theme-argon/htdocs/luci-static/argon/css/cascade.css
+# 登录界面版本信息优化
+sed -i '/version\.distversion/d' ./package/luci-theme-argon/ucode/template/themes/argon/footer_login.ut
+sed -i 's|https://github.com/openwrt/luci|{{ version.disturl }}|g; s|{{ version.luciname }} ({{ version.luciversion }})|Openwrt 24.10|g' ./package/luci-theme-argon/ucode/template/themes/argon/footer_login.ut
+sed -i 's|{{ media }}/img/argon\.svg||g' ./package/luci-theme-argon/ucode/template/themes/argon/sysauth.ut
 
 # golang
 git clone --depth 1 https://github.com/immortalwrt/packages.git package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && \cp -rf ./package/immortalwrt-packages/lang/golang ./feeds/packages/lang/ && rm -rf ./package/immortalwrt-packages
