@@ -33,6 +33,10 @@ sed -i '/MetaCubeX\/geoip (CDN)"/a\	o:value("https://github.com/najloa/geoip/rel
 sed -i '/gfwlist\/gfwlist"/a\o:value("https://github.com/najloa/geoip/releases/latest/download/proxy.txt", translate("najloa/proxy"))' ./package/passwall-luci/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
 sed -i 's|local excluded_domain = {[^}]*}|local excluded_domain = {}|g' ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rule_update.lua
 
+curl -s https://core.telegram.org/resources/cidr.txt | \
+grep -vxFf ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/proxy_ip >> \
+./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/proxy_ip
+
 # argon主题
 # find -type d -name "*argon*"
 rm -rf feeds/luci/themes/luci-theme-argon
@@ -55,6 +59,7 @@ sed -i 's|a:link,a:visited,a:active{color:var(--primary)|a:link,a:visited,a:acti
 sed -i '/version\.distversion/d' ./package/luci-theme-argon/ucode/template/themes/argon/footer_login.ut
 sed -i 's|https://github.com/openwrt/luci|{{ version.disturl }}|g; s|{{ version.luciname }} ({{ version.luciversion }})|Openwrt 24.10|g' ./package/luci-theme-argon/ucode/template/themes/argon/footer_login.ut
 sed -i 's|{{ media }}/img/argon\.svg||g' ./package/luci-theme-argon/ucode/template/themes/argon/sysauth.ut
+sed -i 's/UHD/1920x1080/d' ./package/luci-theme-argon/root/usr/libexec/rpcd/luci.argon_wallpaper
 
 # golang
 git clone --depth 1 https://github.com/immortalwrt/packages.git package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && \cp -rf ./package/immortalwrt-packages/lang/golang ./feeds/packages/lang/ && rm -rf ./package/immortalwrt-packages
