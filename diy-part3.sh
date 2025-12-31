@@ -59,7 +59,7 @@ sed -i 's|a:link,a:visited,a:active{color:var(--primary)|a:link,a:visited,a:acti
 sed -i '/version\.distversion/d' ./package/luci-theme-argon/ucode/template/themes/argon/footer_login.ut
 sed -i 's|https://github.com/openwrt/luci|{{ version.disturl }}|g; s|{{ version.luciname }} ({{ version.luciversion }})|Openwrt 24.10|g' ./package/luci-theme-argon/ucode/template/themes/argon/footer_login.ut
 sed -i 's|{{ media }}/img/argon\.svg||g' ./package/luci-theme-argon/ucode/template/themes/argon/sysauth.ut
-sed -i 's/UHD/1920x1080/d' ./package/luci-theme-argon/root/usr/libexec/rpcd/luci.argon_wallpaper
+sed -i 's/UHD/1920x1080/' ./package/luci-theme-argon/root/usr/libexec/rpcd/luci.argon_wallpaper
 
 # golang
 git clone --depth 1 https://github.com/immortalwrt/packages.git package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && \cp -rf ./package/immortalwrt-packages/lang/golang ./feeds/packages/lang/ && rm -rf ./package/immortalwrt-packages
