@@ -23,6 +23,10 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@main
+    - uses: actions/setup-go@v6
+      with:
+        go-version: 'stable' # Latest stable version
+    - run: go version
 
     - name: Initialization environment
       env:
