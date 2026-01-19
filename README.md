@@ -2,7 +2,8 @@ https://github.com/padavanonly/immortalwrt-mt798x-6.6
 
 https://github.com/hanwckf/immortalwrt-mt798x
 
-https://github.com/xiaorouji/openwrt-passwall
+[https://github.com/xiaorouji/openwrt-passwall
+](https://github.com/Openwrt-Passwall/openwrt-passwall)
 
 https://github.com/nikkinikki-org/OpenWrt-nikki
 
