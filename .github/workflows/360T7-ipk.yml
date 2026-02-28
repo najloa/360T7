@@ -37,15 +37,11 @@ jobs:
     - name: add feeds
       run: |
         cd immortalwrt-mt798x
-        echo "src-git passwall https://github.com/xiaorouji/openwrt-passwall.git;main" >> "feeds.conf.default"
-        echo "src-git passwall_packages https://github.com/xiaorouji/openwrt-passwall-packages.git;main" >> "feeds.conf.default"
+        src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main
+        src-git passwall_luci https://github.com/Openwrt-Passwall/openwrt-passwall.git;main
 
     - name: Update feeds
       run: cd immortalwrt-mt798x && ./scripts/feeds update -a
-
-    - name: del
-      run: |
-        cd immortalwrt-mt798x
 
     - name: install
       run: cd immortalwrt-mt798x && ./scripts/feeds install -a
