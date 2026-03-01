@@ -55,15 +55,37 @@ jobs:
         git clone https://github.com/Openwrt-Passwall/openwrt-passwall package/passwall-luci
         cp -f defconfig/mt7981-ax3000.config .config
 
-        rm -rf feeds/packages/net/smartdns
-        git clone https://github.com/immortalwrt/packages.git tmp_smartdns
-        \cp -rf tmp_smartdns/net/smartdns/ feeds/packages/net/smartdns/
-        rm -rf tmp_smartdns
-        
-        rm -rf feeds/luci/applications/luci-app-smartdns
-        git clone https://github.com/immortalwrt/luci.git tmp_smartdns2
-        \cp -rf tmp_smartdns2/applications/luci-app-smartdns/ feeds/luci/applications/luci-app-smartdns/
-        rm -rf tmp_smartdns2
+        # 1. 替换版本号为日期变量
+        sed -i 's/^PKG_VERSION:=.*/PKG_VERSION:=$(shell date +%Y.%m.%d)/' feeds/packages/net/smartdns/Makefile
+        # 2. 删除源码压缩包定义
+        sed -i '/^PKG_SOURCE:=/d' feeds/packages/net/smartdns/Makefile
+        # 3. 删除原下载地址
+        sed -i '/^PKG_SOURCE_URL:=/d' feeds/packages/net/smartdns/Makefile
+        # 4. 删除安全校验 hash
+        sed -i '/^PKG_HASH:=/d' feeds/packages/net/smartdns/Makefile
+        # 5. 删除原构建目录定义
+        sed -i '/^PKG_BUILD_DIR:=/d' feeds/packages/net/smartdns/Makefile
+        # 6. 插入 git 下载配置（在 PKG_RELEASE 后插入）
+        sed -i '/^PKG_RELEASE:=/a \
+        \
+        PKG_SOURCE_PROTO:=git\
+        PKG_SOURCE_URL:=https://github.com/pymumu/smartdns.git\
+        PKG_SOURCE_VERSION:=HEAD\
+        PKG_SOURCE_SUBDIR:=$(PKG_NAME)-git\
+        PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_SOURCE_SUBDIR)\
+        ' feeds/packages/net/smartdns/Makefile
+
+        sed -i 's|$(INSTALL_CONF) $(CURDIR)/conf/custom.conf $(1)/etc/smartdns/custom.conf|$(INSTALL_CONF) $(PKG_BUILD_DIR)/package/openwrt/custom.conf $(1)/etc/smartdns/custom.conf|' feeds/packages/net/smartdns/Makefile
+        sed -i 's|$(INSTALL_CONF) $(CURDIR)/conf/smartdns.conf $(1)/etc/config/smartdns|$(INSTALL_CONF) $(PKG_BUILD_DIR)/package/openwrt/files/etc/config/smartdns $(1)/etc/config/smartdns|' feeds/packages/net/smartdns/Makefile
+        sed -i 's|DEPENDS:=+libpthread +libopenssl|DEPENDS:=+libpthread +libopenssl +libatomic|' feeds/packages/net/smartdns/Makefile
+
+        rm -rf feeds/packages/net/smartdns/conf
+
+
+        #rm -rf feeds/luci/applications/luci-app-smartdns
+        #git clone https://github.com/immortalwrt/luci.git tmp_smartdns2
+        #\cp -rf tmp_smartdns2/applications/luci-app-smartdns/ feeds/luci/applications/luci-app-smartdns/
+        #rm -rf tmp_smartdns2
 
     - name: install
       run: cd immortalwrt-mt798x && ./scripts/feeds install -a
