@@ -60,9 +60,9 @@ jobs:
         \cp -rf tmp_smartdns/net/smartdns/ feeds/packages/net/smartdns/
         rm -rf tmp_smartdns
         
-        rm -rf feeds/applications/luci-app-smartdns
+        rm -rf feeds/luci/applications/luci-app-smartdns
         git clone https://github.com/immortalwrt/luci.git tmp_smartdns2
-        \cp -rf tmp_smartdns2/applications/luci-app-smartdns/ feeds/applications/luci-app-smartdns/
+        \cp -rf tmp_smartdns2/applications/luci-app-smartdns/ feeds/luci/applications/luci-app-smartdns/
         rm -rf tmp_smartdns2
 
     - name: install
