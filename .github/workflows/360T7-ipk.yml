@@ -71,46 +71,24 @@ jobs:
     - name: golang
       run: cd immortalwrt-mt798x && rm -rf ./feeds/packages/lang/golang && git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 25.x feeds/packages/lang/golang
 
-    - name: build
+
+
+    - name: 【步骤】
+      run: echo "【输入q 然后cd immortalwrt-mt798x && make menuconfig 结束sudo touch /continue】"
+    - name: Setup tmate session # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
+      uses: mxschmitt/action-tmate@v3
+      timeout-minutes: 30
+
+    - name: config
       run: |
         cd immortalwrt-mt798x
-        \cp -f $GITHUB_WORKSPACE/config/ipk.config .config
-        make defconfig
-        make download -j8
-        find dl -size -1024c -exec ls -l {} \;
-        find dl -size -1024c -exec rm -f {} \;
-        make -j$(nproc) || make -j1 || make -j1 V=s
+        cp -f .config ipk.config
 
-    - name: Locate .ipk
-      run: |
-        mkdir -p ipk-out
-        find ./ -type f -name '*smartdns*.ipk' -exec cp {} ipk-out/ \;
-        find ./ -type f -name '*sing-box*.ipk' -exec cp {} ipk-out/ \;
-        find ./ -type f -name '*singbox*.ipk' -exec cp {} ipk-out/ \;
-        find ./ -type f -name '*xray*.ipk' -exec cp {} ipk-out/ \;
-
-    - name: Upload directory
-      uses: actions/upload-artifact@main
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
       with:
-        name: ipk
-        path: ipk-out/
-
-#    - name: 【步骤】
-#      run: echo "【输入q 然后cd immortalwrt-mt798x && make menuconfig 结束sudo touch /continue】"
-#    - name: Setup tmate session # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
-#      uses: mxschmitt/action-tmate@v3
-#      timeout-minutes: 30
-
-#    - name: config
-#      run: |
-#        cd immortalwrt-mt798x
-#        cp -f .config ipk.config
-
-#    - name: Upload artifact
-#      uses: actions/upload-artifact@v4
-#      with:
-#        name: config
-#        path: immortalwrt-mt798x/ipk.config
+        name: config
+        path: immortalwrt-mt798x/ipk.config
 
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@main
