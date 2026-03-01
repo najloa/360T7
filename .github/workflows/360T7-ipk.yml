@@ -37,6 +37,10 @@ jobs:
     - name: Update feeds
       run: cd immortalwrt-mt798x && ./scripts/feeds update -a
 
+
+    - name: smartdns
+      run: find . -type f -name "smartdns"
+
     - name: passwall
       run: |
         cd immortalwrt-mt798x
@@ -47,17 +51,17 @@ jobs:
         rm -rf feeds/luci/applications/luci-app-passwall
         git clone https://github.com/Openwrt-Passwall/openwrt-passwall package/passwall-luci
         cp -f defconfig/mt7981-ax3000.config .config
-        find . -type f -name "smartdns"
+
         rm -rf feeds/packages/net/smartdns
         mkdir -p feeds/packages/net/smartdns
         git clone https://github.com/immortalwrt/packages.git tmp_smartdns
-        cp -r tmp_smartdns/package/net/smartdns/* feeds/packages/net/smartdns/
+        \cp -f tmp_smartdns/net/smartdns/ feeds/packages/net/smartdns/
         rm -rf tmp_smartdns
         
         rm -rf feeds/applications/luci-app-smartdns
         mkdir -p feeds/applications/luci-app-smartdns
         git clone https://github.com/immortalwrt/luci.git tmp_smartdns2
-        cp -r tmp_smartdns2/applications/luci-app-smartdns/* feeds/applications/luci-app-smartdns/
+        \cp -f tmp_smartdns2/applications/luci-app-smartdns/* feeds/applications/luci-app-smartdns/
         rm -rf tmp_smartdns2
 
     - name: install
