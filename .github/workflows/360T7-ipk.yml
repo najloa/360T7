@@ -1,4 +1,4 @@
-#name: 360T7-ipk
+name: 360T7-ipk
 
 on:
   repository_dispatch:
@@ -39,7 +39,10 @@ jobs:
 
 
     - name: smartdns
-      run: find . -type f -name "smartdns"
+      run: |
+        cd immortalwrt-mt798x
+        find . -type d -name "*smartdns*"
+        find . -type f -name "*smartdns*"
 
     - name: passwall
       run: |
