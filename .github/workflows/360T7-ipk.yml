@@ -108,7 +108,6 @@ jobs:
         find ./ -type f -name '*smartdns*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*geoview*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*sing-box*.ipk' -exec cp {} ipk-out/ \;
-        find ./ -type f -name '*singbox*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*xray*.ipk' -exec cp {} ipk-out/ \;
 
     - name: Upload directory
