@@ -68,5 +68,6 @@ rm -rf ./feeds/packages/lang/golang && git clone --depth 1 https://github.com/sb
 # git clone --depth 1 https://github.com/immortalwrt/packages.git package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && \cp -rf ./package/immortalwrt-packages/lang/golang ./feeds/packages/lang/ && rm -rf ./package/immortalwrt-packages
 # upx
 # upx --version
-sed -i '/\$(1)\/usr\/bin\//a \\t-upx -6 $(1)/usr/bin/geoview' package/passwall-packages/geoview/Makefile
-sed -i '/\$(1)\/usr\/bin\//a \\t-upx -6 $(1)/usr/bin/xray' package/passwall-packages/xray-core/Makefile
+sed -i '/\$(1)\/usr\/bin\//a \\t-upx $(1)/usr/bin/geoview' package/passwall-packages/geoview/Makefile
+sed -i '/\$(1)\/usr\/bin\//a \\t-upx $(1)/usr/bin/xray' package/passwall-packages/xray-core/Makefile
+sed -i '/define Package\/sing-box\/install/a \\\tupx $(1)/usr/bin/sing-box' package/passwall-packages/sing-box/Makefile
