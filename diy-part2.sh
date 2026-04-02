@@ -16,6 +16,11 @@ sed -i 's/immortalwrt.lan/openwrt.lan/' ./feeds/luci/modules/luci-mod-system/htd
 sed -i 's/encryption=none/encryption=sae-mixed/' ./package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
 sed -i '/encryption=sae-mixed/a \ \ \ \ set wireless.default_${dev}.key=blue1235' ./package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
 
+sed -i 's/ImmortalWrt/OpenWrt/' ./config/Config-images.in
+sed -i 's/"ImmortalWrt"/"OpenWrt"/' ./package/base-files/image-config.in
+sed -i 's/ImmortalWrt/OpenWrt/' ./package/kernel/mac80211/files/lib/wifi/mac80211.sh
+sed -i 's/ImmortalWrt/OpenWrt/' ./package/mtk/applications/luci-app-mtwifi-cfg/root/usr/share/luci-app-mtwifi-cfg/wireless-mtk.js
+
 # 移除 openwrt feeds 自带的核心库
 rm -rf feeds/packages/net/{xray-core,v2ray-geodata,sing-box,chinadns-ng,dns2socks,hysteria,ipt2socks,microsocks,naiveproxy,shadowsocks-libev,shadowsocks-rust,shadowsocksr-libev,simple-obfs,tcping,trojan-plus,tuic-client,v2ray-plugin,xray-plugin,geoview,shadow-tls}
 git clone https://github.com/Openwrt-Passwall/openwrt-passwall-packages package/passwall-packages
@@ -58,9 +63,10 @@ sed -i 's|<%=media%>/img/argon\.svg||g' ./feeds/luci/themes/luci-theme-argon/lua
 # sed -i 's/<%:Log in%>/<%:Login%>/' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/sysauth.htm
 
 # golang
-rm -rf ./feeds/packages/lang/golang && git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 25.x feeds/packages/lang/golang
+rm -rf ./feeds/packages/lang/golang && git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
 # sed -i '/^PKG_MIRROR_HASH:=/d' ./package/passwall-packages/tcping/Makefile
 # git clone --depth 1 https://github.com/immortalwrt/packages.git package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && \cp -rf ./package/immortalwrt-packages/lang/golang ./feeds/packages/lang/ && rm -rf ./package/immortalwrt-packages
 # upx
 # upx --version
-# sed -i '/\$(1)\/usr\/bin\//a \\t-upx -6 $(1)/usr/bin/geoview' package/passwall-packages/geoview/Makefile
+sed -i '/\$(1)\/usr\/bin\//a \\t-upx -6 $(1)/usr/bin/geoview' package/passwall-packages/geoview/Makefile
+sed -i '/\$(1)\/usr\/bin\//a \\t-upx -6 $(1)/usr/bin/xray' package/passwall-packages/xray-core/Makefile
