@@ -81,10 +81,16 @@ jobs:
 
         rm -rf feeds/packages/net/smartdns/conf
 
-        #rm -rf feeds/luci/applications/luci-app-smartdns
-        #git clone -b openwrt-24.10 https://github.com/immortalwrt/luci.git tmp_smartdns2
-        #\cp -rf tmp_smartdns2/applications/luci-app-smartdns/ feeds/luci/applications/luci-app-smartdns/
-        #rm -rf tmp_smartdns2
+        rm -rf feeds/luci/applications/luci-app-smartdns
+        git clone -b master https://github.com/immortalwrt/luci.git tmp_smartdns2
+        \cp -rf tmp_smartdns2/applications/luci-app-smartdns/ feeds/luci/applications/luci-app-smartdns/
+        # 版本 https://github.com/immortalwrt/luci/blob/openwrt-21.02/applications/luci-app-smartdns/Makefile
+        sed -i '/^LUCI_DEPENDS:=+smartdns/,/include \.\.\/\.\.\/luci.mk/c\
+        LUCI_DEPENDS:=+smartdns\
+        LUCI_PKGARCH:=all\
+        \
+        include ../../luci.mk' feeds/luci/applications/luci-app-smartdns/Makefile
+        rm -rf tmp_smartdns2
 
     - name: install
       run: cd immortalwrt-mt798x && ./scripts/feeds install -a
