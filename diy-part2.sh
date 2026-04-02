@@ -35,9 +35,9 @@ sed -i '/ChinaMax_Domain"/a\o:value("https://github.com/najloa/geoip/releases/la
 sed -i '/MetaCubeX\/geosite (CDN)"/a\	o:value("https://github.com/najloa/geoip/releases/latest/download/geosite.dat", translate("najloa/geosite"))' ./package/passwall-luci/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
 sed -i '/MetaCubeX\/geoip (CDN)"/a\	o:value("https://github.com/najloa/geoip/releases/latest/download/geoip.dat", translate("najloa/geoip"))' ./package/passwall-luci/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
 sed -i 's|local excluded_domain = {[^}]*}|local excluded_domain = {}|g' ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rule_update.lua
- > ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/proxy_host
- > ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/direct_host
- > ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/chnlist
+# > ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/proxy_host
+# > ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/direct_host
+# > ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/chnlist
 curl -s https://core.telegram.org/resources/cidr.txt > ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/proxy_ip
 
 # argon主题
@@ -68,6 +68,6 @@ rm -rf ./feeds/packages/lang/golang && git clone --depth 1 https://github.com/sb
 # git clone --depth 1 https://github.com/immortalwrt/packages.git package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && \cp -rf ./package/immortalwrt-packages/lang/golang ./feeds/packages/lang/ && rm -rf ./package/immortalwrt-packages
 # upx
 # upx --version
-sed -i '/\$(1)\/usr\/bin\//a \\t-upx $(1)/usr/bin/geoview' package/passwall-packages/geoview/Makefile
-sed -i '/\$(1)\/usr\/bin\//a \\t-upx $(1)/usr/bin/xray' package/passwall-packages/xray-core/Makefile
-sed -i '/define Package\/sing-box\/install/a \\\tupx $(1)/usr/bin/sing-box' package/passwall-packages/sing-box/Makefile
+# sed -i '/\$(1)\/usr\/bin\//a \\t-upx $(1)/usr/bin/geoview' package/passwall-packages/geoview/Makefile
+# sed -i '/\$(1)\/usr\/bin\//a \\t-upx $(1)/usr/bin/xray' package/passwall-packages/xray-core/Makefile
+# sed -i '/define Package\/sing-box\/install/a \\\tupx $(1)/usr/bin/sing-box' package/passwall-packages/sing-box/Makefile
