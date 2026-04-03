@@ -131,11 +131,37 @@ jobs:
         find ./ -type f -name '*xray*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*sing-box*.ipk' -exec cp {} ipk-out/ \;
 
-    - name: Upload directory
-      uses: actions/upload-artifact@main
+    - name: Get latest release tag
+      id: get_latest
+      run: |
+        response=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest)
+        tag=$(echo "$response" | jq -r .tag_name)
+
+        if [ "$tag" = "null" ] || [ -z "$tag" ]; then
+          echo "No release found"
+          exit 1
+        fi
+
+        echo "tag=$tag" >> $GITHUB_OUTPUT
+
+    - name: Pack IPK files (zip)
+      run: |
+        cd ipk-out
+        zip -r ../ipk-bundle.zip .
+
+    - name: Upload to latest release
+      uses: softprops/action-gh-release@v1
       with:
-        name: ipk
-        path: ipk-out/
+        tag_name: ${{ steps.get_latest.outputs.tag }}
+        files: ipk-out/ipk-bundle.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+#    - name: Upload directory
+#      uses: actions/upload-artifact@main
+#      with:
+#        name: ipk
+#        path: ipk-out/
 
 #    - name: 【步骤】
 #      run: echo "【输入q 然后cd immortalwrt-mt798x && make menuconfig 结束sudo touch /continue】"
