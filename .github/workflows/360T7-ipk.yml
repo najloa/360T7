@@ -17,6 +17,50 @@ jobs:
         go-version: 'stable'
     - run: go version
 
+
+
+    - name: Restore Go cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Restore ccache
+      uses: actions/cache@v4
+      with:
+        path: ~/.ccache
+        key: ${{ runner.os }}-ccache-${{ hashFiles('config/360T7_ipk.config') }}
+        restore-keys: |
+          ${{ runner.os }}-ccache-
+
+    - name: Restore build caches (dl and build_dir)
+      uses: actions/cache@v4
+      with:
+        path: |
+          immortalwrt-mt798x/dl
+          immortalwrt-mt798x/build_dir
+        key: ${{ runner.os }}-immortalwrt-dl-${{ hashFiles('config/360T7_ipk.config') }}
+        restore-keys: |
+          ${{ runner.os }}-immortalwrt-dl-
+
+    - name: Restore Go module cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+        key: ${{ runner.os }}-go-mod-${{ hashFiles('go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-mod-
+
+
+
+
+
     - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
@@ -25,8 +69,8 @@ jobs:
         sudo docker image prune --all --force
         sudo -E apt-get -qq update
         sudo -E apt-get -qq install ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential bzip2 ccache cmake cpio curl device-tree-compiler fastjar flex gawk gettext gcc-multilib g++-multilib git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libfuse-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libpython3-dev libreadline-dev libssl-dev libtool lrzsz mkisofs msmtp ninja-build p7zip p7zip-full patch pkgconf python2.7 python3 python3-pyelftools python3-setuptools qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev
-        sudo -E apt-get -qq autoremove --purge
-        sudo -E apt-get -qq clean
+        #sudo -E apt-get -qq autoremove --purge
+        #sudo -E apt-get -qq clean
         sudo timedatectl set-timezone "Asia/Shanghai"
 
     - name: Clone source code
@@ -36,12 +80,6 @@ jobs:
 
     - name: Update feeds
       run: cd immortalwrt-mt798x && ./scripts/feeds update -a
-
-    - name: smartdns
-      run: |
-        cd immortalwrt-mt798x
-        find . -type d -name "*smartdns*"
-        find . -type f -name "*smartdns*"
 
     - name: passwall
       run: |
@@ -147,13 +185,13 @@ jobs:
     - name: Pack IPK files (zip)
       run: |
         cd ipk-out
-        zip -r ../ipk-bundle.zip .
+        zip -r ../ipk.zip .
 
     - name: Upload to latest release
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ steps.get_latest.outputs.tag }}
-        files: ipk-bundle.zip
+        files: ipk.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
