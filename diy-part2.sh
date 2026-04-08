@@ -40,7 +40,7 @@ sed -i '/encryption=sae-mixed/a \ \ \ \ set wireless.default_${dev}.key=blue1235
 # > ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/chnlist
 # curl -s https://core.telegram.org/resources/cidr.txt > ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/proxy_ip
 
-# argon主题
+# argon主题 https://github.com/immortalwrt/luci/tree/openwrt-21.02/themes/luci-theme-argon
 # 替换默认背景
 \cp -f $GITHUB_WORKSPACE/argon/bg1.jpg ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/img/bg1.jpg
 # 替换字体
