@@ -1,7 +1,6 @@
 name: 360T7-ipk
 
 on:
-  repository_dispatch:
   workflow_dispatch:
 
 jobs:
@@ -16,8 +15,6 @@ jobs:
       with:
         go-version: 'stable'
     - run: go version
-
-
 
     - name: Restore Go cache
       uses: actions/cache@v4
@@ -57,10 +54,6 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-mod-
 
-
-
-
-
     - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
@@ -99,8 +92,6 @@ jobs:
         sed -i 's|local excluded_domain = {[^}]*}|local excluded_domain = {}|g' ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rule_update.lua
         > ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/chnlist
         curl -s https://core.telegram.org/resources/cidr.txt > ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/proxy_ip
-
-        #cp -f defconfig/mt7981-ax3000.config .config
 
         # 1. 替换版本号为日期变量
         sed -i 's/^PKG_VERSION:=.*/PKG_VERSION:=$(shell date +%Y.%m.%d)/' feeds/packages/net/smartdns/Makefile
