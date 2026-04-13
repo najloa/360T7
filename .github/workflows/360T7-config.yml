@@ -16,7 +16,7 @@ jobs:
         sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
 
     - name: download
-      run: git clone https://github.com/hanwckf/immortalwrt-mt798x.git
+      run: git clone --depth=1 https://github.com/hanwckf/immortalwrt-mt798x.git
 
     - name: update
       run: cd immortalwrt-mt798x && ./scripts/feeds update -a
