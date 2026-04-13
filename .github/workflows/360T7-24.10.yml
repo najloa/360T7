@@ -1,14 +1,13 @@
 name: 360T7-24.10
 
 on:
-  repository_dispatch:
   workflow_dispatch:
 
 env:
   REPO_URL: https://github.com/padavanonly/immortalwrt-mt798x-6.6
   REPO_BRANCH: openwrt-24.10-6.6
   FEEDS_CONF: feeds.conf.default
-  CONFIG_FILE: ./config/360T7-24.10.config
+  CONFIG_FILE: ./config/360T7_24.10PW_DEPENDS.config
   DIY_P1_SH: diy-part1.sh
   DIY_P2_SH: diy-part3.sh
   UPLOAD_BIN_DIR: false
@@ -23,6 +22,10 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@main
+    - uses: actions/setup-go@v6
+      with:
+        go-version: 'stable' # Latest stable version
+    - run: go version
 
     - name: Initialization environment
       env:
