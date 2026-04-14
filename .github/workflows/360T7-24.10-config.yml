@@ -55,13 +55,13 @@ jobs:
     - name: config
       run: |
         cd immortalwrt-mt798x
-        cp -f .config 360T7-24.10.config
+        cp -f .config 360T7-2410.config
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: 360T7
-        path: immortalwrt-mt798x/360T7-24.10.config
+        path: immortalwrt-mt798x/360T7-2410.config
 
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@main
