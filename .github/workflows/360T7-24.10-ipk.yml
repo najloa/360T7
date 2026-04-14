@@ -74,6 +74,9 @@ jobs:
     - name: Update feeds
       run: cd immortalwrt-mt798x && ./scripts/feeds update -a
 
+    - name: install
+      run: cd immortalwrt-mt798x && ./scripts/feeds install -a
+
     - name: passwall
       run: |
         cd immortalwrt-mt798x
@@ -92,9 +95,6 @@ jobs:
         sed -i 's|local excluded_domain = {[^}]*}|local excluded_domain = {}|g' ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rule_update.lua
         > ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/chnlist
         curl -s https://core.telegram.org/resources/cidr.txt > ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/proxy_ip
-
-    - name: install
-      run: cd immortalwrt-mt798x && ./scripts/feeds install -a
 
     - name: golang
       run: cd immortalwrt-mt798x && rm -rf ./feeds/packages/lang/golang && git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
