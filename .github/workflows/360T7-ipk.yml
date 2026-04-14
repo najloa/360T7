@@ -16,44 +16,6 @@ jobs:
         go-version: 'stable'
     - run: go version
 
-    - name: Restore Go cache
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-
-    - name: Restore ccache
-      uses: actions/cache@v4
-      with:
-        path: ~/.ccache
-        key: ${{ runner.os }}-ccache-${{ hashFiles('config/360T7_ipk.config') }}
-        restore-keys: |
-          ${{ runner.os }}-ccache-
-
-    - name: Restore build caches (dl and build_dir)
-      uses: actions/cache@v4
-      with:
-        path: |
-          immortalwrt-mt798x/dl
-          immortalwrt-mt798x/build_dir
-        key: ${{ runner.os }}-immortalwrt-dl-${{ hashFiles('config/360T7_ipk.config') }}
-        restore-keys: |
-          ${{ runner.os }}-immortalwrt-dl-
-
-    - name: Restore Go module cache
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/go/pkg/mod
-          ~/.cache/go-build
-        key: ${{ runner.os }}-go-mod-${{ hashFiles('go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-mod-
-
     - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
