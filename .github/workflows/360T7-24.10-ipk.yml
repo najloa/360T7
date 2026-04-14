@@ -60,7 +60,7 @@ jobs:
       run: |
         cd immortalwrt-mt798x
         find . -type d -name 'golang'
-        rm -rf ./feeds/packages/lang/golang/golang && mv ./feeds/packages/lang/golang/golang1.26 ./feeds/packages/lang/golang/golang
+        rm -rf ./feeds/packages/lang/golang/golang && mv /feeds/packages/lang/golang/golang1.26 /feeds/packages/lang/golang/golang
 
     - name: build
       run: |
