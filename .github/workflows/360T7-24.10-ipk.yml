@@ -56,10 +56,16 @@ jobs:
         > ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/chnlist
         curl -s https://core.telegram.org/resources/cidr.txt > ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/proxy_ip
 
+    - name: go
+      run: |
+        cd immortalwrt-mt798x
+        find . -type d -name 'golang'
+        rm -rf ./feeds/packages/lang/golang/golang && mv ./feeds/packages/lang/golang/golang1.26 ./feeds/packages/lang/golang/golang
+
     - name: build
       run: |
         cd immortalwrt-mt798x
-        \cp -f $GITHUB_WORKSPACE/config/360T7_24.10_ipk.config .config
+        \cp -f $GITHUB_WORKSPACE/config/360T7_2410_ipk.config .config
         make defconfig
         make download -j8
         find dl -size -1024c -exec ls -l {} \;
