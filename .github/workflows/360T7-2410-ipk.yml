@@ -1,4 +1,4 @@
-name: 360T7-24.10-ipk
+name: 360T7-2410-ipk
 
 on:
   workflow_dispatch:
@@ -6,36 +6,24 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-
     steps:
     - name: Checkout
       uses: actions/checkout@main
-    - name: go
-      uses: actions/setup-go@v6
-      with:
-        go-version: 'stable'
-    - run: go version
 
     - name: Initialization environment
-      env:
-        DEBIAN_FRONTEND: noninteractive
-      run: |
-        sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-        sudo docker image prune --all --force
-        sudo -E apt-get -qq update
-        sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
-        sudo -E apt-get -qq autoremove --purge
-        sudo -E apt-get -qq clean
-        sudo timedatectl set-timezone "Asia/Shanghai"
+      run: sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
 
-    - name: Clone source code
-      run: git clone -b openwrt-24.10-6.6 --single-branch --filter=blob:none https://github.com/padavanonly/immortalwrt-mt798x-24.10 immortalwrt-mt798x
+    - name: download
+      run: git clone https://github.com/padavanonly/immortalwrt-mt798x-6.6 immortalwrt-mt798x
 
-    - name: Update feeds
+    - name: update
       run: cd immortalwrt-mt798x && ./scripts/feeds update -a
 
     - name: install
       run: cd immortalwrt-mt798x && ./scripts/feeds install -a
+
+    - name: cp
+      run: cd immortalwrt-mt798x && cp -f $GITHUB_WORKSPACE/config/360T7_2410_ipk.config .config
 
     - name: passwall
       run: |
@@ -56,20 +44,19 @@ jobs:
         > ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/chnlist
         curl -s https://core.telegram.org/resources/cidr.txt > ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/proxy_ip
 
-    - name: go
-      run: |
-        cd immortalwrt-mt798x
-        git clone --depth 1 https://github.com/immortalwrt/packages.git package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && \cp -rf ./package/immortalwrt-packages/lang/golang ./feeds/packages/lang/golang && rm -rf ./package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang/golang && mv ./feeds/packages/lang/golang/golang1.26 ./feeds/packages/lang/golang/golang
+    #- name: go
+    #  run: |
+    #    cd immortalwrt-mt798x
+    #    git clone --depth 1 https://github.com/immortalwrt/packages.git package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && \cp -rf ./package/immortalwrt-packages/lang/golang ./feeds/packages/lang/golang && rm -rf ./package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang/golang && mv ./feeds/packages/lang/golang/golang1.26 ./feeds/packages/lang/golang/golang
 
     - name: build
       run: |
         cd immortalwrt-mt798x
-        \cp -f $GITHUB_WORKSPACE/config/360T7_2410_ipk.config .config
         make defconfig
         make download -j8
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
-        make -j$(nproc) || make -j1 || make -j1 V=s
+        make -j1 V=s
 
     - name: Locate .ipk
       run: |
