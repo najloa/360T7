@@ -46,7 +46,6 @@ jobs:
 
     - name: go
       run: |
-        help2man --version
         cd immortalwrt-mt798x
         git clone --depth 1 https://github.com/immortalwrt/packages.git package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && \cp -rf ./package/immortalwrt-packages/lang/golang ./feeds/packages/lang/golang && rm -rf ./package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang/golang && mv ./feeds/packages/lang/golang/golang1.26 ./feeds/packages/lang/golang/golang
 
