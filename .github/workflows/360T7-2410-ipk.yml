@@ -44,19 +44,24 @@ jobs:
         > ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/chnlist
         curl -s https://core.telegram.org/resources/cidr.txt > ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/proxy_ip
 
-    #- name: go
-    #  run: |
-    #    cd immortalwrt-mt798x
-    #    git clone --depth 1 https://github.com/immortalwrt/packages.git package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && \cp -rf ./package/immortalwrt-packages/lang/golang ./feeds/packages/lang/golang && rm -rf ./package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang/golang && mv ./feeds/packages/lang/golang/golang1.26 ./feeds/packages/lang/golang/golang
+    - name: go
+      run: |
+        cd immortalwrt-mt798x
+        git clone --depth 1 https://github.com/immortalwrt/packages.git package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && \cp -rf ./package/immortalwrt-packages/lang/golang ./feeds/packages/lang/golang && rm -rf ./package/immortalwrt-packages
+        ## && rm -rf ./feeds/packages/lang/golang/golang && mv ./feeds/packages/lang/golang/golang1.26 ./feeds/packages/lang/golang/golang
 
-    - name: build
+    - name: package
       run: |
         cd immortalwrt-mt798x
         make defconfig
         make download -j8
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
-        make -j1 V=s
+
+    - name: Compile the firmware
+      run: |
+        cd immortalwrt-mt798x
+        make -j$(nproc) || make -j1 || make -j1 V=s
 
     - name: Locate .ipk
       run: |
