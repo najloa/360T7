@@ -19,6 +19,12 @@ jobs:
     - name: Checkout
       uses: actions/checkout@main
 
+    - name: Cache APT
+      uses: actions/cache@v4
+      with:
+        path: /var/cache/apt/archives
+        key: ${{ runner.os }}-apt-v1
+
     - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
@@ -42,6 +48,32 @@ jobs:
       run: |
         git clone $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
+
+    - name: Cache dl
+      uses: actions/cache@v4
+      with:
+        path: immortalwrt-mt798x/dl
+        key: ${{ runner.os }}-dl-${{ hashFiles('**/*.config') }}
+        restore-keys: |
+          ${{ runner.os }}-dl-
+
+    - name: Cache ccache
+      uses: actions/cache@v4
+      with:
+        path: ~/.ccache
+        key: ${{ runner.os }}-ccache-${{ hashFiles('**/*.config') }}
+        restore-keys: |
+          ${{ runner.os }}-ccache-
+
+    - name: Cache toolchain
+      uses: actions/cache@v4
+      with:
+        path: |
+          immortalwrt-mt798x/staging_dir
+          immortalwrt-mt798x/toolchain
+        key: ${{ runner.os }}-toolchain-${{ hashFiles('**/*.config') }}
+        restore-keys: |
+          ${{ runner.os }}-toolchain-
 
     - name: Load custom feeds
       run: |
