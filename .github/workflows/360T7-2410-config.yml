@@ -10,6 +10,12 @@ jobs:
     - name: Checkout
       uses: actions/checkout@main
 
+    - name: Cache APT
+      uses: actions/cache@v4
+      with:
+        path: /var/cache/apt/archives
+        key: ${{ runner.os }}-apt-v1
+
     - name: Initialization environment
       run: |
         sudo apt full-upgrade -y
@@ -54,5 +60,5 @@ jobs:
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@main
       with:
-        retain_days: 0
-        keep_minimum_runs: 0
+        retain_days: 30
+        keep_minimum_runs: 6
