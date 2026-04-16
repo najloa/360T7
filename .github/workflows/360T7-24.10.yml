@@ -1,4 +1,4 @@
-name: 360T7-24.10
+name: 360T7-2410
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ env:
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: ./config/360T7_2410_ipk.config
   DIY_P1_SH: diy-part1.sh
-  DIY_P2_SH: diy-part3.sh
+  DIY_P2_SH: diy-part1.sh
   UPLOAD_BIN_DIR: false
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: true
