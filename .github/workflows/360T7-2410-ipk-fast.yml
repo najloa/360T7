@@ -10,12 +10,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@main
 
-    - name: Cache APT
-      uses: actions/cache@v4
-      with:
-        path: /var/cache/apt/archives
-        key: ${{ runner.os }}-apt-v1
-
     - name: Initialization environment
       run: |
         sudo apt update -y
@@ -31,32 +25,6 @@ jobs:
 
     - name: download
       run: git clone -b openwrt-24.10-6.6 --single-branch --filter=blob:none https://github.com/padavanonly/immortalwrt-mt798x-6.6 immortalwrt-mt798x
-
-    - name: Cache dl
-      uses: actions/cache@v4
-      with:
-        path: immortalwrt-mt798x/dl
-        key: ${{ runner.os }}-dl-${{ hashFiles('**/*.config') }}
-        restore-keys: |
-          ${{ runner.os }}-dl-
-
-    - name: Cache ccache
-      uses: actions/cache@v4
-      with:
-        path: ~/.ccache
-        key: ${{ runner.os }}-ccache-${{ hashFiles('**/*.config') }}
-        restore-keys: |
-          ${{ runner.os }}-ccache-
-
-    - name: Cache toolchain
-      uses: actions/cache@v4
-      with:
-        path: |
-          immortalwrt-mt798x/staging_dir
-          immortalwrt-mt798x/toolchain
-        key: ${{ runner.os }}-toolchain-${{ hashFiles('**/*.config') }}
-        restore-keys: |
-          ${{ runner.os }}-toolchain-
 
     - name: Update feeds
       run: cd immortalwrt-mt798x && ./scripts/feeds update -a
@@ -76,7 +44,6 @@ jobs:
         cp -f $GITHUB_WORKSPACE/config/360T7_2410_ipk.config .config
         echo "CONFIG_CCACHE=y" >> .config
         make defconfig
-        ccache -M 2G || true
         make download -j$(nproc)
         find dl -size -1024c -exec rm -f {} \;
 
