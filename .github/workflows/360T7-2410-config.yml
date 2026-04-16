@@ -1,4 +1,4 @@
-name: 360T7-24.10-config
+name: 360T7-2410-config
 
 on:
   workflow_dispatch:
