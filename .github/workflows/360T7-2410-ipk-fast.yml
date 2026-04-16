@@ -1,0 +1,130 @@
+name: 360T7-2410-ipk-fast
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@main
+
+    - name: Cache APT
+      uses: actions/cache@v4
+      with:
+        path: /var/cache/apt/archives
+        key: ${{ runner.os }}-apt-v1
+
+    - name: Initialization environment
+      run: sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
+
+    - name: download
+      run: git clone -b openwrt-24.10-6.6 --depth 1 https://github.com/padavanonly/immortalwrt-mt798x-6.6 immortalwrt-mt798x-ipk-fast
+
+    - name: Cache dl
+      uses: actions/cache@v4
+      with:
+        path: immortalwrt-mt798x-ipk-fast/dl
+        key: dl-${{ runner.os }}
+
+    - name: Cache ccache
+      uses: actions/cache@v4
+      with:
+        path: ~/.ccache
+        key: ccache-${{ runner.os }}
+
+    - name: Cache toolchain
+      uses: actions/cache@v4
+      with:
+        path: |
+          immortalwrt-mt798x-ipk-fast/staging_dir
+          immortalwrt-mt798x-ipk-fast/toolchain
+        key: toolchain-${{ runner.os }}
+
+    - name: Feeds
+      run: |
+        cd immortalwrt-mt798x-ipk-fast
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+
+    - name: Replace golang
+      run: |
+        cd immortalwrt-mt798x-ipk-fast
+        rm -rf feeds/packages/lang/golang
+        git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
+
+    - name: Config
+      run: |
+        cd immortalwrt-mt798x-ipk-fast
+        cat <<EOF > .config
+        CONFIG_CCACHE=y
+        EOF
+        make defconfig
+
+    - name: Download
+      run: |
+        cd immortalwrt-mt798x-ipk-fast
+        ccache -M 2G || true
+        make download -j$(nproc)
+        find dl -size -1024c -delete
+
+    - name: Toolchain
+      run: |
+        cd immortalwrt-mt798x-ipk-fast
+        make toolchain/install -j$(nproc)
+
+    - name: Target minimal
+      run: |
+        cd immortalwrt-mt798x-ipk-fast
+        make target/compile -j$(nproc)
+
+    - name: Build passwall
+      run: |
+        cd immortalwrt-mt798x-ipk-fast
+        make package/luci-app-passwall/compile -j$(nproc) V=s
+
+    - name: Build xray
+      run: |
+        cd immortalwrt-mt798x-ipk-fast
+        make package/xray-core/compile -j$(nproc) V=s
+
+    - name: Locate ipk
+      run: |
+        mkdir -p ipk-out
+        find ./ -type f -name '*passwall*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*smartdns*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*chinadns-ng*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*dns2socks*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*geoview*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*ipt2socks*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*microsocks*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*tcping*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*xray*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*sing-box*.ipk' -exec cp {} ipk-out/ \;
+
+    - name: Get latest release tag
+      id: get_latest
+      run: |
+        response=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest)
+        tag=$(echo "$response" | jq -r .tag_name)
+
+        if [ "$tag" = "null" ] || [ -z "$tag" ]; then
+          echo "No release found"
+          exit 1
+        fi
+
+        echo "tag=$tag" >> $GITHUB_OUTPUT
+
+    - name: Pack IPK files (zip)
+      run: |
+        cd ipk-out
+        zip -r ../ipk2410.zip .
+
+    - name: Upload to latest release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.get_latest.outputs.tag }}
+        files: ipk2410.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
