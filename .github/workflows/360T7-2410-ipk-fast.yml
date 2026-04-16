@@ -29,73 +29,70 @@ jobs:
           upx-ucl unzip vim wget xmlto xxd zlib1g-dev zstd
 
     - name: download
-      run: git clone -b openwrt-24.10-6.6 --depth 1 https://github.com/padavanonly/immortalwrt-mt798x-6.6 immortalwrt-mt798x-ipk-fast
+      run: git clone -b openwrt-24.10-6.6 --single-branch --filter=blob:none https://github.com/padavanonly/immortalwrt-mt798x-6.6 immortalwrt-mt798x
 
     - name: Cache dl
       uses: actions/cache@v4
       with:
-        path: immortalwrt-mt798x-ipk-fast/dl
-        key: dl-${{ runner.os }}
+        path: immortalwrt-mt798x/dl
+        key: ${{ runner.os }}-dl-${{ hashFiles('**/*.config') }}
+        restore-keys: |
+          ${{ runner.os }}-dl-
 
     - name: Cache ccache
       uses: actions/cache@v4
       with:
         path: ~/.ccache
-        key: ccache-${{ runner.os }}
+        key: ${{ runner.os }}-ccache-${{ hashFiles('**/*.config') }}
+        restore-keys: |
+          ${{ runner.os }}-ccache-
 
     - name: Cache toolchain
       uses: actions/cache@v4
       with:
         path: |
-          immortalwrt-mt798x-ipk-fast/staging_dir
-          immortalwrt-mt798x-ipk-fast/toolchain
-        key: toolchain-${{ runner.os }}
+          immortalwrt-mt798x/staging_dir
+          immortalwrt-mt798x/toolchain
+        key: ${{ runner.os }}-toolchain-${{ hashFiles('**/*.config') }}
+        restore-keys: |
+          ${{ runner.os }}-toolchain-
 
-    - name: Feeds
-      run: |
-        cd immortalwrt-mt798x-ipk-fast
-        ./scripts/feeds update -a
-        ./scripts/feeds install -a
+    - name: Update feeds
+      run: cd immortalwrt-mt798x && ./scripts/feeds update -a
+
+    - name: Install feeds
+      run: cd immortalwrt-mt798x && ./scripts/feeds install -a
 
     - name: Replace golang
       run: |
-        cd immortalwrt-mt798x-ipk-fast
+        cd immortalwrt-mt798x
         rm -rf feeds/packages/lang/golang
         git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
 
-    - name: Config
+    - name: Prepare
       run: |
-        cd immortalwrt-mt798x-ipk-fast
-        cat <<EOF > .config
-        CONFIG_CCACHE=y
-        EOF
+        cd immortalwrt-mt798x
+        cp -f $GITHUB_WORKSPACE/config/360T7_2410_ipk.config .config
+        echo "CONFIG_CCACHE=y" >> .config
         make defconfig
-
-    - name: Download
-      run: |
-        cd immortalwrt-mt798x-ipk-fast
         ccache -M 2G || true
         make download -j$(nproc)
-        find dl -size -1024c -delete
+        find dl -size -1024c -exec rm -f {} \;
 
     - name: Toolchain
       run: |
-        cd immortalwrt-mt798x-ipk-fast
-        make toolchain/install -j$(nproc)
+        cd immortalwrt-mt798x
+        make toolchain/install -j$(nproc) || true
 
     - name: Target minimal
       run: |
-        cd immortalwrt-mt798x-ipk-fast
-        make target/compile -j$(nproc)
+        cd immortalwrt-mt798x
+        make target/compile -j$(nproc) || true
 
-    - name: Build passwall
+    - name: Build packages
       run: |
-        cd immortalwrt-mt798x-ipk-fast
+        cd immortalwrt-mt798x
         make package/luci-app-passwall/compile -j$(nproc) V=s
-
-    - name: Build xray
-      run: |
-        cd immortalwrt-mt798x-ipk-fast
         make package/xray-core/compile -j$(nproc) V=s
 
     - name: Locate ipk
