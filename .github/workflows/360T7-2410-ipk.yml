@@ -100,31 +100,9 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-#    - name: Upload directory
-#      uses: actions/upload-artifact@main
-#      with:
-#        name: ipk
-#        path: ipk-out/
-
-#    - name: 【步骤】
-#      run: echo "【输入q 然后cd immortalwrt-mt798x && make menuconfig 结束sudo touch /continue】"
-#    - name: Setup tmate session # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
-#      uses: mxschmitt/action-tmate@v3
-#      timeout-minutes: 30
-
-#    - name: config
-#      run: |
-#        cd immortalwrt-mt798x
-#        cp -f .config ipk.config
-
-#    - name: Upload artifact
-#      uses: actions/upload-artifact@v4
-#      with:
-#        name: config
-#        path: immortalwrt-mt798x/ipk.config
-
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@main
       with:
-        retain_days: 0
-        keep_minimum_runs: 0
+        retain_days: 30
+        keep_minimum_runs: 6
+        delete_workflow_pattern: 360T7-2410-ipk
