@@ -84,7 +84,7 @@ jobs:
     - name: Generate tag
       id: tag
       run: |
-        echo "release_tag=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+        echo "release_tag=$(date +'%Y-%m-%d-%H-%M')" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to release
       uses: softprops/action-gh-release@v3
@@ -100,7 +100,7 @@ jobs:
       uses: ophub/delete-releases-workflows@main
       with:
         delete_releases: true
-        releases_keep_latest: 5
+        releases_keep_latest: 2
         delete_workflows: true
         workflows_keep_day: 30
         gh_token: ${{ secrets.GITHUB_TOKEN }}
