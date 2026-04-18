@@ -11,32 +11,22 @@ jobs:
       uses: actions/checkout@main
 
     - name: Initialization environment
-      run: |
-        sudo apt update -y
-        sudo apt full-upgrade -y
-        sudo apt install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
-          bzip2 ccache clang cmake cpio curl device-tree-compiler ecj fastjar flex gawk gettext gcc-multilib \
-          g++-multilib git gnutls-dev gperf haveged help2man intltool lib32gcc-s1 libc6-dev-i386 libelf-dev \
-          libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses-dev libpython3-dev \
-          libreadline-dev libssl-dev libtool libyaml-dev libz-dev lld llvm lrzsz mkisofs msmtp nano \
-          ninja-build p7zip p7zip-full patch pkgconf python3 python3-pip python3-ply python3-docutils \
-          python3-pyelftools qemu-utils re2c rsync scons squashfs-tools subversion swig texinfo uglifyjs \
-          upx-ucl unzip vim wget xmlto xxd zlib1g-dev zstd
+      run: sudo bash -c 'bash <(curl -sL https://build-scripts.immortalwrt.eu.org/init_build_environment.sh)'
 
     - name: download
-      run: git clone -b openwrt-24.10-6.6 --single-branch --filter=blob:none https://github.com/padavanonly/immortalwrt-mt798x-6.6 immortalwrt-mt798x
+      run: git clone --depth=1 https://github.com/padavanonly/immortalwrt-mt798x-6.6.git
 
     - name: update
-      run: cd immortalwrt-mt798x && ./scripts/feeds update -a
+      run: cd immortalwrt-mt798x-6.6 && ./scripts/feeds update -a
 
     - name: install
-      run: cd immortalwrt-mt798x && ./scripts/feeds install -a
+      run: cd immortalwrt-mt798x-6.6 && ./scripts/feeds install -a
 
     - name: Replace
       run: |
-        cd immortalwrt-mt798x
-        rm -rf feeds/packages/lang/golang
-        git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
+        cd immortalwrt-mt798x-6.6
+        cp -f defconfig/mt7981-ax3000.config .config
+        rm -rf ./feeds/packages/lang/golang && git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
         # 移除 openwrt feeds 自带的核心库
         rm -rf feeds/packages/net/{xray-core,v2ray-geodata,sing-box,chinadns-ng,dns2socks,hysteria,ipt2socks,microsocks,naiveproxy,shadowsocks-libev,shadowsocks-rust,shadowsocksr-libev,simple-obfs,tcping,trojan-plus,tuic-client,v2ray-plugin,xray-plugin,geoview,shadow-tls}
         git clone https://github.com/Openwrt-Passwall/openwrt-passwall-packages package/passwall-packages
@@ -44,18 +34,15 @@ jobs:
         rm -rf feeds/luci/applications/luci-app-passwall
         git clone https://github.com/Openwrt-Passwall/openwrt-passwall package/passwall-luci
 
-    - name: cp
-      run: cd immortalwrt-mt798x && cp -f defconfig/mt7981-ax3000.config .config
-
     - name: 【步骤】
-      run: echo "【输入q 然后cd immortalwrt-mt798x && make menuconfig 结束sudo touch /continue】"
+      run: echo "【输入q 然后cd immortalwrt-mt798x-6.6 && make menuconfig 结束sudo touch /continue】"
     - name: Setup tmate session # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
       uses: mxschmitt/action-tmate@v3
       timeout-minutes: 45
 
     - name: config
       run: |
-        cd immortalwrt-mt798x
+        cd immortalwrt-mt798x-6.6
         cp -f .config 360T7_2410.config
 
     - name: Upload artifact
