@@ -110,7 +110,7 @@ sed -i '/\.cbi-button-apply:hover/,/}/c\
 .login-page .login-container .login-form .cbi-button-apply:hover {\
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);\
 }' ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/css/cascade.css
-# 登录界面底部
+# 登录页底部
 sed -i '/a:active {/,/}/ s/var(--primary)/#dddddd/g' ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/css/cascade.css
 sed -i '/<footer/,/<\/footer>/ { /<a class="luci-link"/d }' ./feeds/luci/themes/luci-theme-argon/ucode/template/themes/argon/footer_login.ut
-sed -i 's|<%=media%>/img/argon\.svg||g' ./feeds/luci/themes/luci-theme-argon/ucode/template/themes/argon/sysauth.ut
+sed -i 's#<img src="{{ media }}/img/argon.svg" class="icon">##g' ./feeds/luci/themes/luci-theme-argon/ucode/template/themes/argon/sysauth.ut
