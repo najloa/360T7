@@ -49,7 +49,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: 360T7_2410
-        path: immortalwrt-mt798x/360T7_2410.config
+        path: immortalwrt-mt798x-6.6/360T7_2410.config
 
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@main
