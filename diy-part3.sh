@@ -61,16 +61,55 @@ sed -i '/\.main-left \.sidenav-header \.brand {/,/}/c\
   -webkit-text-fill-color: transparent;\
   animation: shine 5s linear infinite;\
 }' ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/css/cascade.css
-
-# 登录页标识
-# 居中
-sed -i 's|.login-page .login-container .login-form .brand{display:flex;-webkit-box-align:center;align-items:center;margin:50px auto 100px 50px;color:#525461;color:var(--default);justify-content:center}|.login-page .login-container .login-form .brand{display:flex;align-items:center;justify-content:center;margin:50px auto 100px auto;color:var(--default);}|g' ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/css/cascade.css
+# 登录页标识居中
+sed -i '/\.brand {/,/}/ s/margin: 50px auto 100px 50px;/margin: 50px auto 100px auto;/' ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/css/cascade.css
 # 删除图标
-sed -i 's|.login-page .login-container .login-form .brand .icon{width:50px;height:auto;margin-right:25px}||g' ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/css/cascade.css
+sed -i '/^\.login-page \.login-container \.login-form \.brand \.icon {/,/^}/d' ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/css/cascade.css
+# 登录页标识
+sed -i '/\.login-page \.login-container \.login-form \.brand \.brand-text {/,/}/c\
+.login-page .login-container .login-form .brand .brand-text {\
+  margin-right: 0px;\
+  font-size: 2.6rem;\
+  font-weight: 400;\
+  font-family: "TypoGraphica", sans-serif;\
+  word-break: break-word;\
+  background: linear-gradient(\
+    120deg,\
+    #00fff7,\
+    #007cf0,\
+    #ff4ecd,\
+    #00fff7\
+  );\
+  background-size: 300% 300%;\
+  -webkit-background-clip: text;\
+  -webkit-text-fill-color: transparent;\
+  animation: shine 5s linear infinite;\
+}' ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/css/cascade.css
+# 登录页按钮
+sed -i '/\.cbi-button-apply {/,/}/c\
+.login-page .login-container .login-form .cbi-button-apply {\
+  width: 100% !important;\
+  min-height: 45px;\
+  margin: 30px 0 100px;\
+  padding: 10px 0;\
+  font-size: 15px;\
+  font-weight: 600;\
+  text-align: center;\
+  letter-spacing: .35rem;\
+  background: rgba(0, 0, 0, 0);\
+  backdrop-filter: blur(8px);\
+  border: none;\
+  border-radius: 9999px;\
+  outline: none;\
+  cursor: pointer;\
+  transition: all 0.25s ease;\
+  position: relative;\
+}' ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/css/cascade.css
 
-sed -i 's|.login-page .login-container .login-form .brand .brand-text{font-size:1.25rem;font-weight:700;font-family:"TypoGraphica"}|.login-page .login-container .login-form .brand .brand-text{margin-right:0px;font-size:2.6rem;font-weight:400;font-family:"TypoGraphica",sans-serif;word-break:break-word;background:linear-gradient(120deg, #00fff7, #007cf0, #ff4ecd, #00fff7);background-size:300% 300%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:shine 5s linear infinite;}|g' ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/css/cascade.css
-
-sed -i 's|.login-page .login-container .login-form .cbi-button-apply{width:100% !important;box-shadow:rgba(0,0,0,0.1) 0 0 50px 0;font-weight:600;font-size:15px;color:#fff;color:var(--white);text-align:center;width:100%;cursor:pointer;min-height:50px;background-color:#5e72e4 !important;background-color:var(--primary) !important;border-radius:6px;outline:none;border-width:initial;border-style:none;border-color:initial;border-image:initial;padding:10px 0px;margin:30px 0px 100px;transition:all .3s !important;letter-spacing:.8rem}.login-page .login-container .login-form .cbi-button-apply:hover,|.login-page .login-container .login-form .cbi-button-apply{width:100% !important;min-height:45px;margin:30px 0 100px;padding:10px 0;font-size:15px;font-weight:600;text-align:center;letter-spacing:.35rem;background:rgba(0,0,0,0);backdrop-filter:blur(8px);border:none;border-radius:9999px;outline:none;cursor:pointer;transition:all 0.25s ease;position:relative}.login-page .login-container .login-form .cbi-button-apply:hover{box-shadow:0 0 0 2px rgba(255,255,255,0.5)}|g' ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/css/cascade.css
+sed -i '/\.cbi-button-apply:hover/,/}/c\
+.login-page .login-container .login-form .cbi-button-apply:hover {\
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);\
+}' ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/css/cascade.css
 # 登录界面底部
 sed -i '/a:active {/,/}/ s/var(--primary)/#dddddd/g' ./feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/css/cascade.css
 sed -i '/<footer/,/<\/footer>/ { /<a class="luci-link"/d }' ./feeds/luci/themes/luci-theme-argon/ucode/template/themes/argon/footer_login.ut
