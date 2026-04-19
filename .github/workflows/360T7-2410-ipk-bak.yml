@@ -1,4 +1,4 @@
-name: 360T7-2410-ipk-fast
+name: 360T7-2410-ipk-bak
 
 on:
   workflow_dispatch:
