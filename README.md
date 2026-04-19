@@ -5,3 +5,7 @@ https://github.com/pymumu/smartdns
 https://github.com/najloa/geoip
 https://github.com/najloa/v2ray-rules-dat
 https://github.com/P3TERX/Actions-OpenWrt
+https://github.com/rchen14b/luci-theme-glass
+https://github.com/eamonxg/luci-theme-aurora
+https://github.com/nooblk-98/luci-theme-noobwrt
+https://github.com/ChesterGoodiny/luci-theme-proton2025
