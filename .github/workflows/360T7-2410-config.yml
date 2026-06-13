@@ -11,10 +11,10 @@ jobs:
       uses: actions/checkout@main
 
     - name: Initialization environment
-      run: sudo bash -c 'bash <(curl -sL https://build-scripts.immortalwrt.eu.org/init_build_environment.sh)'
+      run: sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
 
     - name: download
-      run: git clone --depth=1 https://github.com/padavanonly/immortalwrt-mt798x-6.6.git
+      run: git clone -b openwrt-24.10-6.6 --depth=1 https://github.com/padavanonly/immortalwrt-mt798x-6.6
 
     - name: update
       run: cd immortalwrt-mt798x-6.6 && ./scripts/feeds update -a
@@ -28,14 +28,11 @@ jobs:
         cp -f defconfig/mt7981-ax3000.config .config
         rm -rf ./feeds/packages/lang/golang && git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
         # 移除 openwrt feeds 自带的核心库
-        rm -rf feeds/packages/net/{xray-core,v2ray-geodata,sing-box,chinadns-ng,dns2socks,hysteria,ipt2socks,microsocks,naiveproxy,shadowsocks-libev,shadowsocks-rust,shadowsocksr-libev,simple-obfs,tcping,trojan-plus,tuic-client,v2ray-plugin,xray-plugin,geoview,shadow-tls}
+        rm -rf feeds/packages/net/{xray-core,v2ray-geodata,sing-box,chinadns-ng,dns2socks,hysteria,ipt2socks,microsocks,naiveproxy,shadowsocks-rust,shadowsocksr-libev,simple-obfs,tcping,v2ray-plugin,xray-plugin,geoview,shadow-tls}
         git clone https://github.com/Openwrt-Passwall/openwrt-passwall-packages package/passwall-packages
         # 移除 openwrt feeds 过时的luci版本
         rm -rf feeds/luci/applications/luci-app-passwall
         git clone https://github.com/Openwrt-Passwall/openwrt-passwall package/passwall-luci
-
-        rm -rf ./feeds/luci/themes/luci-theme-argon && git clone --depth 1 https://github.com/immortalwrt/luci tmp_luci && \cp -rf tmp_luci/themes/luci-theme-argon/ feeds/luci/themes/luci-theme-argon/ && rm -rf tmp_luci
-
 
     - name: 【步骤】
       run: echo "【输入q 然后cd immortalwrt-mt798x-6.6 && make menuconfig 结束sudo touch /continue】"
