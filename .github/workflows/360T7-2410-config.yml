@@ -35,8 +35,11 @@ jobs:
 
     - name: 【步骤】
       run: echo "【输入q 然后cd immortalwrt-mt798x-6.6 && make menuconfig 结束sudo touch /continue】"
+
     - name: Setup tmate session # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh
       uses: mxschmitt/action-tmate@v3
+      with:
+        detached: true
       timeout-minutes: 45
 
     - name: config
