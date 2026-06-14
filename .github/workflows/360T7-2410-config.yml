@@ -37,7 +37,7 @@ jobs:
       uses: mxschmitt/action-tmate@v3
       timeout-minutes: 20
 
-    #【步骤】输入q 然后cd immortalwrt-mt798x-6.6 && make menuconfig 结束touch continue
+    #【步骤】输入q 然后cd immortalwrt-mt798x-6.6 && make menuconfig 结束sudo touch /continue
 
     - name: config
       run: |
