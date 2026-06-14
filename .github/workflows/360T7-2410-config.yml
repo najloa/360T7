@@ -45,6 +45,7 @@ jobs:
     - name: config
       run: |
         cd immortalwrt-mt798x-6.6
+        echo "【删除单个文件：rm 360T7_2410.config  手动执行cp -f .config 360T7_2410.config】"
         cp -f .config 360T7_2410.config
 
     - name: Upload artifact
