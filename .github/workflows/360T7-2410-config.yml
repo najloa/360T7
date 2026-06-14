@@ -37,13 +37,11 @@ jobs:
       uses: mxschmitt/action-tmate@v3
       timeout-minutes: 20
 
-    - name: 【步骤】
-      run: echo "【输入q 然后cd immortalwrt-mt798x-6.6 && make menuconfig 结束sudo touch /continue 或touch continue  # https://github.com/mxschmitt/action-tmate https://github.com/marketplace/actions/debugging-with-ssh】"
+    #【步骤】输入q 然后cd immortalwrt-mt798x-6.6 && make menuconfig 结束touch continue
 
     - name: config
       run: |
         cd immortalwrt-mt798x-6.6
-        echo "【删除单个文件：rm 360T7_2410.config  手动执行cp -f .config 360T7_2410.config】"
         cp .config $GITHUB_WORKSPACE/360T7_2410.config
 
     - name: Upload artifact
