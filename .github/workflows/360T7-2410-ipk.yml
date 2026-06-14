@@ -14,7 +14,7 @@ jobs:
       run: sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
 
     - name: download
-      run: git clone --depth=1 https://github.com/padavanonly/immortalwrt-mt798x-6.6.git
+      run: git clone -b openwrt-24.10-6.6 https://github.com/padavanonly/immortalwrt-mt798x-6.6
 
     - name: Update feeds
       run: cd immortalwrt-mt798x-6.6 && ./scripts/feeds update -a
@@ -28,11 +28,12 @@ jobs:
         cp -f $GITHUB_WORKSPACE/config/360T7_2410_ipk.config .config
         rm -rf ./feeds/packages/lang/golang && git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
         # 移除 openwrt feeds 自带的核心库
-        rm -rf feeds/packages/net/{xray-core,v2ray-geodata,sing-box,chinadns-ng,dns2socks,hysteria,ipt2socks,microsocks,naiveproxy,shadowsocks-libev,shadowsocks-rust,shadowsocksr-libev,simple-obfs,tcping,v2ray-plugin,xray-plugin,geoview,shadow-tls}
+        rm -rf feeds/packages/net/{xray-core,v2ray-geodata,sing-box,chinadns-ng,dns2socks,hysteria,ipt2socks,microsocks,naiveproxy,shadowsocks-rust,shadowsocksr-libev,simple-obfs,tcping,v2ray-plugin,xray-plugin,geoview,shadow-tls}
         git clone https://github.com/Openwrt-Passwall/openwrt-passwall-packages package/passwall-packages
         # 移除 openwrt feeds 过时的luci版本
         rm -rf feeds/luci/applications/luci-app-passwall
         git clone https://github.com/Openwrt-Passwall/openwrt-passwall package/passwall-luci
+
         # 替换规则
         sed -i '/gfwlist\/gfwlist"/a\o:value("https://github.com/najloa/geoip/releases/latest/download/proxy.txt", translate("najloa/proxy"))' ./package/passwall-luci/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
         sed -i '/ChinaMax_Domain"/a\o:value("https://github.com/najloa/geoip/releases/latest/download/twitchcdn.txt", translate("najloa/twitch-cdn"))' ./package/passwall-luci/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
@@ -40,8 +41,6 @@ jobs:
         sed -i '/MetaCubeX\/geosite (CDN)"/a\	o:value("https://github.com/najloa/geoip/releases/latest/download/geosite.dat", translate("najloa/geosite"))' ./package/passwall-luci/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
         sed -i '/MetaCubeX\/geoip (CDN)"/a\	o:value("https://github.com/najloa/geoip/releases/latest/download/geoip.dat", translate("najloa/geoip"))' ./package/passwall-luci/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
         sed -i 's|local excluded_domain = {[^}]*}|local excluded_domain = {}|g' ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rule_update.lua
-        > ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/chnlist
-        curl -s https://core.telegram.org/resources/cidr.txt > ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/proxy_ip
 
     - name: package
       run: |
@@ -60,7 +59,7 @@ jobs:
       run: |
         mkdir -p ipk-out
         find ./ -type f -name '*passwall*.ipk' -exec cp {} ipk-out/ \;
-        find ./ -type f -name '*smartdns*.ipk' -exec cp {} ipk-out/ \;
+        # find ./ -type f -name '*smartdns*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*chinadns-ng*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*dns2socks*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*geoview*.ipk' -exec cp {} ipk-out/ \;
