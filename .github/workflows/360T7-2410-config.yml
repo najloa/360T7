@@ -25,7 +25,7 @@ jobs:
     - name: Replace
       run: |
         cd immortalwrt-mt798x-6.6
-        cp -f defconfig/mt7981-ax3000-dae.config .config
+        cp -f defconfig/mt7981-ax3000.config .config
         # 移除 openwrt feeds 自带的核心库
         rm -rf feeds/packages/net/{xray-core,v2ray-geodata,sing-box,chinadns-ng,dns2socks,hysteria,ipt2socks,microsocks,naiveproxy,shadowsocks-rust,shadowsocksr-libev,simple-obfs,tcping,v2ray-plugin,xray-plugin,geoview,shadow-tls}
         git clone https://github.com/Openwrt-Passwall/openwrt-passwall-packages package/passwall-packages
