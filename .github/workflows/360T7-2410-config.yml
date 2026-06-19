@@ -47,7 +47,7 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@main
       with:
-        name: ${{ github.run_number }}
+        name: 360T7-2410-config
         path: 360T7_2410.config
 
     - name: Delete workflow runs
