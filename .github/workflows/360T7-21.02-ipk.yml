@@ -77,29 +77,46 @@ jobs:
         find ./ -type f -name '*xray*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*sing-box*.ipk' -exec cp {} ipk-out/ \;
 
-    - name: Get latest release tag
-      id: get_latest
-      run: |
-        response=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest)
-        tag=$(echo "$response" | jq -r .tag_name)
-
-        if [ "$tag" = "null" ] || [ -z "$tag" ]; then
-          echo "No release found"
-          exit 1
-        fi
-
-        echo "tag=$tag" >> $GITHUB_OUTPUT
+    - name: Generate build date
+      id: date
+      run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
 
     - name: Pack IPK files (zip)
       run: |
         cd ipk-out
-        zip -r ../360T7-21.02-ipk.zip .
+        zip -r ../${{ steps.date.outputs.date }}-ipk.zip .
 
-    - name: Upload to latest release
-      uses: softprops/action-gh-release@v1
+    - name: Delete old IPK assets
+      uses: actions/github-script@v7
       with:
-        tag_name: ${{ steps.get_latest.outputs.tag }}
-        files: 360T7-21.02-ipk.zip
+        script: |
+          const tag = "24.10";
+
+          const release = await github.rest.repos.getReleaseByTag({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            tag
+          });
+
+          for (const asset of release.data.assets) {
+            if (asset.name.endsWith("-ipk.zip")) {
+              await github.rest.repos.deleteReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                asset_id: asset.id
+              });
+              console.log("Deleted:", asset.name);
+            }
+          }
+
+    - name: Upload to release 24.10
+      uses: softprops/action-gh-release@v3
+      with:
+        tag_name: 24.10
+        name: 24.10-${{ steps.date.outputs.date }}
+        overwrite: true
+        files: |
+          ${{ steps.date.outputs.date }}-ipk.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
