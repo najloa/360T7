@@ -45,18 +45,63 @@ jobs:
     - name: Compile
       run: |
         cd sdk
-          echo "CONFIG_ALL_NONSHARED=n" > .config
-          echo "CONFIG_ALL_KMODS=n" >> .config
-          echo "CONFIG_ALL=n" >> .config
-          echo "CONFIG_AUTOREMOVE=n" >> .config
-          echo "CONFIG_LUCI_LANG_zh_Hans=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall=m" >> .config
-          make defconfig
-          echo "make package/luci-app-passwall/{clean,compile} -j$(nproc)"
-          make package/luci-app-passwall/{clean,compile} -j$(nproc) V=s
-          mkdir upload
-          mv bin/packages/*/passwall/luci-* upload/
-          ls -al
+        echo "CONFIG_ALL_NONSHARED=n" > .config
+        echo "CONFIG_ALL_KMODS=n" >> .config
+        echo "CONFIG_ALL=n" >> .config
+        echo "CONFIG_AUTOREMOVE=n" >> .config
+        echo "CONFIG_LUCI_LANG_zh_Hans=y" >> .config
+        echo "CONFIG_PACKAGE_luci-app-passwall=m" >> .config
+        make defconfig
+        echo "make package/luci-app-passwall/{clean,compile} -j$(nproc)"
+        make package/luci-app-passwall/{clean,compile} -j$(nproc) V=s
+        mkdir ipk-out
+        find ./ -type f -name '*passwall*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*geoview*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*xray*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*sing-box*.ipk' -exec cp {} ipk-out/ \;
+
+    - name: Generate build date
+      id: date
+      run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+
+    - name: Pack IPK files (zip)
+      run: |
+        cd ipk-out
+        zip -r ../${{ steps.date.outputs.date }}-ipk.zip .
+
+    - name: Delete old IPK assets
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const tag = "21.02";
+
+          const release = await github.rest.repos.getReleaseByTag({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            tag
+          });
+
+          for (const asset of release.data.assets) {
+            if (asset.name.endsWith("-ipk.zip")) {
+              await github.rest.repos.deleteReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                asset_id: asset.id
+              });
+              console.log("Deleted:", asset.name);
+            }
+          }
+
+    - name: Upload to release 21.02
+      uses: softprops/action-gh-release@v3
+      with:
+        tag_name: 21.02
+        name: 21.02-${{ steps.date.outputs.date }}
+        overwrite: true
+        files: |
+          ${{ steps.date.outputs.date }}-ipk.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@main
