@@ -18,7 +18,7 @@ jobs:
 
     - name: Download OpenWrt SDK 21.02
       run: |
-        wget -O sdk.tar.xz https://archive.openwrt.org/releases/21.02.7/targets/x86/64/openwrt-sdk-21.02.7-x86-64_gcc-8.4.0_musl.Linux-x86_64.tar.xz
+        wget -O sdk.tar.xz https://archive.openwrt.org/releases/21.02.7/targets/mediatek/mt7622/openwrt-sdk-21.02.7-mediatek-mt7622_gcc-8.4.0_musl.Linux-x86_64.tar.xz
         mkdir sdk
         tar -xJf sdk.tar.xz -C sdk --strip-components=1
 
