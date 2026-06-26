@@ -95,11 +95,9 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Delete releases and workflows runs
-      uses: ophub/delete-releases-workflows@main
+    - name: Delete workflow runs
+      uses: Mattraks/delete-workflow-runs@main
       with:
-        delete_releases: false
-        releases_keep_latest: 0
-        delete_workflows: true
-        workflows_keep_day: 0
-        gh_token: ${{ secrets.GITHUB_TOKEN }}
+        retain_days: 0
+        keep_minimum_runs: 0
+        delete_workflow_pattern: 360T7-24.10
