@@ -79,26 +79,18 @@ jobs:
         cd openwrt/bin/targets/*/*
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
 
-    - name: Generate tag
-      id: tag
-      run: |
-        echo "release_tag=$(date +'%Y-%m-%d-%H-%M')" >> $GITHUB_OUTPUT
+    - name: Generate build date
+      id: date
+      run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to release
       uses: softprops/action-gh-release@v3
       with:
-        tag_name: ${{ steps.tag.outputs.release_tag }}
+        tag_name: 24.10
+        name: 24.10-${{ steps.date.outputs.date }}
+        overwrite: true
         files: |
           ${{ env.FIRMWARE }}/*squashfs-sysupgrade.bin
           ${{ env.FIRMWARE }}/*initramfs-kernel.bin
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Delete releases and workflows runs
-      uses: ophub/delete-releases-workflows@main
-      with:
-        delete_releases: true
-        releases_keep_latest: 2
-        delete_workflows: true
-        workflows_keep_day: 0
-        gh_token: ${{ secrets.GITHUB_TOKEN }}
