@@ -52,9 +52,17 @@ jobs:
         echo "CONFIG_LUCI_LANG_zh_Hans=y" >> .config
         echo "CONFIG_PACKAGE_luci-app-passwall=m" >> .config
         echo "CONFIG_PACKAGE_geoview=m" >> .config
+        echo "CONFIG_PACKAGE_sing-box=m" >> .config
+        echo "CONFIG_PACKAGE_xray-core=m" >> .config
         make defconfig
         echo "make package/luci-app-passwall/{clean,compile} -j$(nproc)"
         make package/luci-app-passwall/{clean,compile} -j$(nproc) V=s
+        echo "make package/geoview/{clean,compile} -j$(nproc)"
+        make package/geoview/{clean,compile} -j$(nproc) V=s
+        echo "make package/sing-box/{clean,compile} -j$(nproc)"
+        make package/sing-box/{clean,compile} -j$(nproc) V=s
+        echo "make package/xray-core/{clean,compile} -j$(nproc)"
+        make package/xray-core/{clean,compile} -j$(nproc) V=s
 
     - name: Generate build date
       id: date
