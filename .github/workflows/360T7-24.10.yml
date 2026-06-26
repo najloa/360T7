@@ -94,3 +94,12 @@ jobs:
           ${{ env.FIRMWARE }}/*initramfs-kernel.bin
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Delete releases and workflows runs
+      uses: ophub/delete-releases-workflows@main
+      with:
+        delete_releases: false
+        releases_keep_latest: 0
+        delete_workflows: true
+        workflows_keep_day: 0
+        gh_token: ${{ secrets.GITHUB_TOKEN }}
