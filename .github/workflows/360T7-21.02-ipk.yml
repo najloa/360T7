@@ -3,6 +3,9 @@ name: 360T7-21.02-ipk
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -54,15 +57,18 @@ jobs:
         make defconfig
         echo "make package/luci-app-passwall/{clean,compile} -j$(nproc)"
         make package/luci-app-passwall/{clean,compile} -j$(nproc) V=s
+
+    - name: Generate build date
+      id: date
+      run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+
+    - name: IPK files
+      run: |
         mkdir ipk-out
         find ./ -type f -name '*passwall*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*geoview*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*xray*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*sing-box*.ipk' -exec cp {} ipk-out/ \;
-
-    - name: Generate build date
-      id: date
-      run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
 
     - name: Pack IPK files (zip)
       run: |
