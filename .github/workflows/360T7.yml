@@ -1,4 +1,4 @@
-name: 360T7
+name: 360T7-21.02
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ env:
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: ./config/360T7_DEPENDS.config
   DIY_P1_SH: diy-part1.sh
-  DIY_P2_SH: diy-part2.sh
+  DIY_P2_SH: diy-21.02.sh
   UPLOAD_BIN_DIR: false
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: true
