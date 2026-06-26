@@ -3,9 +3,6 @@ name: 360T7-21.02-ipk
 on:
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -71,7 +68,7 @@ jobs:
         find ./ -type f -name '*xray*.ipk' -exec cp {} ipk-out/ \;
         find ./ -type f -name '*sing-box*.ipk' -exec cp {} ipk-out/ \;
 
-    - name: Pack IPK files (zip)
+    - name: Pack IPK files
       run: |
         cd ipk-out
         zip -r ../21.02-ipk.zip .
@@ -80,7 +77,6 @@ jobs:
       uses: softprops/action-gh-release@v3
       with:
         tag_name: 21.02
-        name: 21.02-${{ steps.date.outputs.date }}
         overwrite: true
         files: 21.02-ipk.zip
       env:
