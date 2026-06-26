@@ -35,7 +35,7 @@ jobs:
         rm -rf feeds/luci/applications/luci-app-passwall
         git clone https://github.com/Openwrt-Passwall/openwrt-passwall package/passwall-luci
 
-    #【输入q 然后cd immortalwrt-mt798x && make menuconfig】【如需多个配置install -Dp .config ./publish/360T7-21.02-.config & cp -f defconfig/mt7981-ax3000.config .config】【结束sudo touch /continue】【https://github.com/mxschmitt/action-tmate】
+    #【输入q 然后cd immortalwrt-mt798x && make menuconfig】【如需多个配置install -Dp .config ./publish/360T7-21.02-.config && cp -f defconfig/mt7981-ax3000.config .config】【结束sudo touch /continue】【https://github.com/mxschmitt/action-tmate】
     
     - name: Setup tmate session
       uses: mxschmitt/action-tmate@v3
