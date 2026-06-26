@@ -1,4 +1,4 @@
-name: 360T7-2410-config
+name: 360T7-24.10-config
 
 on:
   workflow_dispatch:
@@ -14,7 +14,7 @@ jobs:
       run: sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
 
     - name: download
-      run: git clone -b openwrt-24.10-6.6 https://github.com/padavanonly/immortalwrt-mt798x-6.6
+      run: git clone --depth=1 https://github.com/padavanonly/immortalwrt-mt798x-6.6.git
 
     - name: update
       run: cd immortalwrt-mt798x-6.6 && ./scripts/feeds update -a
@@ -22,10 +22,12 @@ jobs:
     - name: install
       run: cd immortalwrt-mt798x-6.6 && ./scripts/feeds install -a
 
-    - name: Replace
+    - name: cp
+      run: cd immortalwrt-mt798x-6.6 && cp -f defconfig/mt7981-ax3000.config .config
+
+    - name: passwall
       run: |
-        cd immortalwrt-mt798x-6.6
-        cp -f defconfig/mt7981-ax3000.config .config
+        cd immortalwrt-mt798x
         # 移除 openwrt feeds 自带的核心库
         rm -rf feeds/packages/net/{xray-core,v2ray-geodata,sing-box,chinadns-ng,dns2socks,hysteria,ipt2socks,microsocks,naiveproxy,shadowsocks-rust,shadowsocksr-libev,simple-obfs,tcping,v2ray-plugin,xray-plugin,geoview,shadow-tls}
         git clone https://github.com/Openwrt-Passwall/openwrt-passwall-packages package/passwall-packages
@@ -33,12 +35,11 @@ jobs:
         rm -rf feeds/luci/applications/luci-app-passwall
         git clone https://github.com/Openwrt-Passwall/openwrt-passwall package/passwall-luci
 
+    #【输入q 然后cd immortalwrt-mt798x-6.6 && make menuconfig】【如需多个配置install -Dp .config ./publish/360T7-24.10-.config && cp -f defconfig/mt7981-ax3000.config .config】【结束sudo touch /continue】【https://github.com/mxschmitt/action-tmate】
+
     - name: Setup tmate session
       uses: mxschmitt/action-tmate@v3
-      timeout-minutes: 20
-
-    #【步骤】输入q 然后cd immortalwrt-mt798x-6.6 && make menuconfig 结束sudo touch /continue
-
+      timeout-minutes: 35
     - name: config
       run: |
         cd immortalwrt-mt798x-6.6
@@ -55,4 +56,3 @@ jobs:
       with:
         retain_days: 0
         keep_minimum_runs: 0
-        delete_workflow_pattern: 360T7-2410-config
