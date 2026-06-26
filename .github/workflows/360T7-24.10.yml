@@ -1,4 +1,4 @@
-name: 360T7-2410
+name: 360T7-24.10
 
 on:
   workflow_dispatch:
@@ -6,9 +6,9 @@ on:
 env:
   REPO_URL: https://github.com/padavanonly/immortalwrt-mt798x-6.6
   REPO_BRANCH: openwrt-24.10-6.6
-  CONFIG_FILE: ./config/360T7_2410.config
+  CONFIG_FILE: ./config/360T7-24.10.config
   DIY_P1_SH: diy-part1.sh
-  DIY_P2_SH: diy-part3.sh
+  DIY_P2_SH: diy-24.10.sh
   TZ: Asia/Shanghai
 
 jobs:
@@ -17,7 +17,9 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@main
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: true
 
     - name: Initialization environment
       env:
