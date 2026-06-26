@@ -3,12 +3,18 @@ name: 360T7-21.02-config
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-22.04
+
     steps:
     - name: Checkout
-      uses: actions/checkout@main
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: true
 
     - name: Initialization environment
       run: sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
@@ -22,7 +28,7 @@ jobs:
     - name: install
       run: cd immortalwrt-mt798x && ./scripts/feeds install -a
 
-    - name: cp
+    - name: defconfig
       run: cd immortalwrt-mt798x && cp -f defconfig/mt7981-ax3000.config .config
 
     - name: passwall
@@ -41,16 +47,23 @@ jobs:
       uses: mxschmitt/action-tmate@v3
       timeout-minutes: 35
 
-    - name: config
+    - name: cp config
       run: |
         cd immortalwrt-mt798x
-        cp -f .config ./publish/360T7-21.02.config
+        install -Dp .config ./publish/360T7-21.02.config
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@main
-      with:
-        name: 360T7-21.02-config
-        path: immortalwrt-mt798x/publish/
+    - name: Sync publish to repo config folder
+      run: |
+        mkdir -p config
+        cp -rf immortalwrt-mt798x/publish/* config/
+
+    - name: Commit and push configs
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add config/
+        git commit -m "update configs (publish sync)" || echo "No changes to commit"
+        git push
 
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@main
