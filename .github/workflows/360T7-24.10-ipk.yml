@@ -14,119 +14,94 @@ jobs:
         persist-credentials: true
 
     - name: Initialization environment
+      run: sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
+
+    - name: Download OpenWrt SDK 24.10
       run: |
-        sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-        sudo docker image prune --all --force
-        sudo -E apt-get -qq update
-        sudo -E apt-get -qq autoremove --purge
-        sudo -E apt-get -qq clean
-        sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
-        sudo timedatectl set-timezone "Asia/Shanghai"
+        wget -O sdk.tar.zst https://downloads.openwrt.org/releases/24.10.0/targets/mediatek/filogic/openwrt-sdk-24.10.0-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64.tar.zst
+        mkdir sdk
+        tar -xf sdk.tar.zst -C sdk --strip-components=1
 
-    - name: download
-      run: git clone -b openwrt-24.10-6.6 https://github.com/padavanonly/immortalwrt-mt798x-6.6
-
-    - name: Update feeds
-      run: cd immortalwrt-mt798x-6.6 && ./scripts/feeds update -a
-
-    - name: Install feeds
-      run: cd immortalwrt-mt798x-6.6 && ./scripts/feeds install -a
-
-    - name: passwall
+    - name: Setup feeds
       run: |
-        cd immortalwrt-mt798x-6.6
-        cp -f $GITHUB_WORKSPACE/config/360T7_2410_ipk.config .config
+        cd sdk
+
+        sed -i \
+            -e 's|git\.openwrt\.org/feed|github.com/openwrt|g' \
+            -e 's|git\.openwrt\.org/project|github.com/openwrt|g' \
+            -e 's|git\.openwrt\.org/openwrt|github.com/openwrt|g' \
+            "feeds.conf.default"
+
+        cat > feeds.tmp <<'EOF'
+        src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main
+        src-git passwall https://github.com/Openwrt-Passwall/openwrt-passwall.git;main
+        EOF
+        cat feeds.conf.default >> feeds.tmp
+        mv feeds.tmp feeds.conf.default
+
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+
         rm -rf ./feeds/packages/lang/golang && git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
-        # 移除 openwrt feeds 自带的核心库
-        rm -rf feeds/packages/net/{xray-core,v2ray-geodata,sing-box,chinadns-ng,dns2socks,hysteria,ipt2socks,microsocks,naiveproxy,shadowsocks-rust,shadowsocksr-libev,simple-obfs,tcping,v2ray-plugin,xray-plugin,geoview,shadow-tls}
-        git clone https://github.com/Openwrt-Passwall/openwrt-passwall-packages package/passwall-packages
-        # 移除 openwrt feeds 过时的luci版本
-        rm -rf feeds/luci/applications/luci-app-passwall
-        git clone https://github.com/Openwrt-Passwall/openwrt-passwall package/passwall-luci
-
         # 替换规则
-        sed -i '/gfwlist\/gfwlist"/a\o:value("https://github.com/najloa/geoip/releases/latest/download/proxy.txt", translate("najloa/proxy"))' ./package/passwall-luci/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
-        sed -i '/ChinaMax_Domain"/a\o:value("https://github.com/najloa/geoip/releases/latest/download/twitchcdn.txt", translate("najloa/twitch-cdn"))' ./package/passwall-luci/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
-        sed -i '/ChinaMax_Domain"/a\o:value("https://github.com/najloa/geoip/releases/latest/download/cn.txt", translate("najloa/cn"))' ./package/passwall-luci/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
-        sed -i '/MetaCubeX\/geosite (CDN)"/a\	o:value("https://github.com/najloa/geoip/releases/latest/download/geosite.dat", translate("najloa/geosite"))' ./package/passwall-luci/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
-        sed -i '/MetaCubeX\/geoip (CDN)"/a\	o:value("https://github.com/najloa/geoip/releases/latest/download/geoip.dat", translate("najloa/geoip"))' ./package/passwall-luci/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
-        sed -i 's|local excluded_domain = {[^}]*}|local excluded_domain = {}|g' ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rule_update.lua
-        > ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/chnlist
-        curl -s https://core.telegram.org/resources/cidr.txt > /tmp/telegram_cidr.txt && grep -Fvxf /tmp/telegram_cidr.txt ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/proxy_ip > /tmp/proxy_ip_cleaned && cat /tmp/telegram_cidr.txt >> /tmp/proxy_ip_cleaned && mv /tmp/proxy_ip_cleaned ./package/passwall-luci/luci-app-passwall/root/usr/share/passwall/rules/proxy_ip && rm /tmp/telegram_cidr.txt
+        sed -i '/gfwlist\/gfwlist"/a\o:value("https://github.com/najloa/geoip/releases/latest/download/proxy.txt", translate("najloa/proxy"))' ./feeds/luci/applications/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
+        sed -i '/ChinaMax_Domain"/a\o:value("https://github.com/najloa/geoip/releases/latest/download/cn.txt", translate("najloa/cn"))' ./feeds/luci/applications/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
+        sed -i '/MetaCubeX\/geosite (CDN)"/a\	o:value("https://github.com/najloa/geoip/releases/latest/download/geosite.dat", translate("najloa/geosite"))' ./feeds/luci/applications/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
+        sed -i '/MetaCubeX\/geoip (CDN)"/a\	o:value("https://github.com/najloa/geoip/releases/latest/download/geoip.dat", translate("najloa/geoip"))' ./feeds/luci/applications/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
+        sed -i 's|local excluded_domain = {[^}]*}|local excluded_domain = {}|g' ./feeds/luci/applications/luci-app-passwall/root/usr/share/passwall/rule_update.lua
+        > ./feeds/luci/applications/luci-app-passwall/root/usr/share/passwall/rules/chnlist
+        curl -s https://core.telegram.org/resources/cidr.txt > /tmp/telegram_cidr.txt && grep -Fvxf /tmp/telegram_cidr.txt ./feeds/luci/applications/luci-app-passwall/root/usr/share/passwall/rules/proxy_ip > /tmp/proxy_ip_cleaned && cat /tmp/telegram_cidr.txt >> /tmp/proxy_ip_cleaned && mv /tmp/proxy_ip_cleaned ./feeds/luci/applications/luci-app-passwall/root/usr/share/passwall/rules/proxy_ip && rm /tmp/telegram_cidr.txt
 
-    - name: package
+    - name: Compile
       run: |
-        cd immortalwrt-mt798x-6.6
+        cd sdk
+        echo "CONFIG_ALL_NONSHARED=n" > .config
+        echo "CONFIG_ALL_KMODS=n" >> .config
+        echo "CONFIG_ALL=n" >> .config
+        echo "CONFIG_AUTOREMOVE=n" >> .config
+        echo "CONFIG_LUCI_LANG_zh_Hans=y" >> .config
+        echo "CONFIG_PACKAGE_luci-app-passwall=m" >> .config
+        echo "CONFIG_PACKAGE_geoview=m" >> .config
+        echo "CONFIG_PACKAGE_sing-box=m" >> .config
+        echo "CONFIG_PACKAGE_xray-core=m" >> .config
         make defconfig
-        make download -j8
-        find dl -size -1024c -exec ls -l {} \;
-        find dl -size -1024c -exec rm -f {} \;
-
-    - name: Compile the firmware
-      run: |
-        cd immortalwrt-mt798x-6.6
-        make -j$(nproc) || make -j1 || make -j1 V=s
-
-    - name: Locate .ipk
-      run: |
-        mkdir -p ipk-out
-        find ./ -type f -name '*passwall*.ipk' -exec cp {} ipk-out/ \;
-        # find ./ -type f -name '*smartdns*.ipk' -exec cp {} ipk-out/ \;
-        find ./ -type f -name '*chinadns-ng*.ipk' -exec cp {} ipk-out/ \;
-        find ./ -type f -name '*dns2socks*.ipk' -exec cp {} ipk-out/ \;
-        find ./ -type f -name '*geoview*.ipk' -exec cp {} ipk-out/ \;
-        find ./ -type f -name '*ipt2socks*.ipk' -exec cp {} ipk-out/ \;
-        find ./ -type f -name '*microsocks*.ipk' -exec cp {} ipk-out/ \;
-        find ./ -type f -name '*tcping*.ipk' -exec cp {} ipk-out/ \;
-        find ./ -type f -name '*xray*.ipk' -exec cp {} ipk-out/ \;
-        find ./ -type f -name '*sing-box*.ipk' -exec cp {} ipk-out/ \;
+        echo "make package/luci-app-passwall/{clean,compile} -j$(nproc)"
+        make package/luci-app-passwall/{clean,compile} -j$(nproc) V=s
+        echo "make package/geoview/{clean,compile} -j$(nproc)"
+        make package/geoview/{clean,compile} -j$(nproc) V=s
+        echo "make package/sing-box/{clean,compile} -j$(nproc)"
+        make package/sing-box/{clean,compile} -j$(nproc) V=s
+        echo "make package/xray-core/{clean,compile} -j$(nproc)"
+        make package/xray-core/{clean,compile} -j$(nproc) V=s
 
     - name: Generate build date
       id: date
       run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
 
-    - name: Pack IPK files (zip)
+    - name: IPK files
+      run: |
+        mkdir ipk-out
+        find ./ -type f -name '*passwall*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*geoview*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*xray*.ipk' -exec cp {} ipk-out/ \;
+        find ./ -type f -name '*sing-box*.ipk' -exec cp {} ipk-out/ \;
+
+    - name: Pack IPK files
       run: |
         cd ipk-out
-        zip -r ../${{ steps.date.outputs.date }}-ipk.zip .
+        zip -r ../24.10-ipk.zip .
 
-    - name: Delete old IPK assets
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const tag = "24.10";
-
-          const release = await github.rest.repos.getReleaseByTag({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            tag
-          });
-
-          for (const asset of release.data.assets) {
-            if (asset.name.endsWith("-ipk.zip")) {
-              await github.rest.repos.deleteReleaseAsset({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                asset_id: asset.id
-              });
-              console.log("Deleted:", asset.name);
-            }
-          }
-
-    - name: Upload to release 24.10
+    - name: Upload to release
       uses: softprops/action-gh-release@v3
       with:
         tag_name: 24.10
-        name: 24.10-${{ steps.date.outputs.date }}
         overwrite: true
-        files: |
-          ${{ steps.date.outputs.date }}-ipk.zip
+        files: 24.10-ipk.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@main
       with:
-        retain_days: 0
-        keep_minimum_runs: 0
+        keep_minimum_runs: 2
         delete_workflow_pattern: 360T7-24.10-ipk
