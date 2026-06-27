@@ -20,7 +20,7 @@ jobs:
       run: |
         wget -O sdk.tar.zst https://downloads.openwrt.org/releases/24.10.0/targets/mediatek/filogic/openwrt-sdk-24.10.0-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64.tar.zst
         mkdir sdk
-        tar -xf sdk.tar.zst -C sdk --strip-components=1
+        tar -I zstd -xvf sdk.tar.zst -C sdk --strip-components=1
 
     - name: Setup feeds
       run: |
