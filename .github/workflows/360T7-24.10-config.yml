@@ -3,12 +3,18 @@ name: 360T7-24.10-config
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-22.04
+
     steps:
     - name: Checkout
-      uses: actions/checkout@main
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: true
 
     - name: Initialization environment
       run: sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
@@ -62,6 +68,5 @@ jobs:
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@main
       with:
-        retain_days: 0
-        keep_minimum_runs: 0
+        keep_minimum_runs: 2
         delete_workflow_pattern: 360T7-24.10-config
