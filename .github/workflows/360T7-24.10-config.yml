@@ -28,7 +28,7 @@ jobs:
     - name: install
       run: cd immortalwrt-mt798x-6.6 && ./scripts/feeds install -a
 
-    - name: cp
+    - name: defconfig
       run: cd immortalwrt-mt798x-6.6 && cp -f defconfig/mt7981-ax3000.config .config
 
     - name: passwall
