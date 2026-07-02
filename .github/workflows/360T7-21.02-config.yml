@@ -22,6 +22,11 @@ jobs:
     - name: download
       run: git clone --depth=1 https://github.com/hanwckf/immortalwrt-mt798x.git
 
+    - name: pw
+      run: |
+        src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main
+        src-git passwall_luci https://github.com/Openwrt-Passwall/openwrt-passwall.git;main
+
     - name: update
       run: cd immortalwrt-mt798x && ./scripts/feeds update -a
 
