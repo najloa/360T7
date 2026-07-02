@@ -24,8 +24,16 @@ jobs:
 
     - name: pw
       run: |
-        src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main
-        src-git passwall_luci https://github.com/Openwrt-Passwall/openwrt-passwall.git;main
+        cd immortalwrt-mt798x
+        FILE=$(find . -maxdepth 2 -name "feeds.conf.default" | head -n 1)
+
+        echo "found feeds file: $FILE"
+
+        {
+          echo "src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main"
+          echo "src-git passwall_luci https://github.com/Openwrt-Passwall/openwrt-passwall.git;main"
+          cat "$FILE"
+            } > /tmp/feeds.conf.tmp && mv /tmp/feeds.conf.tmp "$FILE"
 
     - name: update
       run: cd immortalwrt-mt798x && ./scripts/feeds update -a
