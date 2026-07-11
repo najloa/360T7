@@ -14,14 +14,8 @@ sed -i 's/192.168.1.1/192.168.6.1/' ./package/base-files/files/bin/config_genera
 # sed -i 's/ImmortalWrt/OpenWrt/' ./package/kernel/mac80211/files/lib/wifi/mac80211.sh
 # sed -i 's/ImmortalWrt/OpenWrt/' ./package/mtk/applications/luci-app-mtwifi-cfg/root/usr/share/luci-app-mtwifi-cfg/wireless-mtk.js
 
-git clone --depth 1 https://github.com/pymumu/luci-app-smartdns.git package/luci-app-smartdns && rm -rf ./feeds/luci/applications/luci-app-smartdns && \cp -rf ./package/luci-app-smartdns ./feeds/luci/applications/luci-app-smartdns
-git clone --depth 1 https://github.com/pymumu/openwrt-smartdns.git package/openwrt-smartdns && rm -rf ./feeds/packages/net/smartdns && \cp -rf ./package/openwrt-smartdns ./feeds/packages/net/smartdns
-./scripts/feeds install luci -a
-./scripts/feeds install package -a
-
 # 替换规则
 find ./ -type d -iname '*passwall*'
-find ./ -type d -iname '*smartdns*'
 #sed -i '/gfwlist\/gfwlist"/a\o:value("https://github.com/najloa/geoip/releases/latest/download/proxy.txt", translate("najloa/proxy"))' ./package/passwall-luci/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
 # sed -i '/ChinaMax_Domain"/a\o:value("https://github.com/najloa/geoip/releases/latest/download/cdn.txt", translate("najloa/cdn"))' ./package/passwall-luci/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
 #sed -i '/ChinaMax_Domain"/a\o:value("https://github.com/najloa/geoip/releases/latest/download/cn.txt", translate("najloa/cn"))' ./package/passwall-luci/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
