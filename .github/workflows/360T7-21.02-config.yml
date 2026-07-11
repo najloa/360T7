@@ -25,18 +25,13 @@ jobs:
     - name: pw
       run: |
         cd immortalwrt-mt798x
-        find ./ -type d -iname '*passwall*'
-        find ./ -type d -iname '*smartdns*'
-        find ./ -type d -iname '*golang*'
-
         printf '%s\n' \
         "src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main" \
         "src-git passwall_luci https://github.com/Openwrt-Passwall/openwrt-passwall.git;main" \
-        "src-git openwrt_smartdns https://github.com/pymumu/openwrt-smartdns.git;master" \
-        "src-git luci_app_smartdns https://github.com/pymumu/luci-app-smartdns.git;master" \
         | cat - feeds.conf.default > tmp && mv tmp feeds.conf.default
         echo "===== feeds.conf.default 更新成功 ====="
         cat feeds.conf.default
+        find ./ -type d -iname 'golang'
 
     - name: update
       run: cd immortalwrt-mt798x && ./scripts/feeds update -a
