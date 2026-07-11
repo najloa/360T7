@@ -25,6 +25,10 @@ jobs:
     - name: pw
       run: |
         cd immortalwrt-mt798x
+        find ./ -type d -iname '*passwall*'
+        find ./ -type d -iname '*smartdns*'
+        find ./ -type d -iname '*golang*'
+
         printf '%s\n' \
         "src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main" \
         "src-git passwall_luci https://github.com/Openwrt-Passwall/openwrt-passwall.git;main" \
