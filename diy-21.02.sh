@@ -14,27 +14,10 @@ sed -i 's/192.168.1.1/192.168.6.1/' ./package/base-files/files/bin/config_genera
 # sed -i 's/ImmortalWrt/OpenWrt/' ./package/kernel/mac80211/files/lib/wifi/mac80211.sh
 # sed -i 's/ImmortalWrt/OpenWrt/' ./package/mtk/applications/luci-app-mtwifi-cfg/root/usr/share/luci-app-mtwifi-cfg/wireless-mtk.js
 
-# 脚本
-WORKINGDIR="`pwd`/feeds/packages/net/smartdns"
-mkdir $WORKINGDIR -p
-rm $WORKINGDIR/* -fr
-wget https://github.com/pymumu/openwrt-smartdns/archive/master.zip -O $WORKINGDIR/master.zip
-unzip $WORKINGDIR/master.zip -d $WORKINGDIR
-mv $WORKINGDIR/openwrt-smartdns-master/* $WORKINGDIR/
-rmdir $WORKINGDIR/openwrt-smartdns-master
-rm $WORKINGDIR/master.zip
-
-LUCIBRANCH="master"
-WORKINGDIR="`pwd`/feeds/luci/applications/luci-app-smartdns"
-mkdir $WORKINGDIR -p
-rm $WORKINGDIR/* -fr
-wget https://github.com/pymumu/luci-app-smartdns/archive/${LUCIBRANCH}.zip -O $WORKINGDIR/${LUCIBRANCH}.zip
-unzip $WORKINGDIR/${LUCIBRANCH}.zip -d $WORKINGDIR
-mv $WORKINGDIR/luci-app-smartdns-${LUCIBRANCH}/* $WORKINGDIR/
-rmdir $WORKINGDIR/luci-app-smartdns-${LUCIBRANCH}
-rm $WORKINGDIR/${LUCIBRANCH}.zip
-
-./scripts/feeds install -a
+git clone --depth 1 https://github.com/pymumu/luci-app-smartdns.git package/luci-app-smartdns && rm -rf ./feeds/luci/applications/luci-app-smartdns && \cp -rf ./package/luci-app-smartdns ./feeds/luci/applications/luci-app-smartdns
+git clone --depth 1 https://github.com/pymumu/openwrt-smartdns.git package/openwrt-smartdns && rm -rf ./feeds/packages/net/smartdns && \cp -rf ./package/openwrt-smartdns ./feeds/packages/net/smartdns
+./scripts/feeds install luci -a
+./scripts/feeds install package -a
 
 # 替换规则
 find ./ -type d -iname '*passwall*'
