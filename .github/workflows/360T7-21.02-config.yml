@@ -31,29 +31,7 @@ jobs:
         | cat - feeds.conf.default > tmp && mv tmp feeds.conf.default
         echo "===== feeds.conf.default 更新成功 ====="
         cat feeds.conf.default
-
-
-
-        WORKINGDIR="`pwd`/feeds/packages/net/smartdns"
-        mkdir $WORKINGDIR -p
-        rm $WORKINGDIR/* -fr
-        wget https://github.com/pymumu/openwrt-smartdns/archive/master.zip -O $WORKINGDIR/master.zip
-        unzip $WORKINGDIR/master.zip -d $WORKINGDIR
-        mv $WORKINGDIR/openwrt-smartdns-master/* $WORKINGDIR/
-        rmdir $WORKINGDIR/openwrt-smartdns-master
-        rm $WORKINGDIR/master.zip
-
-        LUCIBRANCH="master"
-        WORKINGDIR="`pwd`/feeds/luci/applications/luci-app-smartdns"
-        mkdir $WORKINGDIR -p
-        rm $WORKINGDIR/* -fr
-        wget https://github.com/pymumu/luci-app-smartdns/archive/${LUCIBRANCH}.zip -O $WORKINGDIR/${LUCIBRANCH}.zip
-        unzip $WORKINGDIR/${LUCIBRANCH}.zip -d $WORKINGDIR
-        mv $WORKINGDIR/luci-app-smartdns-${LUCIBRANCH}/* $WORKINGDIR/
-        rmdir $WORKINGDIR/luci-app-smartdns-${LUCIBRANCH}
-        rm $WORKINGDIR/${LUCIBRANCH}.zip
-
-        ./scripts/feeds install -a
+        
 
     - name: update
       run: cd immortalwrt-mt798x && ./scripts/feeds update -a
@@ -91,6 +69,8 @@ jobs:
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@main
       with:
+        token: ${{ github.token }}
+        repository: ${{ github.repository }}
         retain_days: 0
         keep_minimum_runs: 1
         delete_workflow_pattern: 360T7-21.02-config
