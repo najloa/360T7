@@ -31,7 +31,6 @@ jobs:
         | cat - feeds.conf.default > tmp && mv tmp feeds.conf.default
         echo "===== feeds.conf.default 更新成功 ====="
         cat feeds.conf.default
-        
 
     - name: update
       run: cd immortalwrt-mt798x && ./scripts/feeds update -a
