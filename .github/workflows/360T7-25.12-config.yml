@@ -1,4 +1,4 @@
-name: 360T7-rebase-config
+name: 360T7-25.12-config
 
 on:
   workflow_dispatch:
@@ -42,7 +42,7 @@ jobs:
     - name: defconfig
       run: cd immortalwrt-mt798x-rebase && cp -f defconfig/mt7981-ax3000.config .config
 
-    #【输入q 然后cd immortalwrt-mt798x-rebase && make menuconfig】【结束sudo touch /continue】【如需多个配置install -Dp .config ./publish/360T7-rebase-.config && cp -f defconfig/mt7981-ax3000.config .config】【https://github.com/mxschmitt/action-tmate】
+    #【输入q 然后cd immortalwrt-mt798x-rebase && make menuconfig】【结束sudo touch /continue】【如需多个配置install -Dp .config ./publish/360T7-25.12-.config && cp -f defconfig/mt7981-ax3000.config .config】【https://github.com/mxschmitt/action-tmate】
     
     - name: Setup tmate session
       uses: Warpbuilds/action-debugger@v1.3
@@ -51,7 +51,7 @@ jobs:
     - name: cp config
       run: |
         cd immortalwrt-mt798x-rebase
-        install -Dp .config ./publish/360T7-rebase.config
+        install -Dp .config ./publish/360T7-25.12.config
 
     - name: Sync publish to repo config folder
       run: |
@@ -73,4 +73,4 @@ jobs:
         repository: ${{ github.repository }}
         retain_days: 0
         keep_minimum_runs: 1
-        delete_workflow_pattern: 360T7-rebase-config
+        delete_workflow_pattern: 360T7-25.12-config
