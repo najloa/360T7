@@ -1,0 +1,76 @@
+name: 360T7-rebase-config
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: true
+
+    - name: Initialization environment
+      run: sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
+
+    - name: download
+      run: git clone --depth=1 https://github.com/chasey-dev/immortalwrt-mt798x-rebase.git
+
+    - name: pw
+      run: |
+        cd immortalwrt-mt798x-rebase
+        printf '%s\n' \
+        "src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main" \
+        "src-git passwall_luci https://github.com/Openwrt-Passwall/openwrt-passwall.git;main" \
+        | cat - feeds.conf.default > tmp && mv tmp feeds.conf.default
+        echo "===== feeds.conf.default 更新成功 ====="
+        cat feeds.conf.default
+
+    - name: update
+      run: cd immortalwrt-mt798x-rebase && ./scripts/feeds update -a
+
+    - name: install
+      run: cd immortalwrt-mt798x-rebase && ./scripts/feeds install -a
+
+    - name: defconfig
+      run: cd immortalwrt-mt798x-rebase && cp -f defconfig/mt7981-ax3000.config .config
+
+    #【输入q 然后cd immortalwrt-mt798x-rebase && make menuconfig】【结束sudo touch /continue】【如需多个配置install -Dp .config ./publish/360T7-rebase-.config && cp -f defconfig/mt7981-ax3000.config .config】【https://github.com/mxschmitt/action-tmate】
+    
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      timeout-minutes: 35
+
+    - name: cp config
+      run: |
+        cd immortalwrt-mt798x-rebase
+        install -Dp .config ./publish/360T7-rebase.config
+
+    - name: Sync publish to repo config folder
+      run: |
+        mkdir -p config
+        cp -rf immortalwrt-mt798x-rebase/publish/* config/
+
+    - name: Commit and push configs
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add config/
+        git commit -m "update configs (publish sync)" || echo "No changes to commit"
+        git push
+
+    - name: Delete workflow runs
+      uses: Mattraks/delete-workflow-runs@main
+      with:
+        token: ${{ github.token }}
+        repository: ${{ github.repository }}
+        retain_days: 0
+        keep_minimum_runs: 1
+        delete_workflow_pattern: 360T7-rebase-config
