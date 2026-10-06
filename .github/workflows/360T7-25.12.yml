@@ -107,4 +107,4 @@ jobs:
         repository: ${{ github.repository }}
         retain_days: 0
         keep_minimum_runs: 1
-        delete_workflow_pattern: 360T7-25.12
+        #delete_workflow_pattern: 360T7-25.12
