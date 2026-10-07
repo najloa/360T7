@@ -51,7 +51,7 @@ jobs:
     - name: cp config
       run: |
         cd immortalwrt-mt798x-rebase
-        install -Dp .config ./publish/360T7-25.12.config
+        install -Dp .config ./publish/360T7-25.12-ubi.config
 
     - name: Sync publish to repo config folder
       run: |
