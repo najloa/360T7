@@ -93,7 +93,6 @@ jobs:
       with:
         tag_name: 25.12
         name: 25.12-${{ steps.date.outputs.date }}
-        overwrite: true
         files: |
           ${{ env.FIRMWARE }}/*sysupgrade.*
           ${{ env.FIRMWARE }}/*factory.*
