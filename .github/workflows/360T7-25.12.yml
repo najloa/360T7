@@ -94,8 +94,8 @@ jobs:
         tag_name: 25.12
         name: 25.12-${{ steps.date.outputs.date }}
         files: |
-          ${{ env.FIRMWARE }}/*sysupgrade.*
-          ${{ env.FIRMWARE }}/*factory.*
+          ${{ env.FIRMWARE }}/*sysupgrade*
+          ${{ env.FIRMWARE }}/*factory*
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
