@@ -84,6 +84,26 @@ jobs:
         cd openwrt/bin/targets/*/*
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
 
+        echo "========================================"
+        echo "Firmware directory: $PWD"
+        echo "========================================"
+
+        echo "----- Sysupgrade files -----"
+        find . -maxdepth 1 -type f -name '*sysupgrade*' -printf '%f\n'
+
+        echo "----- Other files -----"
+        find . -maxdepth 1 -type f ! -name '*sysupgrade*' -printf '%f\n'
+
+        echo "========================================"
+        echo "========================================"
+        echo "----- All files -----"
+        ls -lah
+
+        echo "----- Non-sysupgrade files -----"
+        find . -maxdepth 1 -type f ! -name '*sysupgrade*' -exec ls -lh {} \;
+
+        echo "========================================"
+
     - name: Generate build date
       id: date
       run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
@@ -95,7 +115,6 @@ jobs:
         name: 25.12-${{ steps.date.outputs.date }}
         files: |
           ${{ env.FIRMWARE }}/*sysupgrade*
-          ${{ env.FIRMWARE }}/*factory*
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -105,5 +124,5 @@ jobs:
         token: ${{ github.token }}
         repository: ${{ github.repository }}
         retain_days: 0
-        keep_minimum_runs: 1
+        keep_minimum_runs: 0
         #delete_workflow_pattern: 360T7-25.12
