@@ -55,10 +55,13 @@ curl -s https://core.telegram.org/resources/cidr.txt > /tmp/telegram_cidr.txt &&
 # sed -i 's/<%:Log in%>/<%:Login%>/' ./feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/sysauth.htm
 
 # golang
-rm -rf ./feeds/packages/lang/golang && git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
-# git clone --depth 1 https://github.com/immortalwrt/packages.git package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && \cp -rf ./package/immortalwrt-packages/lang/golang ./feeds/packages/lang/ && rm -rf ./package/immortalwrt-packages
+# rm -rf ./feeds/packages/lang/golang && git clone --depth 1 https://github.com/sbwml/packages_lang_golang -b 27.x feeds/packages/lang/golang
+git clone --depth 1 https://github.com/immortalwrt/packages.git package/immortalwrt-packages && rm -rf ./feeds/packages/lang/golang && \cp -rf ./package/immortalwrt-packages/lang/golang ./feeds/packages/lang/ && rm -rf ./package/immortalwrt-packages
 # upx
 # upx --version
-# sed -i '/\$(1)\/usr\/bin\//a \\t-upx $(1)/usr/bin/geoview' package/passwall-packages/geoview/Makefile
+sed -i '/\$(1)\/usr\/bin\//a \\t-upx $(1)/usr/bin/geoview' package/passwall-packages/geoview/Makefile
 # sed -i '/\$(1)\/usr\/bin\//a \\t-upx $(1)/usr/bin/xray' package/passwall-packages/xray-core/Makefile
 # sed -i '/define Package\/sing-box\/install/a \\\tupx $(1)/usr/bin/sing-box' package/passwall-packages/sing-box/Makefile
+# 减少sing-box文件体积
+sed -i '/^GO_PKG_TAGS:=/,/^))$/c\GO_PKG_TAGS:=with_quic' ./package/feeds/passwall_packages/sing-box/Makefile
+sed -i '38s/.*/GO_PKG_LDFLAGS:=-s -w\nGO_PKG_LDFLAGS_X:=$(GO_PKG)\/constant.Version=$(PKG_VERSION)/' ./package/feeds/passwall_packages/sing-box/Makefile
