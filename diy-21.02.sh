@@ -64,4 +64,4 @@ sed -i '/\$(1)\/usr\/bin\//a \\t-upx $(1)/usr/bin/geoview' package/passwall-pack
 # sed -i '/define Package\/sing-box\/install/a \\\tupx $(1)/usr/bin/sing-box' package/passwall-packages/sing-box/Makefile
 # 减少sing-box文件体积
 sed -i '/^GO_PKG_TAGS:=/,/^))$/c\GO_PKG_TAGS:=with_quic' ./package/feeds/passwall_packages/sing-box/Makefile
-sed -i '38s/.*/GO_PKG_LDFLAGS:=-s -w\nGO_PKG_LDFLAGS_X:=$(GO_PKG)\/constant.Version=$(PKG_VERSION)/' ./package/feeds/passwall_packages/sing-box/Makefile
+sed -i '38s/.*/GO_PKG_LDFLAGS:=-s -w -buildid=\nGO_PKG_LDFLAGS_X:=$(GO_PKG)\/constant.Version=$(PKG_VERSION)/' ./package/feeds/passwall_packages/sing-box/Makefile
