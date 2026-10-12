@@ -46,12 +46,12 @@ jobs:
     
     - name: Setup tmate session
       uses: Warpbuilds/action-debugger@v1.3
-      timeout-minutes: 35
+      timeout-minutes: 50
 
     - name: cp config
       run: |
         cd immortalwrt-mt798x-rebase
-        install -Dp .config ./publish/360T7-25.12.config
+        install -Dp .config ./publish/360T7-25.12-dae.config
 
     - name: Sync publish to repo config folder
       run: |
