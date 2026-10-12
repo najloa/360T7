@@ -7,17 +7,18 @@ on:
         description: '选择固件编译版本'
         required: true
         type: choice
-        default: '25.12'
+        default: 'immortalwrt-25.12'
         options:
-          - '21.02'
-          - '25.12'
-          - '25.12-dae'
+          - 'immortalwrt-21.02'
+          - 'immortalwrt-25.12'
+          - 'immortalwrt-25.12-dae'
 
 permissions:
   contents: write
   actions: write
 
 env:
+  DIY_P1_SH: diy-part1.sh
   TZ: Asia/Shanghai
 
 jobs:
@@ -33,15 +34,15 @@ jobs:
     - name: Set build configuration
       run: |
         case "${{ inputs.version }}" in
-          21.02)
+          immortalwrt-21.02)
             echo "REPO_URL=https://github.com/hanwckf/immortalwrt-mt798x" >> $GITHUB_ENV
-            echo "REPO_BRANCH=21.02" >> $GITHUB_ENV
+            echo "REPO_BRANCH=openwrt-21.02" >> $GITHUB_ENV
             echo "CONFIG_FILE=./config/360T7-21.02.config" >> $GITHUB_ENV
             echo "DIY_P2_SH=diy-21.02.sh" >> $GITHUB_ENV
             echo "TAG_NAME=21.02" >> $GITHUB_ENV
             echo "RELEASE_NAME=21.02" >> $GITHUB_ENV
             ;;
-          25.12)
+          immortalwrt-25.12)
             echo "REPO_URL=https://github.com/chasey-dev/immortalwrt-mt798x-rebase" >> $GITHUB_ENV
             echo "REPO_BRANCH=25.12" >> $GITHUB_ENV
             echo "CONFIG_FILE=./config/360T7-25.12.config" >> $GITHUB_ENV
@@ -49,7 +50,7 @@ jobs:
             echo "TAG_NAME=25.12" >> $GITHUB_ENV
             echo "RELEASE_NAME=25.12" >> $GITHUB_ENV
             ;;
-          25.12-dae)
+          immortalwrt-25.12-dae)
             echo "REPO_URL=https://github.com/chasey-dev/immortalwrt-mt798x-rebase" >> $GITHUB_ENV
             echo "REPO_BRANCH=25.12" >> $GITHUB_ENV
             echo "CONFIG_FILE=./config/360T7-25.12-dae.config" >> $GITHUB_ENV
@@ -115,7 +116,7 @@ jobs:
       id: compile
       run: |
         cd openwrt
-        make -j$(nproc) || make -j1 || make -j1 V=s
+        make -j$(nproc) || make -j1 V=s
 
     - name: Prepare firmware path
       run: |
