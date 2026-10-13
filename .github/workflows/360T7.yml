@@ -39,24 +39,24 @@ jobs:
             echo "REPO_BRANCH=openwrt-21.02" >> $GITHUB_ENV
             echo "CONFIG_FILE=./config/360T7-21.02.config" >> $GITHUB_ENV
             echo "DIY_P2_SH=diy-21.02.sh" >> $GITHUB_ENV
-            echo "TAG_NAME=21.02" >> $GITHUB_ENV
-            echo "RELEASE_NAME=21.02" >> $GITHUB_ENV
+            echo "TAG_NAME=immortalwrt-21.02" >> $GITHUB_ENV
+            echo "RELEASE_NAME=immortalwrt-21.02" >> $GITHUB_ENV
             ;;
           immortalwrt-25.12)
             echo "REPO_URL=https://github.com/chasey-dev/immortalwrt-mt798x-rebase" >> $GITHUB_ENV
             echo "REPO_BRANCH=25.12" >> $GITHUB_ENV
             echo "CONFIG_FILE=./config/360T7-25.12.config" >> $GITHUB_ENV
             echo "DIY_P2_SH=diy-25.12.sh" >> $GITHUB_ENV
-            echo "TAG_NAME=25.12" >> $GITHUB_ENV
-            echo "RELEASE_NAME=25.12" >> $GITHUB_ENV
+            echo "TAG_NAME=immortalwrt-25.12" >> $GITHUB_ENV
+            echo "RELEASE_NAME=immortalwrt-25.12" >> $GITHUB_ENV
             ;;
           immortalwrt-25.12-dae)
             echo "REPO_URL=https://github.com/chasey-dev/immortalwrt-mt798x-rebase" >> $GITHUB_ENV
             echo "REPO_BRANCH=25.12" >> $GITHUB_ENV
             echo "CONFIG_FILE=./config/360T7-25.12-dae.config" >> $GITHUB_ENV
             echo "DIY_P2_SH=diy-25.12.sh" >> $GITHUB_ENV
-            echo "TAG_NAME=25.12-dae" >> $GITHUB_ENV
-            echo "RELEASE_NAME=25.12-dae" >> $GITHUB_ENV
+            echo "TAG_NAME=immortalwrt-25.12-dae" >> $GITHUB_ENV
+            echo "RELEASE_NAME=immortalwrt-25.12-dae" >> $GITHUB_ENV
             ;;
           *)
             echo "Invalid version: ${{ inputs.version }}"
