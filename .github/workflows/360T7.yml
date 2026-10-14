@@ -7,11 +7,13 @@ on:
         description: '选择固件编译版本'
         required: true
         type: choice
-        default: 'immortalwrt-25.12'
+        default: 'openwrt-25.12'
         options:
           - 'immortalwrt-21.02'
           - 'immortalwrt-25.12'
           - 'immortalwrt-25.12-dae'
+          - 'openwrt-25.12'
+          - 'openwrt-25.12-ubi'
 
 permissions:
   contents: write
@@ -37,26 +39,42 @@ jobs:
           immortalwrt-21.02)
             echo "REPO_URL=https://github.com/hanwckf/immortalwrt-mt798x" >> $GITHUB_ENV
             echo "REPO_BRANCH=openwrt-21.02" >> $GITHUB_ENV
-            echo "CONFIG_FILE=./config/360T7-21.02.config" >> $GITHUB_ENV
-            echo "DIY_P2_SH=diy-21.02.sh" >> $GITHUB_ENV
+            echo "CONFIG_FILE=./config/immortalwrt-21.02.config" >> $GITHUB_ENV
+            echo "DIY_P2_SH=immortalwrt-21.02.sh" >> $GITHUB_ENV
             echo "TAG_NAME=immortalwrt-21.02" >> $GITHUB_ENV
             echo "RELEASE_NAME=immortalwrt-21.02" >> $GITHUB_ENV
             ;;
           immortalwrt-25.12)
             echo "REPO_URL=https://github.com/chasey-dev/immortalwrt-mt798x-rebase" >> $GITHUB_ENV
             echo "REPO_BRANCH=25.12" >> $GITHUB_ENV
-            echo "CONFIG_FILE=./config/360T7-25.12-sbox.config" >> $GITHUB_ENV
-            echo "DIY_P2_SH=diy-25.12.sh" >> $GITHUB_ENV
+            echo "CONFIG_FILE=./config/immortalwrt-25.12.config" >> $GITHUB_ENV
+            echo "DIY_P2_SH=immortalwrt-25.12.sh" >> $GITHUB_ENV
             echo "TAG_NAME=immortalwrt-25.12" >> $GITHUB_ENV
             echo "RELEASE_NAME=immortalwrt-25.12" >> $GITHUB_ENV
             ;;
           immortalwrt-25.12-dae)
             echo "REPO_URL=https://github.com/chasey-dev/immortalwrt-mt798x-rebase" >> $GITHUB_ENV
             echo "REPO_BRANCH=25.12" >> $GITHUB_ENV
-            echo "CONFIG_FILE=./config/360T7-25.12-dae.config" >> $GITHUB_ENV
-            echo "DIY_P2_SH=diy-25.12.sh" >> $GITHUB_ENV
+            echo "CONFIG_FILE=./config/immortalwrt-25.12-dae.config" >> $GITHUB_ENV
+            echo "DIY_P2_SH=immortalwrt-25.12-dae.sh" >> $GITHUB_ENV
             echo "TAG_NAME=immortalwrt-25.12-dae" >> $GITHUB_ENV
             echo "RELEASE_NAME=immortalwrt-25.12-dae" >> $GITHUB_ENV
+            ;;
+          openwrt-25.12)
+            echo "REPO_URL=https://github.com/openwrt/openwrt" >> $GITHUB_ENV
+            echo "REPO_BRANCH=openwrt-25.12" >> $GITHUB_ENV
+            echo "CONFIG_FILE=./config/openwrt-25.12.config" >> $GITHUB_ENV
+            echo "DIY_P2_SH=openwrt-25.12.sh" >> $GITHUB_ENV
+            echo "TAG_NAME=openwrt-25.12" >> $GITHUB_ENV
+            echo "RELEASE_NAME=openwrt-25.12" >> $GITHUB_ENV
+            ;;
+          openwrt-25.12-ubi)
+            echo "REPO_URL=https://github.com/openwrt/openwrt" >> $GITHUB_ENV
+            echo "REPO_BRANCH=openwrt-25.12" >> $GITHUB_ENV
+            echo "CONFIG_FILE=./config/openwrt-25.12-ubi.config" >> $GITHUB_ENV
+            echo "DIY_P2_SH=openwrt-25.12.sh" >> $GITHUB_ENV
+            echo "TAG_NAME=openwrt-25.12-ubi" >> $GITHUB_ENV
+            echo "RELEASE_NAME=openwrt-25.12-ubi" >> $GITHUB_ENV
             ;;
           *)
             echo "Invalid version: ${{ inputs.version }}"
