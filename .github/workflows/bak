@@ -58,3 +58,28 @@
         delete_workflows: true
         workflows_keep_day: 0
         gh_token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Prepare firmware path
+      run: |
+        cd openwrt/bin/targets/*/*
+        echo "FIRMWARE=$PWD" >> $GITHUB_ENV
+
+        echo "========================================"
+        echo "Firmware directory: $PWD"
+        echo "========================================"
+
+        echo "----- Sysupgrade files -----"
+        find . -maxdepth 1 -type f -name '*sysupgrade*' -printf '%f\n'
+
+        echo "----- Other files -----"
+        find . -maxdepth 1 -type f ! -name '*sysupgrade*' -printf '%f\n'
+
+        echo "========================================"
+        echo "========================================"
+        echo "----- All files -----"
+        ls -lah
+
+        echo "----- Non-sysupgrade files -----"
+        find . -maxdepth 1 -type f ! -name '*sysupgrade*' -exec ls -lh {} \;
+
+        echo "========================================"
