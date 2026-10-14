@@ -18,7 +18,9 @@ curl -s https://core.telegram.org/resources/cidr.txt > /tmp/telegram_cidr.txt &&
 
 sed -i '/\$(1)\/usr\/bin\//a \\t-upx $(1)/usr/bin/geoview' ./package/feeds/passwall_packages/geoview/Makefile
 sed -i '/^GO_PKG_TAGS:=/,/^))$/c\GO_PKG_TAGS:=with_quic' ./package/feeds/passwall_packages/sing-box/Makefile
-# sed -i '38s/.*/GO_PKG_LDFLAGS:=-s -w -buildid=\nGO_PKG_LDFLAGS_X:=$(GO_PKG)\/constant.Version=$(PKG_VERSION)/' ./package/feeds/passwall_packages/sing-box/Makefile
+grep -q '^GO_PKG_LDFLAGS:=' ./package/feeds/passwall_packages/sing-box/Makefile || sed -i '/^GO_PKG_LDFLAGS_X:=/i GO_PKG_LDFLAGS:=-s -w -buildid=' ./package/feeds/passwall_packages/sing-box/Makefile
+grep -q '^GO_PKG_LDFLAGS:=' ./package/feeds/passwall_packages/xray-core/Makefile || sed -i '/^GO_PKG_LDFLAGS_X:=/i GO_PKG_LDFLAGS:=-s -w -buildid=' ./package/feeds/passwall_packages/xray-core/Makefile
 
 cat ./package/feeds/passwall_packages/sing-box/Makefile
+cat ./package/feeds/passwall_packages/xray-core/Makefile
 find ./ -type d -iname '*passwall*'
