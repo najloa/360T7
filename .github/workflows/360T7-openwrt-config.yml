@@ -1,4 +1,4 @@
-name: 360T7-25.12-config
+name: 360T7-openwrt-config
 
 on:
   workflow_dispatch:
