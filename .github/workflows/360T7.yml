@@ -45,7 +45,7 @@ jobs:
           immortalwrt-25.12)
             echo "REPO_URL=https://github.com/chasey-dev/immortalwrt-mt798x-rebase" >> $GITHUB_ENV
             echo "REPO_BRANCH=25.12" >> $GITHUB_ENV
-            echo "CONFIG_FILE=./config/360T7-25.12.config" >> $GITHUB_ENV
+            echo "CONFIG_FILE=./config/360T7-25.12-xray.config" >> $GITHUB_ENV
             echo "DIY_P2_SH=diy-25.12.sh" >> $GITHUB_ENV
             echo "TAG_NAME=immortalwrt-25.12" >> $GITHUB_ENV
             echo "RELEASE_NAME=immortalwrt-25.12" >> $GITHUB_ENV
