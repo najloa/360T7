@@ -5,6 +5,7 @@ https://github.com/openwrt-passwall/openwrt-passwall
 https://github.com/pymumu/smartdns  
 https://github.com/najloa/v2ray-rules-dat  
 https://github.com/P3TERX/Actions-OpenWrt  
+https://github.com/anothaDev/luci-theme-vantage  
 https://github.com/jerrykuku/luci-theme-argon  
 https://github.com/rchen14b/luci-theme-glass  
 https://github.com/eamonxg/luci-theme-aurora  
