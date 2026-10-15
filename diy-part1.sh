@@ -10,6 +10,3 @@ cat feeds.conf.default
 
 # 主题
 git clone https://github.com/eamonxg/luci-theme-aurora.git package/luci-theme-aurora
-
-# 大鹅
-git clone https://github.com/kenzok8/openwrt-daede.git package/openwrt-daede
