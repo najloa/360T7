@@ -104,7 +104,7 @@ jobs:
           cd openwrt
           cp -f defconfig/mt7981-ax3000.config .config
 
-      - name: 【先q 后cd openwrt && make menuconfig 完sudo touch /continue】
+      - name: 【先q 后cd openwrt && make defconfig 接make menuconfig 完sudo touch /continue】
         uses: Warpbuilds/action-debugger@v1.3 #【多配置install -Dp .config ./publish/openwrt-25.12-.config && cp -f defconfig/mt7981-ax3000.config .config】【https://github.com/mxschmitt/action-tmate】
         timeout-minutes: 30
 
