@@ -1,0 +1,143 @@
+name: 360T7 Firmware Configuration Publisher
+
+on:
+  workflow_dispatch:
+    inputs:
+      firmware_version:
+        description: '选择固件编译版本'
+        type: choice
+        required: true
+        default: 'openwrt-25.12'
+        options:
+          - 'immortalwrt-21.02'
+          - 'immortalwrt-25.12'
+          - 'immortalwrt-25.12-dae'
+          - 'openwrt-25.12'
+          - 'openwrt-25.12-ubi'
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Initialize Build Environment
+        run: sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
+
+      - name: Clone Firmware Source
+        env:
+          FIRMWARE_VERSION: ${{ inputs.firmware_version }}
+        run: |
+          case "$FIRMWARE_VERSION" in
+            immortalwrt-21.02)
+              REPO="https://github.com/hanwckf/immortalwrt-mt798x.git"
+              BRANCH="openwrt-21.02"
+              ;;
+            immortalwrt-25.12|immortalwrt-25.12-dae)
+              REPO="https://github.com/chasey-dev/immortalwrt-mt798x-rebase.git"
+              BRANCH="25.12"
+              ;;
+            openwrt-25.12|openwrt-25.12-ubi)
+              REPO="https://github.com/openwrt/openwrt.git"
+              BRANCH="openwrt-25.12"
+              ;;
+            *)
+              echo "错误：不支持的固件版本：$FIRMWARE_VERSION"
+              exit 1
+              ;;
+          esac
+
+          echo "固件版本：$FIRMWARE_VERSION"
+          echo "源码仓库：$REPO"
+          echo "源码分支：$BRANCH"
+
+          git clone -b "$BRANCH" "$REPO" openwrt
+
+      - name: Configure Feeds and Theme
+        env:
+          FIRMWARE_VERSION: ${{ inputs.firmware_version }}
+        run: |
+          cd openwrt
+
+          # 官方 OpenWrt 使用仓库内的对应初始配置。
+          # ImmortalWrt 将在 feeds 安装后使用指定的 defconfig。
+          case "$FIRMWARE_VERSION" in
+            openwrt-25.12|openwrt-25.12-ubi)
+              cp -f "$GITHUB_WORKSPACE/config/defconfig-${FIRMWARE_VERSION}.config" .config
+              ;;
+          esac
+
+          # 添加 Passwall feeds
+          {
+            printf '%s\n' \
+              "src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main" \
+              "src-git passwall_luci https://github.com/Openwrt-Passwall/openwrt-passwall.git;main"
+            cat feeds.conf.default
+          } > feeds.conf.default.tmp
+
+          mv feeds.conf.default.tmp feeds.conf.default
+
+          echo "===== feeds.conf.default 更新成功 ====="
+          cat feeds.conf.default
+
+          # 添加 Aurora 主题
+          git clone https://github.com/eamonxg/luci-theme-aurora.git \
+            package/luci-theme-aurora
+
+      - name: Update Feeds
+        run: cd openwrt && ./scripts/feeds update -a
+
+      - name: Install Feeds
+        run: cd openwrt && ./scripts/feeds install -a
+
+      - name: Apply ImmortalWrt Device Defconfig
+        if: ${{ startsWith(inputs.firmware_version, 'immortalwrt-') }}
+        run: |
+          cd openwrt
+          cp -f defconfig/mt7981-ax3000.config .config
+
+      - name: 【先q 后cd openwrt && make menuconfig 完sudo touch /continue】
+        uses: Warpbuilds/action-debugger@v1.3 #【https://github.com/mxschmitt/action-tmate】
+        timeout-minutes: 20
+
+      - name: Publish Firmware Configuration
+        env:
+          FIRMWARE_VERSION: ${{ inputs.firmware_version }}
+        run: |
+          cd openwrt
+          install -Dp .config "./publish/${FIRMWARE_VERSION}.config"
+
+      - name: Sync Configurations to Repository
+        run: |
+          mkdir -p config
+          cp -f openwrt/publish/*.config config/
+
+      - name: Commit and Push Configurations
+        env:
+          FIRMWARE_VERSION: ${{ inputs.firmware_version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add config/
+          if git diff --cached --quiet; then
+            echo "配置文件没有变化，无需提交。"
+          else
+            git commit -m "Update firmware config: ${FIRMWARE_VERSION}"
+            git push
+          fi
+
+      - name: Delete workflow runs
+        uses: Mattraks/delete-workflow-runs@main
+        with:
+           token: ${{ github.token }}
+           repository: ${{ github.repository }}
+           retain_days: 0
