@@ -10,3 +10,4 @@ cat feeds.conf.default
 
 # 主题
 git clone https://github.com/eamonxg/luci-theme-aurora.git package/luci-theme-aurora
+git clone https://github.com/eamonxg/luci-app-aurora-config.git package/luci-app-aurora-config
