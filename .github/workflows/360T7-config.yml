@@ -71,7 +71,12 @@ jobs:
           # ImmortalWrt 将在 feeds 安装后使用指定的 defconfig。
           case "$FIRMWARE_VERSION" in
             openwrt-25.12|openwrt-25.12-ubi)
-              cp -f "$GITHUB_WORKSPACE/config/defconfig-${FIRMWARE_VERSION}.config" .config
+              CONFIG_FILE="$GITHUB_WORKSPACE/config/defconfig-${FIRMWARE_VERSION}.config"
+              if [ -f "$CONFIG_FILE" ]; then
+                cp -f "$CONFIG_FILE" .config
+              else
+                echo "::warning::配置文件不存在，跳过复制：$CONFIG_FILE"
+              fi
               ;;
           esac
 
