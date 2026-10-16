@@ -4,12 +4,14 @@ https://github.com/chasey-dev/immortalwrt-mt798x-rebase
 https://github.com/padavanonly/immortalwrt-mt798x-6.6  
 https://github.com/hanwckf/immortalwrt-mt798x  
 https://github.com/openwrt-passwall/openwrt-passwall  
+https://github.com/daeuniverse/dae  
+https://github.com/kenzok8/openwrt-daede  
 https://github.com/pymumu/smartdns  
-https://github.com/najloa/v2ray-rules-dat  
+https://github.com/najloa/rules  
 https://github.com/P3TERX/Actions-OpenWrt  
+https://github.com/eamonxg/luci-theme-aurora  
 https://github.com/anothaDev/luci-theme-vantage  
 https://github.com/jerrykuku/luci-theme-argon  
 https://github.com/rchen14b/luci-theme-glass  
-https://github.com/eamonxg/luci-theme-aurora  
 https://github.com/ChesterGoodiny/luci-theme-proton2025  
 https://github.com/MIAOBUSI/luci-theme-vitrawrt  
