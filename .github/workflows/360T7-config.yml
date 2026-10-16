@@ -96,6 +96,8 @@ jobs:
           # 添加 Aurora 主题
           git clone https://github.com/eamonxg/luci-theme-aurora.git \
             package/luci-theme-aurora
+          git clone https://github.com/eamonxg/luci-app-aurora-config.git \
+            package/luci-app-aurora-config
 
       - name: Update Feeds
         run: cd openwrt && ./scripts/feeds update -a
