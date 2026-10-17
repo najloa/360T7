@@ -8,4 +8,5 @@ sed -i '/MetaCubeX\/geoip (CDN)"/a\	o:value("https://raw.githubusercontent.com/L
 > ./package/feeds/passwall_luci/luci-app-passwall/root/usr/share/passwall/rules/chnlist
 curl -s https://core.telegram.org/resources/cidr.txt > /tmp/telegram_cidr.txt && grep -Fvxf /tmp/telegram_cidr.txt ./package/feeds/passwall_luci/luci-app-passwall/root/usr/share/passwall/rules/proxy_ip > /tmp/proxy_ip_cleaned && cat /tmp/telegram_cidr.txt >> /tmp/proxy_ip_cleaned && mv /tmp/proxy_ip_cleaned ./package/feeds/passwall_luci/luci-app-passwall/root/usr/share/passwall/rules/proxy_ip && rm /tmp/telegram_cidr.txt
 
-git clone --depth 1 https://github.com/openwrt/packages.git package/openwrt-packages && rm -rf ./feeds/packages/lang/golang && \cp -rf ./package/openwrt-packages/lang/golang ./feeds/packages/lang/ && rm -rf ./package/openwrt-packages
+# 替换版本
+sed -i 's/GO_DEFAULT_VERSION:=1.26/GO_DEFAULT_VERSION:=1.27/g' ./feeds/packages/lang/golang/golang-values.mk
