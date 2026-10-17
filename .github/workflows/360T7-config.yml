@@ -94,9 +94,9 @@ jobs:
           cat feeds.conf.default
 
           # 添加 Aurora 主题
-          git clone https://github.com/eamonxg/luci-theme-aurora.git \
+          git clone --depth 1 https://github.com/eamonxg/luci-theme-aurora.git \
             package/luci-theme-aurora
-          git clone https://github.com/eamonxg/luci-app-aurora-config.git \
+          git clone --depth 1 https://github.com/eamonxg/luci-app-aurora-config.git \
             package/luci-app-aurora-config
 
       - name: Update Feeds
@@ -111,9 +111,30 @@ jobs:
           cd openwrt
           cp -f defconfig/mt7981-ax3000.config .config
 
+      - name: Replace
+        if: ${{ startsWith(inputs.firmware_version, 'openwrt-') }}
+        run: |
+          cd openwrt
+          # 替换 SmartDNS 包
+          git clone --depth 1 -b openwrt-25.12 https://github.com/immortalwrt/packages.git immortalwrt-packages && \
+          rm -rf ./feeds/packages/net/smartdns && \
+          mkdir -p ./feeds/packages/net && \
+          cp -a ./immortalwrt-packages/net/smartdns ./feeds/packages/net/ && \
+          rm -rf ./immortalwrt-packages
+          
+          git clone --depth 1 -b openwrt-25.12 https://github.com/immortalwrt/luci.git immortalwrt-luci && \
+          rm -rf ./feeds/luci/applications/luci-app-smartdns && \
+          mkdir -p ./feeds/luci/applications && \
+          cp -a ./immortalwrt-luci/applications/luci-app-smartdns ./feeds/luci/applications/ && \
+          rm -rf ./immortalwrt-luci
+          
+          ./scripts/feeds install -f smartdns
+          ./scripts/feeds install -f luci-app-smartdns
+
+
       - name: 【先q 后cd openwrt && make menuconfig 完sudo touch /continue】
         uses: Warpbuilds/action-debugger@v1.3 #【多配置install -Dp .config ./publish/openwrt-25.12-.config && cp -f defconfig/mt7981-ax3000.config .config】【https://github.com/mxschmitt/action-tmate】
-        timeout-minutes: 30
+        timeout-minutes: 50
 
       - name: Publish Firmware Configuration
         env:
