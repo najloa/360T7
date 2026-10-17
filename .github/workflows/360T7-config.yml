@@ -59,7 +59,7 @@ jobs:
           echo "源码仓库：$REPO"
           echo "源码分支：$BRANCH"
 
-          git clone -b "$BRANCH" "$REPO" openwrt
+          git clone --depth 1 -b "$BRANCH" "$REPO" openwrt
 
       - name: Configure Feeds and Theme
         env:
