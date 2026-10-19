@@ -125,47 +125,41 @@ jobs:
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
-- name: Compile the firmware
-  id: compile
-  run: |
-    set -o pipefail
-    cd openwrt
-
-    # 单独重新编译 OpenSSL，并保存详细编译命令
-    make package/libs/openssl/clean
-    make package/libs/openssl/compile V=s 2>&1 \
-      | tee "$GITHUB_WORKSPACE/openssl-build.log"
-
-    # 保存 OpenSSL 实际配置及 MD5 相关文件信息
-    {
-      echo "===== OpenSSL configdata.pm ====="
-      find build_dir -type f -name configdata.pm -print \
-        > "$GITHUB_WORKSPACE/openssl-configdata-paths.txt"
-
-      while IFS= read -r f; do
-        echo
-        echo "===== $f ====="
-        (cd "$(dirname "$f")" && perl ./configdata.pm --dump)
-      done < "$GITHUB_WORKSPACE/openssl-configdata-paths.txt"
-
-      echo
-      echo "===== MD5 source/object files ====="
-      find build_dir -type f \
-        \( -iname '*md5*.S' -o -iname '*md5*.s' \
-        -o -iname '*md5*.o' -o -iname '*md5*.c' \) -print
-    } > "$GITHUB_WORKSPACE/openssl-diagnostics.txt" 2>&1
-
-    # 继续编译完整固件
-    make -j$(nproc) || make -j1 V=s
-
-- name: Upload OpenSSL diagnostics
-  if: always()
-  uses: actions/upload-artifact@v4
-  with:
-    name: openssl-diagnostics
-    path: |
-      openssl-build.log
-      openssl-diagnostics.txt
-      openssl-configdata-paths.txt
-    if-no-files-found: warn
-    retention-days: 7
+    - name: Compile OpenSSL and collect diagnostics
+      run: |
+        set -o pipefail
+        cd openwrt
+    
+        make package/libs/openssl/clean
+        make package/libs/openssl/compile V=s 2>&1 \
+          | tee "$GITHUB_WORKSPACE/openssl-build.log"
+    
+        {
+          echo "===== OpenSSL configdata.pm ====="
+          find build_dir -type f -name configdata.pm -print \
+            > "$GITHUB_WORKSPACE/openssl-configdata-paths.txt"
+    
+          while IFS= read -r f; do
+            echo
+            echo "===== $f ====="
+            (cd "$(dirname "$f")" && perl ./configdata.pm --dump)
+          done < "$GITHUB_WORKSPACE/openssl-configdata-paths.txt"
+    
+          echo
+          echo "===== MD5 source/object files ====="
+          find build_dir -type f \
+            \( -iname '*md5*.S' -o -iname '*md5*.s' \
+            -o -iname '*md5*.o' -o -iname '*md5*.c' \) -print
+        } > "$GITHUB_WORKSPACE/openssl-diagnostics.txt" 2>&1
+    
+    - name: Upload OpenSSL diagnostics
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: openssl-diagnostics
+        path: |
+          openssl-build.log
+          openssl-diagnostics.txt
+          openssl-configdata-paths.txt
+        if-no-files-found: warn
+        retention-days: 7
