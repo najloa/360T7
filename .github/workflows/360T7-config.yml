@@ -29,8 +29,8 @@ jobs:
         with:
           persist-credentials: true
 
-      - name: Initialize Build Environment
-        run: sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
+#      - name: Initialize Build Environment
+#        run: sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
 
       - name: Clone Firmware Source
         env:
