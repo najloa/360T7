@@ -29,8 +29,8 @@ jobs:
         with:
           persist-credentials: true
 
-  #    - name: Initialize Build Environment
- #       run: sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
+      - name: Initialize Build Environment
+        run: sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
 
       - name: Clone Firmware Source
         env:
@@ -65,27 +65,7 @@ jobs:
         env:
           FIRMWARE_VERSION: ${{ inputs.firmware_version }}
         run: |
-          echo "inputs.firmware_version=${{ inputs.firmware_version }}"
-          echo "FIRMWARE_VERSION=[$FIRMWARE_VERSION]"
           cd openwrt
-
-          # 官方 OpenWrt 使用仓库内的对应初始配置。
-          # ImmortalWrt 将在 feeds 安装后使用指定的 defconfig。
-          case "$FIRMWARE_VERSION" in
-            openwrt-25.12|openwrt-25.12-ubi)
-              CONFIG_FILE="$GITHUB_WORKSPACE/config/defconfig-${FIRMWARE_VERSION}.config"
-
-              echo "固件版本：$FIRMWARE_VERSION"
-              echo "配置文件路径：$CONFIG_FILE"
-
-              if [ -f "$CONFIG_FILE" ]; then
-                cp -f "$CONFIG_FILE" .config
-              else
-                echo "::warning::配置文件不存在，跳过复制：$CONFIG_FILE"
-              fi
-              ;;
-          esac
-
           # 添加 Passwall feeds
           {
             printf '%s\n' \
@@ -110,6 +90,28 @@ jobs:
 
       - name: Install Feeds
         run: cd openwrt && ./scripts/feeds install -a
+
+      - name: Apply OpenWrt Device Defconfig
+        env:
+          FIRMWARE_VERSION: ${{ inputs.firmware_version }}
+        run: |
+          cd openwrt
+
+          # 官方 OpenWrt 使用仓库内的对应初始配置。
+          # ImmortalWrt 将在 feeds 安装后使用指定的 defconfig。
+          case "$FIRMWARE_VERSION" in
+            openwrt-25.12|openwrt-25.12-ubi)
+              CONFIG_FILE="$GITHUB_WORKSPACE/config/defconfig-${FIRMWARE_VERSION}.config"
+              
+              echo "配置文件路径：$CONFIG_FILE"
+              
+              if [ -f "$CONFIG_FILE" ]; then
+                cp -f "$CONFIG_FILE" .config
+              else
+                echo "::warning::配置文件不存在，跳过复制：$CONFIG_FILE"
+              fi
+              ;;
+          esac
 
       - name: Apply ImmortalWrt Device Defconfig
         if: ${{ startsWith(inputs.firmware_version, 'immortalwrt-') }}
