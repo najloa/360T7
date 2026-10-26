@@ -13,6 +13,7 @@ on:
           - 'immortalwrt-25.12'
           - 'immortalwrt-25.12-dae'
           - 'openwrt-25.12'
+          - 'openwrt-25.12-dae'
           - 'openwrt-25.12-ubi'
 
 permissions:
@@ -45,7 +46,7 @@ jobs:
               REPO="https://github.com/chasey-dev/immortalwrt-mt798x-rebase.git"
               BRANCH="25.12"
               ;;
-            openwrt-25.12|openwrt-25.12-ubi)
+            openwrt-25.12|openwrt-25.12-dae|openwrt-25.12-ubi)
               REPO="https://github.com/openwrt/openwrt.git"
               BRANCH="openwrt-25.12"
               ;;
@@ -100,7 +101,7 @@ jobs:
           # 官方 OpenWrt 使用仓库内的对应初始配置。
           # ImmortalWrt 将在 feeds 安装后使用指定的 defconfig。
           case "$FIRMWARE_VERSION" in
-            openwrt-25.12|openwrt-25.12-ubi)
+            openwrt-25.12|openwrt-25.12-dae|openwrt-25.12-ubi)
               CONFIG_FILE="$GITHUB_WORKSPACE/config/defconfig-${FIRMWARE_VERSION}.config"
               
               echo "配置文件路径：$CONFIG_FILE"
