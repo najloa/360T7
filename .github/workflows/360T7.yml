@@ -126,23 +126,6 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
 
-
-    - name: Check BPF toolchain
-      run: |
-        cd openwrt
-
-        echo "=== LLVM tools ==="
-        command -v clang
-        clang --version
-        command -v llc || true
-        command -v llvm-dis || true
-
-        echo "=== OpenWrt config ==="
-        grep -E 'CONFIG_(HAS_BPF_TOOLCHAIN|USE_LLVM_HOST|USE_LLVM_PREBUILT|USE_LLVM_BUILD)=' .config || true
-
-        echo "=== BPF makefile ==="
-        sed -n '1,120p' include/bpf.mk
-
     - name: Download package
       id: package
       run: |
