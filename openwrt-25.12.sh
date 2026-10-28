@@ -31,3 +31,6 @@ rm -rf ./immortalwrt-luci
 
 ./scripts/feeds install -f smartdns
 ./scripts/feeds install -f luci-app-smartdns
+
+# 移除 v2ray 依赖
+sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/openwrt_daede/dae/Makefile ./feeds/openwrt_daede/daed/Makefile
