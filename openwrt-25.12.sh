@@ -34,6 +34,16 @@ rm -rf ./immortalwrt-luci
 
 # 修改 daede 包
 sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/openwrt_daede/dae/Makefile ./feeds/openwrt_daede/daed/Makefile
-cd "$GITHUB_WORKSPACE/openwrt/feeds/openwrt_daede"
-cp -f "$GITHUB_WORKSPACE/small-geo.patch" small-geo.patch
-git apply small-geo.patch
+f="feeds/openwrt_daede/luci-app-daede/htdocs/luci-static/resources/view/daede/updates.js"
+sed -i "/loyalsoldier: {/a\\
+	small: { geoip: 'https://raw.githubusercontent.com/Loyalsoldier/geoip/release/geoip-only-cn-private.dat', geosite: 'https://github.com/najloa/rules/releases/latest/download/geosite.dat' },
+" "$f"
+sed -i "/return 'v2fly';/i\\
+	if (gi === GEO_PRESETS.small.geoip && gs === GEO_PRESETS.small.geosite) return 'small';
+" "$f"
+sed -i "/value': 'v2fly'/i\\
+				E('option', { 'value': 'small' }, 'small'),
+" "$f"
+sed -i "/if (p === 'v2fly')/a\\
+				else if (p === 'small') { gi = GEO_PRESETS.small.geoip; gs = GEO_PRESETS.small.geosite; }
+" "$f"
