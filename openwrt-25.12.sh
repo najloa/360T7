@@ -34,6 +34,6 @@ rm -rf ./immortalwrt-luci
 
 # 修改 daede 包
 sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/openwrt_daede/dae/Makefile ./feeds/openwrt_daede/daed/Makefile
-cd /feeds/openwrt_daede
-cp -f $GITHUB_WORKSPACE/small-geo.patch small-geo.patch
+cd "$GITHUB_WORKSPACE/openwrt/feeds/openwrt_daede"
+cp -f "$GITHUB_WORKSPACE/small-geo.patch" small-geo.patch
 git apply small-geo.patch
