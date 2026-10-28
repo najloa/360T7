@@ -96,7 +96,7 @@ jobs:
         DEBIAN_FRONTEND: noninteractive
       run: |
         sudo apt update
-        sudo apt install -y bzip2 g++ gawk gcc git glibc-source libncurses-dev make clang llvm
+        sudo apt install bzip2 g++ gawk gcc git glibc-source libncurses-dev make
         sudo timedatectl set-timezone "$TZ"
         sudo mkdir -p /workdir
         sudo chown $USER:$GROUPS /workdir
