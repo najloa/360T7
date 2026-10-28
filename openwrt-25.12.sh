@@ -2,7 +2,7 @@
 
 sed -i 's/192.168.1.1/192.168.5.1/' ./package/base-files/files/bin/config_generate
 
-# 修改 Passwall 配置
+# 修改 Passwall 包
 sed -i '/MetaCubeX\/geosite (CDN)"/a\	o:value("https://github.com/najloa/rules/releases/latest/download/geosite.dat", translate("najloa/geosite"))' ./package/feeds/passwall_luci/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
 sed -i '/MetaCubeX\/geoip (CDN)"/a\	o:value("https://raw.githubusercontent.com/Loyalsoldier/geoip/release/geoip-only-cn-private.dat", translate("Loyalsoldier/geoip-only-cn-private"))' ./package/feeds/passwall_luci/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
 > ./package/feeds/passwall_luci/luci-app-passwall/root/usr/share/passwall/rules/chnlist
@@ -32,5 +32,7 @@ rm -rf ./immortalwrt-luci
 ./scripts/feeds install -f smartdns
 ./scripts/feeds install -f luci-app-smartdns
 
-# 移除 v2ray 依赖
+# 修改 daede 包
 sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/openwrt_daede/dae/Makefile ./feeds/openwrt_daede/daed/Makefile
+cd /feeds/openwrt_daede
+git apply small-geo.patch
