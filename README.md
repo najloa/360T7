@@ -15,3 +15,4 @@ https://github.com/jerrykuku/luci-theme-argon
 https://github.com/rchen14b/luci-theme-glass  
 https://github.com/ChesterGoodiny/luci-theme-proton2025  
 https://github.com/MIAOBUSI/luci-theme-vitrawrt  
+https://github.com/rothdren-lion/gwrt-theme
