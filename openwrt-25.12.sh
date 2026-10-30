@@ -2,7 +2,7 @@
 
 sed -i 's/192.168.1.1/192.168.5.1/' ./package/base-files/files/bin/config_generate
 
-# 修改 Passwall 包
+# 修改 Passwall
 sed -i '/MetaCubeX\/geosite (CDN)"/a\	o:value("https://github.com/najloa/rules/releases/latest/download/geosite.dat", translate("najloa/geosite"))' ./package/feeds/passwall_luci/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
 sed -i '/MetaCubeX\/geoip (CDN)"/a\	o:value("https://raw.githubusercontent.com/Loyalsoldier/geoip/release/geoip-only-cn-private.dat", translate("Loyalsoldier/geoip-only-cn-private"))' ./package/feeds/passwall_luci/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
 > ./package/feeds/passwall_luci/luci-app-passwall/root/usr/share/passwall/rules/chnlist
@@ -16,7 +16,7 @@ mv "${rules_file}.tmp" "$rules_file"
 # 替换 Go 版本
 sed -i 's/GO_DEFAULT_VERSION:=1.26/GO_DEFAULT_VERSION:=1.27/g' ./feeds/packages/lang/golang/golang-values.mk
 
-# 替换 SmartDNS 包
+# 替换 SmartDNS
 git clone --depth 1 -b openwrt-25.12 https://github.com/immortalwrt/packages.git immortalwrt-packages && \
 rm -rf ./feeds/packages/net/smartdns && \
 mkdir -p ./feeds/packages/net && \
@@ -32,18 +32,5 @@ rm -rf ./immortalwrt-luci
 ./scripts/feeds install -f smartdns
 ./scripts/feeds install -f luci-app-smartdns
 
-# 修改 daede 包
-sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/openwrt_daede/dae/Makefile ./feeds/openwrt_daede/daed/Makefile ./feeds/daeuniverse_packages/honk/Makefile
-f="feeds/openwrt_daede/luci-app-daede/htdocs/luci-static/resources/view/daede/updates.js"
-sed -i "/loyalsoldier: {/a\\
-	small: { geoip: 'https://raw.githubusercontent.com/Loyalsoldier/geoip/release/geoip-only-cn-private.dat', geosite: 'https://github.com/najloa/rules/releases/latest/download/geosite.dat' },
-" "$f"
-sed -i "/return 'v2fly';/i\\
-	if (gi === GEO_PRESETS.small.geoip && gs === GEO_PRESETS.small.geosite) return 'small';
-" "$f"
-sed -i "/value': 'v2fly'/i\\
-				E('option', { 'value': 'small' }, 'small'),
-" "$f"
-sed -i "/if (p === 'v2fly')/a\\
-				else if (p === 'small') { gi = GEO_PRESETS.small.geoip; gs = GEO_PRESETS.small.geosite; }
-" "$f"
+# 移除 v2ray
+sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/daeuniverse_packages/honk/Makefile
