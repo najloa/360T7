@@ -34,3 +34,23 @@ rm -rf ./immortalwrt-luci
 
 # 移除 v2ray
 sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/honk_packages/honk/Makefile
+
+# Prepare honk source
+HONK_DIR="$GITHUB_WORKSPACE/openwrt/feeds/honk_packages/honk"
+
+if grep -q '^CONFIG_PACKAGE_honk=y$' "$GITHUB_WORKSPACE/openwrt/.config"; then
+    HONK_TAG=$(sed -n \
+        's/^HONK_GIT_TAG:=$(if $(HONK_GIT_TAG),$(HONK_GIT_TAG),\([^)]*\))$/\1/p' \
+        "$HONK_DIR/Makefile")
+
+    if [ -z "$HONK_TAG" ]; then
+        echo "Error: Failed to determine HONK_GIT_TAG"
+        exit 1
+    fi
+
+    echo "Preparing honk source: $HONK_TAG"
+
+    git clone --depth 1 --branch "$HONK_TAG" \
+        https://github.com/daeuniverse/honk.git \
+        "$HONK_DIR/src"
+fi
