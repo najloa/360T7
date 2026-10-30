@@ -54,3 +54,69 @@ if grep -q '^CONFIG_PACKAGE_honk=y$' "$GITHUB_WORKSPACE/openwrt/.config"; then
         https://github.com/daeuniverse/honk.git \
         "$HONK_DIR/src"
 fi
+
+# Prepare honk build environment
+if grep -qx 'CONFIG_PACKAGE_honk=y' .config; then
+    HONK_SRC="$PWD/feeds/honk_packages/honk/src"
+    CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
+    export CARGO_HOME
+    export PATH="$CARGO_HOME/bin:$PATH"
+
+    # Install rustup if missing
+    if ! command -v rustup >/dev/null 2>&1; then
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+            | sh -s -- -y --profile minimal --default-toolchain none
+    fi
+
+    # Read pinned toolchain versions
+    STABLE_TOOLCHAIN=$(sed -n \
+        's/^[[:space:]]*channel[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' \
+        "$HONK_SRC/rust-toolchain.toml" | head -n1)
+
+    NIGHTLY_TOOLCHAIN=$(sed -n \
+        's/^[[:space:]]*channel[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' \
+        "$HONK_SRC/crates/honk-ebpf/rust-toolchain.toml" | head -n1)
+
+    if [ -z "$STABLE_TOOLCHAIN" ] || [ -z "$NIGHTLY_TOOLCHAIN" ]; then
+        echo "Error: Failed to read honk Rust toolchain versions"
+        exit 1
+    fi
+
+    # Install stable Rust and the OpenWrt target standard library
+    rustup toolchain install "$STABLE_TOOLCHAIN" \
+        --profile minimal --component rustfmt --component clippy
+
+    rustup target add --toolchain "$STABLE_TOOLCHAIN" \
+        aarch64-unknown-linux-musl
+
+    # Install nightly Rust for eBPF compilation
+    rustup toolchain install "$NIGHTLY_TOOLCHAIN" \
+        --profile minimal --component rust-src --component llvm-tools
+
+    # Install the pinned bpf-linker
+    sudo apt-get install -y zstd
+
+    source "$HONK_SRC/.github/ci/pins.env"
+
+    mkdir -p "$CARGO_HOME/bin"
+
+    curl -fsSL --retry 3 \
+        -o "$RUNNER_TEMP/bpf-linker.tar.zst" \
+        "https://github.com/aya-rs/bpf-linker/releases/download/v${BPF_LINKER_VERSION}/bpf-linker-x86_64-unknown-linux-musl.tar.zst"
+
+    echo "${BPF_LINKER_SHA256}  $RUNNER_TEMP/bpf-linker.tar.zst" \
+        | sha256sum -c -
+
+    zstd -dc "$RUNNER_TEMP/bpf-linker.tar.zst" \
+        | tar -xf - -C "$CARGO_HOME/bin"
+
+    chmod +x "$CARGO_HOME/bin/bpf-linker"
+
+    # Make Cargo and bpf-linker available in subsequent workflow steps
+    echo "$CARGO_HOME/bin" >> "$GITHUB_PATH"
+
+    echo "honk Rust build environment ready"
+    rustc "+$STABLE_TOOLCHAIN" --version
+    rustc "+$NIGHTLY_TOOLCHAIN" --version
+    bpf-linker --version
+fi
