@@ -135,7 +135,7 @@ jobs:
           ./scripts/feeds install -f luci-app-smartdns
 
           # 移除 v2ray
-          sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/daeuniverse_packages/honk/Makefile
+          sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/honk_packages/honk/Makefile
 
       - name: 【先q 后cd openwrt && make menuconfig 完sudo touch /continue】
         uses: Warpbuilds/action-debugger@v1.3 #【多配置install -Dp .config ./publish/openwrt-25.12-.config && cp -f defconfig/mt7981-ax3000.config .config】【https://github.com/mxschmitt/action-tmate】
