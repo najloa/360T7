@@ -33,7 +33,7 @@ rm -rf ./immortalwrt-luci
 ./scripts/feeds install -f luci-app-smartdns
 
 # 修改 daede 包
-sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/openwrt_daede/dae/Makefile ./feeds/openwrt_daede/daed/Makefile
+sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/openwrt_daede/dae/Makefile ./feeds/openwrt_daede/daed/Makefile ./feeds/daeuniverse_packages/honk/Makefile
 f="feeds/openwrt_daede/luci-app-daede/htdocs/luci-static/resources/view/daede/updates.js"
 sed -i "/loyalsoldier: {/a\\
 	small: { geoip: 'https://raw.githubusercontent.com/Loyalsoldier/geoip/release/geoip-only-cn-private.dat', geosite: 'https://github.com/najloa/rules/releases/latest/download/geosite.dat' },
