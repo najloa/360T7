@@ -11,10 +11,8 @@ on:
         options:
           - 'immortalwrt-21.02'
           - 'immortalwrt-25.12'
-          - 'immortalwrt-25.12-dae'
           - 'openwrt-25.12'
           - 'openwrt-25.12-honk'
-          - 'openwrt-25.12-dae'
           - 'openwrt-25.12-ubi'
 
 permissions:
@@ -40,11 +38,11 @@ jobs:
               REPO="https://github.com/hanwckf/immortalwrt-mt798x.git"
               BRANCH="openwrt-21.02"
               ;;
-            immortalwrt-25.12|immortalwrt-25.12-dae)
+            immortalwrt-25.12)
               REPO="https://github.com/chasey-dev/immortalwrt-mt798x-rebase.git"
               BRANCH="25.12"
               ;;
-            openwrt-25.12|openwrt-25.12-honk|openwrt-25.12-dae|openwrt-25.12-ubi)
+            openwrt-25.12|openwrt-25.12-honk|openwrt-25.12-ubi)
               REPO="https://github.com/openwrt/openwrt.git"
               BRANCH="openwrt-25.12"
               ;;
@@ -65,26 +63,18 @@ jobs:
           FIRMWARE_VERSION: ${{ inputs.firmware_version }}
         run: |
           cd openwrt
-          # 添加 Passwall & daede feeds
+          # Passwall & honk feeds
           {
             printf '%s\n' \
-              "src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main" \
-              "src-git passwall_luci https://github.com/Openwrt-Passwall/openwrt-passwall.git;main" \
-              "src-git openwrt_daede https://github.com/kenzok8/openwrt-daede.git;main" \
-              "src-git daeuniverse_packages https://github.com/daeuniverse/openwrt-packages.git;main"
+              'src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main' \
+              'src-git passwall_luci https://github.com/Openwrt-Passwall/openwrt-passwall.git;main' \
+              'src-git honk_packages https://github.com/daeuniverse/openwrt-packages.git;main'
             cat feeds.conf.default
-          } > feeds.conf.default.tmp
-
-          mv feeds.conf.default.tmp feeds.conf.default
-
-          echo "===== feeds.conf.default 更新成功 ====="
-          cat feeds.conf.default
-
-          # 添加 Aurora 主题
-          git clone --depth 1 https://github.com/eamonxg/luci-theme-aurora.git \
-            package/luci-theme-aurora
-          git clone --depth 1 https://github.com/eamonxg/luci-app-aurora-config.git \
-            package/luci-app-aurora-config
+          } > feeds.conf.default.tmp && mv feeds.conf.default.tmp feeds.conf.default
+          
+          # Aurora 主题
+          git clone --depth 1 https://github.com/eamonxg/luci-theme-aurora.git package/luci-theme-aurora
+          git clone --depth 1 https://github.com/eamonxg/luci-app-aurora-config.git package/luci-app-aurora-config
 
       - name: Update Feeds
         run: cd openwrt && ./scripts/feeds update -a
@@ -97,27 +87,26 @@ jobs:
           FIRMWARE_VERSION: ${{ inputs.firmware_version }}
         run: |
           cd openwrt
-          # 官方 OpenWrt 使用仓库内的对应初始配置。
-          # ImmortalWrt 将在 feeds 安装后使用指定的 defconfig
+
           case "$FIRMWARE_VERSION" in
-            openwrt-25.12-honk|openwrt-25.12-dae)
+            openwrt-25.12-honk)
               CONFIG_FILE="$GITHUB_WORKSPACE/config/defconfig-openwrt-25.12-btf.config"
               ;;
             openwrt-25.12)
-              CONFIG_FILE="$GITHUB_WORKSPACE/config/defconfig-${FIRMWARE_VERSION}.config"
+              CONFIG_FILE="$GITHUB_WORKSPACE/config/defconfig-openwrt-25.12.config"
               ;;
             *)
               exit 0
               ;;
-            esac
-              
-              echo "配置文件路径：$CONFIG_FILE"
-              
-              if [ -f "$CONFIG_FILE" ]; then
-                cp -f "$CONFIG_FILE" .config
-              else
-                echo "::warning::配置文件不存在，跳过复制：$CONFIG_FILE"
-              fi
+          esac
+
+          echo "配置文件路径：$CONFIG_FILE"
+
+          if [ -f "$CONFIG_FILE" ]; then
+            cp -f "$CONFIG_FILE" .config
+          else
+            echo "::warning::配置文件不存在，跳过复制：$CONFIG_FILE"
+          fi
 
       - name: Apply ImmortalWrt Device Defconfig
         if: ${{ startsWith(inputs.firmware_version, 'immortalwrt-') }}
@@ -129,7 +118,7 @@ jobs:
         if: ${{ startsWith(inputs.firmware_version, 'openwrt-') }}
         run: |
           cd openwrt
-          # 替换 SmartDNS 包
+          # 替换 SmartDNS
           git clone --depth 1 -b openwrt-25.12 https://github.com/immortalwrt/packages.git immortalwrt-packages && \
           rm -rf ./feeds/packages/net/smartdns && \
           mkdir -p ./feeds/packages/net && \
@@ -145,8 +134,8 @@ jobs:
           ./scripts/feeds install -f smartdns
           ./scripts/feeds install -f luci-app-smartdns
 
-          # 移除 v2ray 依赖
-          sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/openwrt_daede/dae/Makefile ./feeds/openwrt_daede/daed/Makefile ./feeds/daeuniverse_packages/honk/Makefile
+          # 移除 v2ray
+          sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/daeuniverse_packages/honk/Makefile
 
       - name: 【先q 后cd openwrt && make menuconfig 完sudo touch /continue】
         uses: Warpbuilds/action-debugger@v1.3 #【多配置install -Dp .config ./publish/openwrt-25.12-.config && cp -f defconfig/mt7981-ax3000.config .config】【https://github.com/mxschmitt/action-tmate】
