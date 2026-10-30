@@ -87,8 +87,9 @@ jobs:
         DEBIAN_FRONTEND: noninteractive
       run: |
         sudo apt update
-        sudo apt install -y bzip2 g++ gawk gcc glibc-source libncurses-dev make \
-          build-essential clang llvm libbpf-dev pkg-config \
+        sudo apt install -y \
+          build-essential bzip2 gawk libncurses-dev \
+          clang llvm libbpf-dev pkg-config \
           cmake libclang-dev binutils git curl ca-certificates
         sudo timedatectl set-timezone "$TZ"
         sudo mkdir -p /workdir
