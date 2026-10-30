@@ -33,4 +33,4 @@ rm -rf ./immortalwrt-luci
 ./scripts/feeds install -f luci-app-smartdns
 
 # 移除 v2ray
-sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/daeuniverse_packages/honk/Makefile
+sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/honk_packages/honk/Makefile
