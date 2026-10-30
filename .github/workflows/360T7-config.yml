@@ -13,6 +13,7 @@ on:
           - 'immortalwrt-25.12'
           - 'immortalwrt-25.12-dae'
           - 'openwrt-25.12'
+          - 'openwrt-25.12-honk'
           - 'openwrt-25.12-dae'
           - 'openwrt-25.12-ubi'
 
@@ -43,7 +44,7 @@ jobs:
               REPO="https://github.com/chasey-dev/immortalwrt-mt798x-rebase.git"
               BRANCH="25.12"
               ;;
-            openwrt-25.12|openwrt-25.12-dae|openwrt-25.12-ubi)
+            openwrt-25.12|openwrt-25.12-honk|openwrt-25.12-dae|openwrt-25.12-ubi)
               REPO="https://github.com/openwrt/openwrt.git"
               BRANCH="openwrt-25.12"
               ;;
@@ -69,7 +70,8 @@ jobs:
             printf '%s\n' \
               "src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main" \
               "src-git passwall_luci https://github.com/Openwrt-Passwall/openwrt-passwall.git;main" \
-              "src-git openwrt_daede https://github.com/kenzok8/openwrt-daede.git;main"
+              "src-git openwrt_daede https://github.com/kenzok8/openwrt-daede.git;main" \
+              "src-git daeuniverse_packages https://github.com/daeuniverse/openwrt-packages.git;main"
             cat feeds.conf.default
           } > feeds.conf.default.tmp
 
@@ -95,12 +97,19 @@ jobs:
           FIRMWARE_VERSION: ${{ inputs.firmware_version }}
         run: |
           cd openwrt
-
           # 官方 OpenWrt 使用仓库内的对应初始配置。
-          # ImmortalWrt 将在 feeds 安装后使用指定的 defconfig。
+          # ImmortalWrt 将在 feeds 安装后使用指定的 defconfig
           case "$FIRMWARE_VERSION" in
-            openwrt-25.12|openwrt-25.12-dae|openwrt-25.12-ubi)
+            openwrt-25.12-honk|openwrt-25.12-dae)
+              CONFIG_FILE="$GITHUB_WORKSPACE/config/defconfig-openwrt-25.12-btf.config"
+              ;;
+            openwrt-25.12)
               CONFIG_FILE="$GITHUB_WORKSPACE/config/defconfig-${FIRMWARE_VERSION}.config"
+              ;;
+            *)
+              exit 0
+              ;;
+            esac
               
               echo "配置文件路径：$CONFIG_FILE"
               
@@ -109,8 +118,6 @@ jobs:
               else
                 echo "::warning::配置文件不存在，跳过复制：$CONFIG_FILE"
               fi
-              ;;
-          esac
 
       - name: Apply ImmortalWrt Device Defconfig
         if: ${{ startsWith(inputs.firmware_version, 'immortalwrt-') }}
@@ -139,7 +146,7 @@ jobs:
           ./scripts/feeds install -f luci-app-smartdns
 
           # 移除 v2ray 依赖
-          sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/openwrt_daede/dae/Makefile ./feeds/openwrt_daede/daed/Makefile
+          sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/openwrt_daede/dae/Makefile ./feeds/openwrt_daede/daed/Makefile ./feeds/daeuniverse_packages/honk/Makefile
 
       - name: 【先q 后cd openwrt && make menuconfig 完sudo touch /continue】
         uses: Warpbuilds/action-debugger@v1.3 #【多配置install -Dp .config ./publish/openwrt-25.12-.config && cp -f defconfig/mt7981-ax3000.config .config】【https://github.com/mxschmitt/action-tmate】
