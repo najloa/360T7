@@ -9,11 +9,11 @@ on:
         required: true
         default: 'openwrt-25.12'
         options:
-          - 'immortalwrt-21.02'
-          - 'immortalwrt-25.12'
           - 'openwrt-25.12'
           - 'openwrt-25.12-honk'
           - 'openwrt-25.12-ubi'
+          - 'immortalwrt-21.02'
+          - 'immortalwrt-25.12'
 
 permissions:
   contents: write
@@ -34,6 +34,10 @@ jobs:
           FIRMWARE_VERSION: ${{ inputs.firmware_version }}
         run: |
           case "$FIRMWARE_VERSION" in
+            openwrt-25.12|openwrt-25.12-honk|openwrt-25.12-ubi)
+              REPO="https://github.com/openwrt/openwrt.git"
+              BRANCH="openwrt-25.12"
+              ;;
             immortalwrt-21.02)
               REPO="https://github.com/hanwckf/immortalwrt-mt798x.git"
               BRANCH="openwrt-21.02"
@@ -42,12 +46,8 @@ jobs:
               REPO="https://github.com/chasey-dev/immortalwrt-mt798x-rebase.git"
               BRANCH="25.12"
               ;;
-            openwrt-25.12|openwrt-25.12-honk|openwrt-25.12-ubi)
-              REPO="https://github.com/openwrt/openwrt.git"
-              BRANCH="openwrt-25.12"
-              ;;
             *)
-              echo "错误：不支持的固件版本：$FIRMWARE_VERSION"
+              echo "::error::"
               exit 1
               ;;
           esac
