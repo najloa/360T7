@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout Repository
@@ -89,13 +89,11 @@ jobs:
           cd openwrt
 
           case "$FIRMWARE_VERSION" in
-            openwrt-25.12-honk)
-              CONFIG_FILE="$GITHUB_WORKSPACE/config/defconfig-openwrt-25.12-btf.config"
-              ;;
-            openwrt-25.12)
-              CONFIG_FILE="$GITHUB_WORKSPACE/config/defconfig-openwrt-25.12.config"
+            openwrt-25.12|openwrt-25.12-honk|openwrt-25.12-ubi)
+              CONFIG_FILE="$GITHUB_WORKSPACE/config/defconfig-${FIRMWARE_VERSION}.config"
               ;;
             *)
+              echo "::notice::当前版本无需应用此 Defconfig：$FIRMWARE_VERSION"
               exit 0
               ;;
           esac
