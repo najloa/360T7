@@ -10,7 +10,7 @@ on:
         default: 'openwrt-25.12'
         options:
           - 'openwrt-25.12'
-          - 'openwrt-25.12-honk'
+          - 'openwrt-main-honk'
           - 'openwrt-25.12-ubi'
           - 'immortalwrt-21.02'
           - 'immortalwrt-25.12'
@@ -34,9 +34,13 @@ jobs:
           FIRMWARE_VERSION: ${{ inputs.firmware_version }}
         run: |
           case "$FIRMWARE_VERSION" in
-            openwrt-25.12|openwrt-25.12-honk|openwrt-25.12-ubi)
+            openwrt-25.12|openwrt-25.12-ubi)
               REPO="https://github.com/openwrt/openwrt.git"
               BRANCH="openwrt-25.12"
+              ;;
+            openwrt-main-honk)
+              REPO="https://github.com/openwrt/openwrt.git"
+              BRANCH="main"
               ;;
             immortalwrt-21.02)
               REPO="https://github.com/hanwckf/immortalwrt-mt798x.git"
@@ -89,7 +93,7 @@ jobs:
           cd openwrt
 
           case "$FIRMWARE_VERSION" in
-            openwrt-25.12|openwrt-25.12-honk|openwrt-25.12-ubi)
+            openwrt-25.12|openwrt-main-honk|openwrt-25.12-ubi)
               CONFIG_FILE="$GITHUB_WORKSPACE/config/defconfig-${FIRMWARE_VERSION}.config"
               ;;
             *)
@@ -117,13 +121,13 @@ jobs:
         run: |
           cd openwrt
           # 替换 SmartDNS
-          git clone --depth 1 -b openwrt-25.12 https://github.com/immortalwrt/packages.git immortalwrt-packages && \
+          git clone --depth 1 -b master https://github.com/immortalwrt/packages.git immortalwrt-packages && \
           rm -rf ./feeds/packages/net/smartdns && \
           mkdir -p ./feeds/packages/net && \
           cp -a ./immortalwrt-packages/net/smartdns ./feeds/packages/net/ && \
           rm -rf ./immortalwrt-packages
           
-          git clone --depth 1 -b openwrt-25.12 https://github.com/immortalwrt/luci.git immortalwrt-luci && \
+          git clone --depth 1 -b master https://github.com/immortalwrt/luci.git immortalwrt-luci && \
           rm -rf ./feeds/luci/applications/luci-app-smartdns && \
           mkdir -p ./feeds/luci/applications && \
           cp -a ./immortalwrt-luci/applications/luci-app-smartdns ./feeds/luci/applications/ && \
