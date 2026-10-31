@@ -17,13 +17,13 @@ mv "${rules_file}.tmp" "$rules_file"
 sed -i 's/GO_DEFAULT_VERSION:=1.26/GO_DEFAULT_VERSION:=1.27/g' ./feeds/packages/lang/golang/golang-values.mk
 
 # 替换 SmartDNS
-git clone --depth 1 -b openwrt-25.12 https://github.com/immortalwrt/packages.git immortalwrt-packages && \
+git clone --depth 1 -b master https://github.com/immortalwrt/packages.git immortalwrt-packages && \
 rm -rf ./feeds/packages/net/smartdns && \
 mkdir -p ./feeds/packages/net && \
 cp -a ./immortalwrt-packages/net/smartdns ./feeds/packages/net/ && \
 rm -rf ./immortalwrt-packages
 
-git clone --depth 1 -b openwrt-25.12 https://github.com/immortalwrt/luci.git immortalwrt-luci && \
+git clone --depth 1 -b master https://github.com/immortalwrt/luci.git immortalwrt-luci && \
 rm -rf ./feeds/luci/applications/luci-app-smartdns && \
 mkdir -p ./feeds/luci/applications && \
 cp -a ./immortalwrt-luci/applications/luci-app-smartdns ./feeds/luci/applications/ && \
