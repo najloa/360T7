@@ -10,7 +10,7 @@ on:
         default: 'openwrt-25.12'
         options:
           - 'openwrt-25.12'
-          - 'openwrt-25.12-honk'
+          - 'openwrt-main-honk'
           - 'openwrt-25.12-ubi'
           - 'immortalwrt-21.02'
           - 'immortalwrt-25.12'
@@ -44,13 +44,13 @@ jobs:
             echo "TAG_NAME=openwrt-25.12" >> $GITHUB_ENV
             echo "RELEASE_NAME=openwrt-25.12" >> $GITHUB_ENV
             ;;
-          openwrt-25.12-honk)
+          openwrt-main-honk)
             echo "REPO_URL=https://github.com/openwrt/openwrt" >> $GITHUB_ENV
-            echo "REPO_BRANCH=openwrt-25.12" >> $GITHUB_ENV
-            echo "CONFIG_FILE=./config/openwrt-25.12-honk.config" >> $GITHUB_ENV
+            echo "REPO_BRANCH=main" >> $GITHUB_ENV
+            echo "CONFIG_FILE=./config/openwrt-main-honk.config" >> $GITHUB_ENV
             echo "DIY_P2_SH=openwrt-25.12.sh" >> $GITHUB_ENV
-            echo "TAG_NAME=openwrt-25.12-honk" >> $GITHUB_ENV
-            echo "RELEASE_NAME=openwrt-25.12-honk" >> $GITHUB_ENV
+            echo "TAG_NAME=openwrt-main-honk" >> $GITHUB_ENV
+            echo "RELEASE_NAME=openwrt-main-honk" >> $GITHUB_ENV
             ;;
           openwrt-25.12-ubi)
             echo "REPO_URL=https://github.com/openwrt/openwrt" >> $GITHUB_ENV
