@@ -35,6 +35,37 @@ rm -rf ./immortalwrt-luci
 # 移除 v2ray
 sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/honk_packages/honk/Makefile
 
+
+
+
+# honk 依赖
+
+CONFIG_FILE="target/linux/mediatek/filogic/config-6.18"
+
+set_kernel_config() {
+    local option="$1"
+
+    sed -i -E \
+        "/^# ${option} is not set$/d; /^${option}=/d" \
+        "$CONFIG_FILE"
+
+    echo "${option}=y" >> "$CONFIG_FILE"
+}
+
+for option in \
+    CONFIG_NET_CLS_ACT \
+    CONFIG_NETKIT \
+    CONFIG_NF_TABLES \
+    CONFIG_NF_TABLES_INET \
+    CONFIG_NF_CONNTRACK \
+    CONFIG_NFT_CT \
+    CONFIG_NETFILTER_ADVANCED \
+    CONFIG_NETFILTER_NETLINK_QUEUE \
+    CONFIG_NFT_QUEUE
+do
+    set_kernel_config "$option"
+done
+
 # Prepare honk source
 HONK_DIR="$GITHUB_WORKSPACE/openwrt/feeds/honk_packages/honk"
 
