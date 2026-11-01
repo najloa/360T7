@@ -10,8 +10,9 @@ on:
         default: 'openwrt-25.12'
         options:
           - 'openwrt-25.12'
-          - 'openwrt-main-honk'
+          - 'openwrt-25.12-dae'
           - 'openwrt-25.12-ubi'
+          - 'openwrt-main-honk'
           - 'immortalwrt-21.02'
           - 'immortalwrt-25.12'
 
@@ -44,13 +45,13 @@ jobs:
             echo "TAG_NAME=openwrt-25.12" >> $GITHUB_ENV
             echo "RELEASE_NAME=openwrt-25.12" >> $GITHUB_ENV
             ;;
-          openwrt-main-honk)
+          openwrt-25.12-dae)
             echo "REPO_URL=https://github.com/openwrt/openwrt" >> $GITHUB_ENV
-            echo "REPO_BRANCH=main" >> $GITHUB_ENV
-            echo "CONFIG_FILE=./config/openwrt-main-honk.config" >> $GITHUB_ENV
+            echo "REPO_BRANCH=openwrt-25.12" >> $GITHUB_ENV
+            echo "CONFIG_FILE=./config/openwrt-25.12-dae.config" >> $GITHUB_ENV
             echo "DIY_P2_SH=openwrt-25.12.sh" >> $GITHUB_ENV
-            echo "TAG_NAME=openwrt-main-honk" >> $GITHUB_ENV
-            echo "RELEASE_NAME=openwrt-main-honk" >> $GITHUB_ENV
+            echo "TAG_NAME=openwrt-25.12-dae" >> $GITHUB_ENV
+            echo "RELEASE_NAME=openwrt-25.12-dae" >> $GITHUB_ENV
             ;;
           openwrt-25.12-ubi)
             echo "REPO_URL=https://github.com/openwrt/openwrt" >> $GITHUB_ENV
@@ -59,6 +60,14 @@ jobs:
             echo "DIY_P2_SH=openwrt-25.12.sh" >> $GITHUB_ENV
             echo "TAG_NAME=openwrt-25.12-ubi" >> $GITHUB_ENV
             echo "RELEASE_NAME=openwrt-25.12-ubi" >> $GITHUB_ENV
+            ;;
+          openwrt-main-honk)
+            echo "REPO_URL=https://github.com/openwrt/openwrt" >> $GITHUB_ENV
+            echo "REPO_BRANCH=main" >> $GITHUB_ENV
+            echo "CONFIG_FILE=./config/openwrt-main-honk.config" >> $GITHUB_ENV
+            echo "DIY_P2_SH=openwrt-25.12.sh" >> $GITHUB_ENV
+            echo "TAG_NAME=openwrt-main-honk" >> $GITHUB_ENV
+            echo "RELEASE_NAME=openwrt-main-honk" >> $GITHUB_ENV
             ;;
           immortalwrt-21.02)
             echo "REPO_URL=https://github.com/hanwckf/immortalwrt-mt798x" >> $GITHUB_ENV
@@ -134,25 +143,6 @@ jobs:
       run: |
         cd openwrt
         make -j$(nproc) || make -j1 V=s
-
-    - name: Verify kernel configuration
-      if: success() && startsWith(inputs.version, 'openwrt-')
-      run: |
-        cd openwrt
-
-        KERNEL_CONFIG=$(find build_dir -type f \
-          -path '*/linux-mediatek_filogic/linux-*/.config' \
-          | head -n 1)
-
-        if [ -z "$KERNEL_CONFIG" ]; then
-          echo "Kernel .config not found"
-          exit 1
-        fi
-
-        echo "Checking: $KERNEL_CONFIG"
-
-        grep -E '^CONFIG_(CGROUPS|CGROUP_BPF|NET_NS|NET_CLS_ACT|NETKIT|NF_TABLES|NF_TABLES_INET|NF_CONNTRACK|NFT_CT|NETFILTER_ADVANCED|NETFILTER_NETLINK_QUEUE|NFT_QUEUE|DEBUG_INFO|DEBUG_INFO_BTF|FTRACE|FUNCTION_TRACER|DYNAMIC_FTRACE)=' \
-          "$KERNEL_CONFIG"
 
     - name: Prepare firmware path
       run: |
