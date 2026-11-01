@@ -32,60 +32,53 @@ rm -rf ./immortalwrt-luci
 ./scripts/feeds install -f smartdns
 ./scripts/feeds install -f luci-app-smartdns
 
-# 移除 v2ray
+# 为 dae 和 honk 移除 v2ray
 sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/honk_packages/dae/Makefile ./feeds/honk_packages/honk/Makefile
 
+# 内核配置写入函数
+set_kernel_config() {
+    local option="$1"
+    local value="$2"
+
+    sed -i -E \
+        "/^# ${option} is not set$/d; /^${option}=/d" \
+        "$CONFIG_FILE"
+
+    echo "${option}=${value}" >> "$CONFIG_FILE"
+}
 
 # dae 专属配置
 if [ "$FIRMWARE_VERSION" = "openwrt-25.12-dae" ]; then
-    KERNEL_CONFIG=$(find target/linux/mediatek/filogic -maxdepth 1 -name 'config-6.*' | sort -V | tail -n 1)
-    CONFIG_FILE="$KERNEL_CONFIG"
+    CONFIG_FILE=$(find target/linux/mediatek/filogic -maxdepth 1 -name 'config-6.*' | sort -V | tail -n 1)
 
-    set_kernel_config() {
-        local option="$1"
-        local value="$2"
-
-        sed -i -E \
-            "/^# ${option} is not set$/d; /^${option}=/d" \
-            "$CONFIG_FILE"
-
-        echo "${option}=${value}" >> "$CONFIG_FILE"
-    }
-
+    set_kernel_config CONFIG_NETKIT y
     set_kernel_config CONFIG_NET_SCH_INGRESS m
     set_kernel_config CONFIG_NET_CLS_BPF m
     set_kernel_config CONFIG_NET_CLS_ACT y
     set_kernel_config CONFIG_BPF_STREAM_PARSER y
 fi
 
-
 # honk 专属配置
 if [ "$FIRMWARE_VERSION" = "openwrt-main-honk" ]; then
-    KERNEL_CONFIG=$(find target/linux/mediatek/filogic -maxdepth 1 -name 'config-6.*' | sort -V | tail -n 1)
-    CONFIG_FILE="$KERNEL_CONFIG"
-
-    set_kernel_config() {
-        local option="$1"
-
-        sed -i -E \
-            "/^# ${option} is not set$/d; /^${option}=/d" \
-            "$CONFIG_FILE"
-
-        echo "${option}=y" >> "$CONFIG_FILE"
-    }
+    CONFIG_FILE=$(find target/linux/mediatek/filogic -maxdepth 1 -name 'config-6.*' | sort -V | tail -n 1)
 
     for option in \
         CONFIG_NET_CLS_ACT \
         CONFIG_NETKIT \
-        CONFIG_NF_TABLES \
         CONFIG_NF_TABLES_INET \
         CONFIG_NF_CONNTRACK \
-        CONFIG_NFT_CT \
-        CONFIG_NETFILTER_ADVANCED \
-        CONFIG_NETFILTER_NETLINK_QUEUE \
-        CONFIG_NFT_QUEUE
+        CONFIG_NETFILTER_ADVANCED
     do
-        set_kernel_config "$option"
+        set_kernel_config "$option" y
+    done
+
+    for option in \
+        CONFIG_NF_TABLES \
+        CONFIG_NFT_CT \
+        CONFIG_NFT_QUEUE \
+        CONFIG_NETFILTER_NETLINK_QUEUE
+    do
+        set_kernel_config "$option" m
     done
 
     # honk 源码目录
