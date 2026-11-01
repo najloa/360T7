@@ -36,13 +36,33 @@ rm -rf ./immortalwrt-luci
 sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/honk_packages/dae/Makefile ./feeds/honk_packages/honk/Makefile
 
 
+# dae 专属配置
+if [ "$FIRMWARE_VERSION" = "openwrt-25.12-dae" ]; then
+    KERNEL_CONFIG=$(find target/linux/mediatek/filogic -maxdepth 1 -name 'config-6.*' | sort -V | tail -n 1)
+    CONFIG_FILE="$KERNEL_CONFIG"
+
+    set_kernel_config() {
+        local option="$1"
+        local value="$2"
+
+        sed -i -E \
+            "/^# ${option} is not set$/d; /^${option}=/d" \
+            "$CONFIG_FILE"
+
+        echo "${option}=${value}" >> "$CONFIG_FILE"
+    }
+
+    set_kernel_config CONFIG_NET_SCH_INGRESS m
+    set_kernel_config CONFIG_NET_CLS_BPF m
+    set_kernel_config CONFIG_NET_CLS_ACT y
+    set_kernel_config CONFIG_BPF_STREAM_PARSER y
+fi
 
 
 # honk 专属配置
 if [ "$FIRMWARE_VERSION" = "openwrt-main-honk" ]; then
-
-    # honk 内核依赖
-    CONFIG_FILE="target/linux/mediatek/filogic/config-6.18"
+    KERNEL_CONFIG=$(find target/linux/mediatek/filogic -maxdepth 1 -name 'config-6.*' | sort -V | tail -n 1)
+    CONFIG_FILE="$KERNEL_CONFIG"
 
     set_kernel_config() {
         local option="$1"
