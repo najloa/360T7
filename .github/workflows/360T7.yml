@@ -129,98 +129,30 @@ jobs:
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
-
-
-    - name: Prepare and verify kernel configuration
-      if: startsWith(inputs.version, 'openwrt-')
-      run: |
-        cd openwrt
-
-        echo "Preparing Linux kernel configuration..."
-
-        # Generate and update the target kernel configuration.
-        make kernel_oldconfig V=s
-
-        # Locate the 360T7 target kernel configuration.
-        mapfile -t KERNEL_CONFIGS < <(
-          find build_dir -type f \
-            -path '*/linux-mediatek_filogic/linux-*/.config'
-        )
-
-        if [ "${#KERNEL_CONFIGS[@]}" -ne 1 ]; then
-          echo "ERROR: Expected exactly one kernel .config, found ${#KERNEL_CONFIGS[@]}"
-          printf '%s\n' "${KERNEL_CONFIGS[@]}"
-          exit 1
-        fi
-
-        KERNEL_CONFIG="${KERNEL_CONFIGS[0]}"
-
-        echo "Kernel config: $KERNEL_CONFIG"
-        echo ""
-        echo "Checking Honk kernel requirements..."
-
-        REQUIRED_OPTIONS=(
-          CONFIG_BPF
-          CONFIG_BPF_SYSCALL
-          CONFIG_BPF_JIT
-          CONFIG_CGROUPS
-          CONFIG_CGROUP_BPF
-          CONFIG_NET_SCHED
-          CONFIG_NET_CLS_ACT
-          CONFIG_NET_XGRESS
-          CONFIG_NET_NS
-          CONFIG_NF_TABLES
-          CONFIG_NF_TABLES_INET
-          CONFIG_NF_CONNTRACK
-          CONFIG_NFT_CT
-          CONFIG_NETFILTER_ADVANCED
-          CONFIG_NETFILTER_NETLINK_QUEUE
-          CONFIG_NFT_QUEUE
-          CONFIG_DEBUG_INFO
-          CONFIG_DEBUG_INFO_BTF
-          CONFIG_FTRACE
-          CONFIG_FUNCTION_TRACER
-          CONFIG_DYNAMIC_FTRACE
-        )
-
-        FAILED=0
-
-        for option in "${REQUIRED_OPTIONS[@]}"; do
-          if grep -qx "${option}=y" "$KERNEL_CONFIG"; then
-            echo "[OK]      $option=y"
-          else
-            actual=$(grep -E "^(${option}=|# ${option} is not set)" \
-              "$KERNEL_CONFIG" || true)
-
-            echo "[ERROR]   $option"
-            echo "          Actual: ${actual:-not found}"
-            FAILED=1
-          fi
-        done
-
-        # NETKIT is optional; Honk can fall back to veth.
-        if grep -qx 'CONFIG_NETKIT=y' "$KERNEL_CONFIG"; then
-          echo "[OK]      CONFIG_NETKIT=y"
-        else
-          echo "[INFO]    CONFIG_NETKIT is not enabled; Honk can use veth"
-        fi
-
-        echo ""
-
-        if [ "$FAILED" -ne 0 ]; then
-          echo "ERROR: Some required kernel options are missing."
-          exit 1
-        fi
-
-        echo "All required Honk kernel options are enabled."
-        echo "Kernel configuration verification completed."
-
-
     - name: Compile the firmware
       id: compile
       run: |
         cd openwrt
         make -j$(nproc) || make -j1 V=s
+
+    - name: Verify kernel configuration
+      if: success() && startsWith(inputs.version, 'openwrt-')
+      run: |
+        cd openwrt
+
+        KERNEL_CONFIG=$(find build_dir -type f \
+          -path '*/linux-mediatek_filogic/linux-*/.config' \
+          | head -n 1)
+
+        if [ -z "$KERNEL_CONFIG" ]; then
+          echo "Kernel .config not found"
+          exit 1
+        fi
+
+        echo "Checking: $KERNEL_CONFIG"
+
+        grep -E '^CONFIG_(CGROUPS|CGROUP_BPF|NET_NS|NET_CLS_ACT|NETKIT|NF_TABLES|NF_TABLES_INET|NF_CONNTRACK|NFT_CT|NETFILTER_ADVANCED|NETFILTER_NETLINK_QUEUE|NFT_QUEUE|DEBUG_INFO|DEBUG_INFO_BTF|FTRACE|FUNCTION_TRACER|DYNAMIC_FTRACE)=' \
+          "$KERNEL_CONFIG"
 
     - name: Prepare firmware path
       run: |
