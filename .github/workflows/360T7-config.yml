@@ -10,8 +10,9 @@ on:
         default: 'openwrt-25.12'
         options:
           - 'openwrt-25.12'
-          - 'openwrt-main-honk'
+          - 'openwrt-25.12-dae'
           - 'openwrt-25.12-ubi'
+          - 'openwrt-main-honk'
           - 'immortalwrt-21.02'
           - 'immortalwrt-25.12'
 
@@ -34,7 +35,7 @@ jobs:
           FIRMWARE_VERSION: ${{ inputs.firmware_version }}
         run: |
           case "$FIRMWARE_VERSION" in
-            openwrt-25.12|openwrt-25.12-ubi)
+            openwrt-25.12|openwrt-25.12-dae|openwrt-25.12-ubi)
               REPO="https://github.com/openwrt/openwrt.git"
               BRANCH="openwrt-25.12"
               ;;
@@ -93,7 +94,7 @@ jobs:
           cd openwrt
 
           case "$FIRMWARE_VERSION" in
-            openwrt-25.12|openwrt-main-honk|openwrt-25.12-ubi)
+            openwrt-25.12|openwrt-25.12-dae|openwrt-main-honk|openwrt-25.12-ubi)
               CONFIG_FILE="$GITHUB_WORKSPACE/config/defconfig-${FIRMWARE_VERSION}.config"
               ;;
             *)
@@ -137,7 +138,7 @@ jobs:
           ./scripts/feeds install -f luci-app-smartdns
 
           # 移除 v2ray
-          sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/honk_packages/honk/Makefile
+          sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/honk_packages/dae/Makefile ./feeds/honk_packages/honk/Makefile
 
       - name: 【先q 后cd openwrt && make menuconfig 完sudo touch /continue】
         uses: Warpbuilds/action-debugger@v1.3 #【多配置install -Dp .config ./publish/openwrt-25.12-.config && cp -f defconfig/mt7981-ax3000.config .config】【https://github.com/mxschmitt/action-tmate】
