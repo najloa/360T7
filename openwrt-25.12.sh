@@ -56,6 +56,33 @@ if [ "$FIRMWARE_VERSION" = "openwrt-25.12-dae" ]; then
     set_kernel_config CONFIG_NET_CLS_BPF m
     set_kernel_config CONFIG_NET_CLS_ACT y
     set_kernel_config CONFIG_BPF_STREAM_PARSER y
+
+    # dae 源码目录
+    DAE_DIR="$PWD/feeds/honk_packages/dae"
+    
+    # 仅在配置中启用了 dae 时准备源码
+    if grep -qx 'CONFIG_PACKAGE_dae=y' .config; then
+    
+        # 从 Makefile 获取 dae 版本
+        DAE_VERSION=$(sed -n \
+            's/^PKG_VERSION:=$(if $(DAE_VERSION),$(DAE_VERSION),\([^)]*\))$/\1/p' \
+            "$DAE_DIR/Makefile")
+    
+        if [ -z "$DAE_VERSION" ]; then
+            echo "Error: Failed to determine DAE_VERSION"
+            exit 1
+        fi
+    
+        DAE_TAG="v${DAE_VERSION}"
+    
+        echo "Preparing dae source: $DAE_TAG"
+    
+        git clone --depth 1 --recurse-submodules \
+            --branch "$DAE_TAG" \
+            https://github.com/daeuniverse/dae.git \
+            "$DAE_DIR/src"
+    
+    fi
 fi
 
 # honk 专属配置
