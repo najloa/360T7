@@ -9,27 +9,6 @@ sed -i \
     -e "s/zonename='UTC'/zonename='Asia\/Shanghai'/" \
     ./package/base-files/files/bin/config_generate
 
-# Generate first-boot UCI defaults
-mkdir -p files/etc/uci-defaults
-
-cat > files/etc/uci-defaults/99-custom <<'EOF'
-# Radio 0
-[ -n "$(uci -q get wireless.@wifi-device[0].country)" ] || \
-    uci set wireless.@wifi-device[0].country='CN'
-
-[ -n "$(uci -q get wireless.@wifi-device[0].channel)" ] || \
-    uci set wireless.@wifi-device[0].channel='6'
-
-# Radio 1
-[ -n "$(uci -q get wireless.@wifi-device[1].country)" ] || \
-    uci set wireless.@wifi-device[1].country='CN'
-
-[ -n "$(uci -q get wireless.@wifi-device[1].channel)" ] || \
-    uci set wireless.@wifi-device[1].channel='161'
-
-uci commit wireless
-EOF
-
 # 修改 Passwall
 if [ "$FIRMWARE_VERSION" = "openwrt-25.12" ]; then
 sed -i '/MetaCubeX\/geosite (CDN)"/a\	o:value("https://github.com/najloa/rules/releases/latest/download/geosite.dat", translate("najloa/geosite"))' ./package/feeds/passwall_luci/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
