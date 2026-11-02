@@ -31,6 +31,7 @@ uci commit wireless
 EOF
 
 # 修改 Passwall
+if [ "$FIRMWARE_VERSION" = "openwrt-25.12" ]; then
 sed -i '/MetaCubeX\/geosite (CDN)"/a\	o:value("https://github.com/najloa/rules/releases/latest/download/geosite.dat", translate("najloa/geosite"))' ./package/feeds/passwall_luci/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
 sed -i '/MetaCubeX\/geoip (CDN)"/a\	o:value("https://raw.githubusercontent.com/Loyalsoldier/geoip/release/geoip-only-cn-private.dat", translate("Loyalsoldier/geoip-only-cn-private"))' ./package/feeds/passwall_luci/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
 > ./package/feeds/passwall_luci/luci-app-passwall/root/usr/share/passwall/rules/chnlist
@@ -40,9 +41,9 @@ rules_file="./package/feeds/passwall_luci/luci-app-passwall/root/usr/share/passw
 awk -v ips="$telegram_ips" 'BEGIN{split(ips, a, "\n"); for(i in a) if(a[i]!="") skip[a[i]]=1} !skip[$0]' "$rules_file" > "${rules_file}.tmp" && \
 echo "$telegram_ips" >> "${rules_file}.tmp" && \
 mv "${rules_file}.tmp" "$rules_file"
-
 # 替换 Go 版本
-sed -i 's/GO_DEFAULT_VERSION:=1.26/GO_DEFAULT_VERSION:=1.27/g' ./feeds/packages/lang/golang/golang-values.mk
+# sed -i 's/GO_DEFAULT_VERSION:=1.26/GO_DEFAULT_VERSION:=1.27/g' ./feeds/packages/lang/golang/golang-values.mk
+fi
 
 # 替换 SmartDNS
 git clone --depth 1 -b master https://github.com/immortalwrt/packages.git immortalwrt-packages && \
@@ -109,7 +110,6 @@ if [ "$FIRMWARE_VERSION" = "openwrt-25.12-dae" ]; then
             --branch "$DAE_TAG" \
             https://github.com/daeuniverse/dae.git \
             "$DAE_DIR/src"
-    
     fi
 fi
 
