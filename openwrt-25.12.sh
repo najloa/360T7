@@ -1,6 +1,7 @@
 #!/bin/bash
 echo "Firmware version: $FIRMWARE_VERSION"
-sed -i 's/192.168.1.1/192.168.5.1/' ./package/base-files/files/bin/config_generate
+sed -i '/192\.168\.1\.1/s/192\.168\.1\.1/192.168.5.1/g' \
+    ./package/base-files/files/bin/config_generate
 
 # 修改 Passwall
 sed -i '/MetaCubeX\/geosite (CDN)"/a\	o:value("https://github.com/najloa/rules/releases/latest/download/geosite.dat", translate("najloa/geosite"))' ./package/feeds/passwall_luci/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
