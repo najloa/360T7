@@ -1,5 +1,5 @@
 #!/bin/bash
-
+echo "Firmware version: $FIRMWARE_VERSION"
 sed -i 's/192.168.1.1/192.168.5.1/' ./package/base-files/files/bin/config_generate
 
 # 修改 Passwall
