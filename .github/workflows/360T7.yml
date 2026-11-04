@@ -140,6 +140,45 @@ jobs:
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
+
+
+
+
+    - name: Locate and Upload Driver Sources
+      run: |
+        cd openwrt
+
+        echo "===== mtk_wed.c ====="
+        find build_dir -type f -name "mtk_wed.c" -print
+
+        echo "===== mt7915.h ====="
+        find build_dir -type f -name "mt7915.h" -print
+
+        MTK_WED=$(find build_dir -type f -name "mtk_wed.c" -print -quit)
+
+        if [ -z "$MTK_WED" ]; then
+          echo "::error::mtk_wed.c not found"
+          exit 1
+        fi
+
+        mkdir -p "$GITHUB_WORKSPACE/artifacts"
+        cp "$MTK_WED" "$GITHUB_WORKSPACE/artifacts/mtk_wed.c"
+
+    - name: Upload mtk_wed.c
+      uses: actions/upload-artifact@v4
+      with:
+        name: mtk_wed-source
+        path: artifacts/mtk_wed.c
+        if-no-files-found: error
+        retention-days: 7
+
+
+
+
+
+
+
+
     - name: Compile the firmware
       id: compile
       run: |
