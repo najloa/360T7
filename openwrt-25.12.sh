@@ -9,6 +9,10 @@ sed -i \
     -e "s/zonename='UTC'/zonename='Asia\/Shanghai'/" \
     ./package/base-files/files/bin/config_generate
 
+# WED
+cp -f $GITHUB_WORKSPACE/999-001-mtk-wed-mt7915-reduce-rx-ring-size.patch ./target/linux/mediatek/patches-6.12/
+echo '# options mt7915e wed_enable=Y' >> package/system/ubox/files/modules.conf
+
 # 修改 Passwall
 if [ "$FIRMWARE_VERSION" = "openwrt-25.12" ]; then
 sed -i '/MetaCubeX\/geosite (CDN)"/a\	o:value("https://github.com/najloa/rules/releases/latest/download/geosite.dat", translate("najloa/geosite"))' ./package/feeds/passwall_luci/luci-app-passwall/luasrc/model/cbi/passwall/client/rule.lua
