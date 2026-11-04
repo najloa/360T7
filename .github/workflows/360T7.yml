@@ -140,6 +140,27 @@ jobs:
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
+
+
+    - name: dae
+      env:
+        FIRMWARE_VERSION: ${{ inputs.version }}
+      run: |
+        cd openwrt/feeds/honk_packages/
+        case "$FIRMWARE_VERSION" in
+          openwrt-25.12-dae)
+            cp -f $GITHUB_WORKSPACE/patch-dae-geodata.sh ./feeds/honk_packages/
+            chmod +x patch-dae-geodata.sh
+            ./patch-dae-geodata.sh ./luci-app-dae ./luci-lib-daeuniverse
+            ;;
+          *)
+              echo "::"
+            exit 0
+            ;;
+        esac
+
+
+
     - name: Compile the firmware
       id: compile
       run: |
