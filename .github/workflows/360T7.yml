@@ -147,6 +147,7 @@ jobs:
     - name: Locate and Upload Driver Sources
       run: |
         cd openwrt
+        make target/linux/prepare -j1
 
         echo "===== mtk_wed.c ====="
         find build_dir -type f -name "mtk_wed.c" -print
@@ -179,37 +180,4 @@ jobs:
 
 
 
-    - name: Compile the firmware
-      id: compile
-      run: |
-        cd openwrt
-        make -j$(nproc) || make -j1 V=s
 
-    - name: Prepare firmware path
-      run: |
-        cd openwrt/bin/targets/*/*
-        echo "FIRMWARE=$PWD" >> $GITHUB_ENV
-
-    - name: Generate build date
-      id: date
-      run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
-
-    - name: Upload firmware to release
-      uses: softprops/action-gh-release@v3
-      with:
-        tag_name: ${{ env.TAG_NAME }}
-        name: ${{ env.RELEASE_NAME }}-${{ steps.date.outputs.date }}
-        files: |
-          ${{ env.FIRMWARE }}/*.itb
-          ${{ env.FIRMWARE }}/*.fip
-          ${{ env.FIRMWARE }}/*.bin
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Delete workflow runs
-      uses: Mattraks/delete-workflow-runs@main
-      with:
-        token: ${{ github.token }}
-        repository: ${{ github.repository }}
-        retain_days: 0
-        keep_minimum_runs: 0
