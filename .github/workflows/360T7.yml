@@ -140,61 +140,37 @@ jobs:
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
-
-
-
-
-    - name: Locate and Upload Driver Sources
+    - name: Compile the firmware
+      id: compile
       run: |
         cd openwrt
-        make target/linux/prepare -j1
+        make -j$(nproc) || make -j1 V=s
 
-        PATCH_DIR="target/linux/mediatek/patches-6.12"
-        mkdir -p "$PATCH_DIR"
-        
-        LINUX_DIR=$(find build_dir/target-* -type f -path '*/drivers/net/ethernet/mediatek/mtk_wed.c' -print -quit | sed 's#/drivers/net/ethernet/mediatek/mtk_wed.c##')
-        
-        if [ -z "$LINUX_DIR" ]; then
-            echo "::error::Linux source not found"
-            exit 1
-        fi
-        
-        MTK_WED="$LINUX_DIR/drivers/net/ethernet/mediatek/mtk_wed.c"
-        MT7915="$LINUX_DIR/drivers/net/wireless/mediatek/mt76/mt7915/mt7915.h"
-        
-        cp "$MTK_WED" /tmp/mtk_wed.c.orig
-        cp "$MT7915" /tmp/mt7915.h.orig
-        
-        sed -i 's/^#define MTK_WED_RX_RING_SIZE[[:space:]]*1536$/#define MTK_WED_RX_RING_SIZE\t\t512/' "$MTK_WED"
-        sed -i 's/^#define MT7915_RX_RING_SIZE[[:space:]]*1536$/#define MT7915_RX_RING_SIZE\t\t512/' "$MT7915"
-        sed -i 's/^#define MT7915_WED_RX_TOKEN_SIZE[[:space:]]*12288$/#define MT7915_WED_RX_TOKEN_SIZE\t4096/' "$MT7915"
-        
-        {
-            diff -u --label a/drivers/net/ethernet/mediatek/mtk_wed.c \
-                --label b/drivers/net/ethernet/mediatek/mtk_wed.c \
-                /tmp/mtk_wed.c.orig "$MTK_WED" || true
-        
-            diff -u --label a/drivers/net/wireless/mediatek/mt76/mt7915/mt7915.h \
-                --label b/drivers/net/wireless/mediatek/mt76/mt7915/mt7915.h \
-                /tmp/mt7915.h.orig "$MT7915" || true
-        } > "$PATCH_DIR/999-001-mtk-wed-mt7915-reduce-rx-ring-size.patch"
-        
-        echo "===== Generated patch ====="
-        cat "$PATCH_DIR/999-001-mtk-wed-mt7915-reduce-rx-ring-size.patch"
+    - name: Prepare firmware path
+      run: |
+        cd openwrt/bin/targets/*/*
+        echo "FIRMWARE=$PWD" >> $GITHUB_ENV
 
-    - name: Upload MTK WED Patch
-      uses: actions/upload-artifact@v4
+    - name: Generate build date
+      id: date
+      run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+
+    - name: Upload firmware to release
+      uses: softprops/action-gh-release@v3
       with:
-        name: mtk-wed-mt7915-patch
-        path: openwrt/target/linux/mediatek/patches-6.12/999-001-mtk-wed-mt7915-reduce-rx-ring-size.patch
-        if-no-files-found: error
-        retention-days: 7
+        tag_name: ${{ env.TAG_NAME }}
+        name: ${{ env.RELEASE_NAME }}-${{ steps.date.outputs.date }}
+        files: |
+          ${{ env.FIRMWARE }}/*.itb
+          ${{ env.FIRMWARE }}/*.fip
+          ${{ env.FIRMWARE }}/*.bin
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-
-
-
-
-
-
-
-
+    - name: Delete workflow runs
+      uses: Mattraks/delete-workflow-runs@main
+      with:
+        token: ${{ github.token }}
+        repository: ${{ github.repository }}
+        retain_days: 0
+        keep_minimum_runs: 0
