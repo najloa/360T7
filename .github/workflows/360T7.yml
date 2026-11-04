@@ -131,22 +131,15 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
 
-    - name: Download package
-      id: package
-      run: |
-        cd openwrt
-        make defconfig
-        make download -j8
-        find dl -size -1024c -exec ls -l {} \;
-        find dl -size -1024c -exec rm -f {} \;
-
 
 
     - name: dae
       env:
         FIRMWARE_VERSION: ${{ inputs.version }}
       run: |
-        cd openwrt/feeds/honk_packages/
+        cd openwrt
+        cd feeds
+        cd honk_packages
         case "$FIRMWARE_VERSION" in
           openwrt-25.12-dae)
             cp -f $GITHUB_WORKSPACE/patch-dae-geodata.sh ./feeds/honk_packages/
@@ -160,6 +153,15 @@ jobs:
         esac
 
 
+
+    - name: Download package
+      id: package
+      run: |
+        cd openwrt
+        make defconfig
+        make download -j8
+        find dl -size -1024c -exec ls -l {} \;
+        find dl -size -1024c -exec rm -f {} \;
 
     - name: Compile the firmware
       id: compile
