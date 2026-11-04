@@ -149,27 +149,44 @@ jobs:
         cd openwrt
         make target/linux/prepare -j1
 
-        echo "===== mtk_wed.c ====="
-        find build_dir -type f -name "mtk_wed.c" -print
-
-        echo "===== mt7915.h ====="
-        find build_dir -type f -name "mt7915.h" -print
-
-        MTK_WED=$(find build_dir -type f -name "mtk_wed.c" -print -quit)
-
-        if [ -z "$MTK_WED" ]; then
-          echo "::error::mtk_wed.c not found"
-          exit 1
+        PATCH_DIR="target/linux/mediatek/patches-6.12"
+        mkdir -p "$PATCH_DIR"
+        
+        LINUX_DIR=$(find build_dir/target-* -type f -path '*/drivers/net/ethernet/mediatek/mtk_wed.c' -print -quit | sed 's#/drivers/net/ethernet/mediatek/mtk_wed.c##')
+        
+        if [ -z "$LINUX_DIR" ]; then
+            echo "::error::Linux source not found"
+            exit 1
         fi
+        
+        MTK_WED="$LINUX_DIR/drivers/net/ethernet/mediatek/mtk_wed.c"
+        MT7915="$LINUX_DIR/drivers/net/wireless/mediatek/mt76/mt7915/mt7915.h"
+        
+        cp "$MTK_WED" /tmp/mtk_wed.c.orig
+        cp "$MT7915" /tmp/mt7915.h.orig
+        
+        sed -i 's/^#define MTK_WED_RX_RING_SIZE[[:space:]]*1536$/#define MTK_WED_RX_RING_SIZE\t\t512/' "$MTK_WED"
+        sed -i 's/^#define MT7915_RX_RING_SIZE[[:space:]]*1536$/#define MT7915_RX_RING_SIZE\t\t512/' "$MT7915"
+        sed -i 's/^#define MT7915_WED_RX_TOKEN_SIZE[[:space:]]*12288$/#define MT7915_WED_RX_TOKEN_SIZE\t4096/' "$MT7915"
+        
+        {
+            diff -u --label a/drivers/net/ethernet/mediatek/mtk_wed.c \
+                --label b/drivers/net/ethernet/mediatek/mtk_wed.c \
+                /tmp/mtk_wed.c.orig "$MTK_WED" || true
+        
+            diff -u --label a/drivers/net/wireless/mediatek/mt76/mt7915/mt7915.h \
+                --label b/drivers/net/wireless/mediatek/mt76/mt7915/mt7915.h \
+                /tmp/mt7915.h.orig "$MT7915" || true
+        } > "$PATCH_DIR/999-001-mtk-wed-mt7915-reduce-rx-ring-size.patch"
+        
+        echo "===== Generated patch ====="
+        cat "$PATCH_DIR/999-001-mtk-wed-mt7915-reduce-rx-ring-size.patch"
 
-        mkdir -p "$GITHUB_WORKSPACE/artifacts"
-        cp "$MTK_WED" "$GITHUB_WORKSPACE/artifacts/mtk_wed.c"
-
-    - name: Upload mtk_wed.c
+    - name: Upload MTK WED Patch
       uses: actions/upload-artifact@v4
       with:
-        name: mtk_wed-source
-        path: artifacts/mtk_wed.c
+        name: mtk-wed-mt7915-patch
+        path: openwrt/target/linux/mediatek/patches-6.12/999-001-mtk-wed-mt7915-reduce-rx-ring-size.patch
         if-no-files-found: error
         retention-days: 7
 
