@@ -168,7 +168,6 @@ jobs:
         make -j$(nproc) || make -j1 V=s
 
     - name: wed
-      id: compile
       run: |
         cd openwrt
         grep "MTK_WED_RX_RING_SIZE" drivers/net/ethernet/mediatek/mtk_wed.c
