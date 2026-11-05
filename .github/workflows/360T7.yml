@@ -167,6 +167,14 @@ jobs:
         cd openwrt
         make -j$(nproc) || make -j1 V=s
 
+    - name: wed
+      id: compile
+      run: |
+        cd openwrt
+        grep "MTK_WED_RX_RING_SIZE" drivers/net/ethernet/mediatek/mtk_wed.c
+        grep "MT7915_RX_RING_SIZE" drivers/net/wireless/mediatek/mt76/mt7915/mt7915.h
+        grep "MT7915_WED_RX_TOKEN_SIZE" drivers/net/wireless/mediatek/mt76/mt7915/mt7915.h
+
     - name: Prepare firmware path
       run: |
         cd openwrt/bin/targets/*/*
