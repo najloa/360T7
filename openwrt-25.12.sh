@@ -10,7 +10,7 @@ sed -i \
     ./package/base-files/files/bin/config_generate
 
 # WED
-cp -f $GITHUB_WORKSPACE/999-001-mtk-wed-mt7915-reduce-rx-ring-size.patch ./target/linux/mediatek/patches-6.12/
+# cp -f $GITHUB_WORKSPACE/999-001-mtk-wed-mt7915-reduce-rx-ring-size.patch ./target/linux/mediatek/patches-6.12/
 echo '# options mt7915e wed_enable=Y' >> package/system/ubox/files/modules.conf
 
 # 修改 Passwall
