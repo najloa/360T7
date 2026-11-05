@@ -11,7 +11,7 @@ sed -i \
 
 # WED
 # cp -f $GITHUB_WORKSPACE/999-001-mtk-wed-mt7915-reduce-rx-ring-size.patch ./target/linux/mediatek/patches-6.12/
-echo '# options mt7915e wed_enable=Y' >> package/system/ubox/files/modules.conf
+echo 'options mt7915e wed_enable=Y' >> package/system/ubox/files/modules.conf
 
 # 修改 Passwall
 if [ "$FIRMWARE_VERSION" = "openwrt-25.12" ]; then
