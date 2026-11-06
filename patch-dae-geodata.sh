@@ -5,7 +5,7 @@
 
 set -eu
 
-ROOT="${PWD}/openwrt-packages-main"
+ROOT="${1:-$PWD/feeds/honk_packages}"
 SERVICE="$ROOT/luci-lib-daeuniverse/htdocs/luci-static/resources/daeuniverse/service.js"
 ACL="$ROOT/luci-app-dae/root/usr/share/rpcd/acl.d/luci-app-dae.json"
 HELPER="$ROOT/luci-lib-daeuniverse/root/usr/libexec/daeuniverse-geodata"
