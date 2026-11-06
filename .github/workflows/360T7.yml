@@ -131,23 +131,6 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
 
-    - name: dae
-      env:
-        FIRMWARE_VERSION: ${{ inputs.version }}
-      run: |
-        cd openwrt/feeds/honk_packages/
-        case "$FIRMWARE_VERSION" in
-          openwrt-25.12-dae)
-            cp -f $GITHUB_WORKSPACE/patch-dae-geodata.sh ./patch-dae-geodata.sh
-            chmod +x patch-dae-geodata.sh
-            ./patch-dae-geodata.sh ./luci-app-dae ./luci-lib-daeuniverse
-            ;;
-          *)
-              echo "::"
-            exit 0
-            ;;
-        esac
-
     - name: Download package
       id: package
       run: |
@@ -187,31 +170,6 @@ jobs:
       run: |
         cd openwrt
         make -j$(nproc) || make -j1 V=s
-
-    - name: Verify WED patch
-      run: |
-        cd openwrt
-  
-        KERNEL_DIR=$(find build_dir/target-* \
-          -maxdepth 4 -type d \
-          -path '*/linux-mediatek_filogic/linux-*' \
-          -print -quit)
-  
-        if [ -z "$KERNEL_DIR" ]; then
-          echo "::error::Cannot find prepared Linux kernel source"
-          exit 1
-        fi
-  
-        echo "Kernel source: $KERNEL_DIR"
-  
-        PATCH_FILE="$GITHUB_WORKSPACE/999-001-mtk-wed-mt7915-reduce-rx-ring-size.patch"
-  
-        if patch -R -p1 --dry-run -d "$KERNEL_DIR" < "$PATCH_FILE"; then
-          echo "WED patch successfully applied."
-        else
-          echo "::error::WED patch was not applied or does not match the kernel source."
-          exit 1
-        fi
 
     - name: Prepare firmware path
       run: |
