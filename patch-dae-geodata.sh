@@ -196,7 +196,7 @@ if src.count(anchor) != 1:
 
 src = src.replace(anchor, methods + anchor, 1)
 
-anchor = """\t\t// Not a UCI option: the rc.d link of the init script;"""
+anchor = """\t\tthis.bootSwitch = E('input', {"""
 
 ui = r'''
 		// Geodata update is only shown on the dae page.
