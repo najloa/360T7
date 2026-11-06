@@ -1,386 +1,225 @@
 #!/bin/sh
-# Patch fresh luci-app-dae and luci-lib-daeuniverse sources with geodata updates.
-# The patcher runs on the build host; Python 3 is not added to the firmware.
+# 为 luci-app-dae 增加规则集手动更新功能
+# 仅修改 dae 页面，不影响 honk
+# 使用 OpenWrt 自带 wget 和 sha256sum
+
 set -eu
 
-if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 <luci-app-dae-dir> <luci-lib-daeuniverse-dir>" >&2
-    exit 2
-fi
+ROOT="${PWD}/openwrt-packages-main"
+SERVICE="$ROOT/luci-lib-daeuniverse/htdocs/luci-static/resources/daeuniverse/service.js"
+ACL="$ROOT/luci-app-dae/root/usr/share/rpcd/acl.d/luci-app-dae.json"
+HELPER="$ROOT/luci-lib-daeuniverse/root/usr/libexec/daeuniverse-geodata"
 
-exec python3 - "$1" "$2" <<'PY'
-from pathlib import Path
+[ -f "$SERVICE" ] || {
+	echo "错误：找不到 $SERVICE"
+	exit 1
+}
+[ -f "$ACL" ] || {
+	echo "错误：找不到 $ACL"
+	exit 1
+}
+
+mkdir -p "$(dirname "$HELPER")"
+
+# 1. 新增规则集下载及校验脚本
+cat > "$HELPER" <<'EOF'
+#!/bin/sh
+
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
+
+BASE=/usr/share/v2ray
+LOCK=/tmp/dae-geodata.lock
+STATE=/tmp/dae-geodata.state
+URL=https://gh-proxy.com/https://raw.githubusercontent.com/najloa/rules/release
+
+fail() {
+	echo failed > "$STATE"
+	rm -rf "$LOCK"
+	exit 1
+}
+
+worker() {
+	tmp=$(mktemp -d "$BASE/.geodata.XXXXXX") || fail
+	trap 'rm -rf "$tmp"; rm -rf "$LOCK"' EXIT
+
+	# 下载规则集及对应校验文件
+	for name in geosite geoip; do
+		wget -q --timeout=30 \
+			-O "$tmp/$name.dat" \
+			"$URL/$name.dat" || fail
+
+		wget -q --timeout=30 \
+			-O "$tmp/$name.dat.sha256sum" \
+			"$URL/$name.dat.sha256sum" || fail
+	done
+
+	# 校验两个文件，任何一个失败都不替换旧文件
+	cd "$tmp" || fail
+	sha256sum -c geosite.dat.sha256sum >/dev/null 2>&1 || fail
+	sha256sum -c geoip.dat.sha256sum >/dev/null 2>&1 || fail
+
+	# 备份旧文件，替换失败时回滚
+	mkdir -p "$tmp/backup" || fail
+
+	for name in geosite geoip; do
+		if [ -e "$BASE/$name.dat" ]; then
+			mv "$BASE/$name.dat" "$tmp/backup/$name.dat" || fail
+		fi
+	done
+
+	if ! mv "$tmp/geosite.dat" "$BASE/geosite.dat"; then
+		[ ! -e "$tmp/backup/geosite.dat" ] ||
+			mv "$tmp/backup/geosite.dat" "$BASE/geosite.dat"
+		[ ! -e "$tmp/backup/geoip.dat" ] ||
+			mv "$tmp/backup/geoip.dat" "$BASE/geoip.dat"
+		fail
+	fi
+
+	if ! mv "$tmp/geoip.dat" "$BASE/geoip.dat"; then
+		rm -f "$BASE/geosite.dat"
+		[ ! -e "$tmp/backup/geosite.dat" ] ||
+			mv "$tmp/backup/geosite.dat" "$BASE/geosite.dat"
+		[ ! -e "$tmp/backup/geoip.dat" ] ||
+			mv "$tmp/backup/geoip.dat" "$BASE/geoip.dat"
+		fail
+	fi
+
+	echo success > "$STATE"
+}
+
+case "${1:-}" in
+	start)
+		mkdir -p "$BASE" || exit 1
+
+		if ! mkdir "$LOCK" 2>/dev/null; then
+			exit 1
+		fi
+
+		echo running > "$STATE"
+		"$0" worker </dev/null >/dev/null 2>&1 &
+		;;
+
+	worker)
+		worker
+		;;
+
+	status)
+		if [ -f "$STATE" ]; then
+			cat "$STATE"
+		else
+			echo failed
+		fi
+		;;
+
+	*)
+		exit 1
+		;;
+esac
+EOF
+
+chmod 755 "$HELPER"
+
+# 2. 修改 ACL，允许 dae 页面执行规则集更新脚本
+python3 - "$ACL" <<'PY'
 import json
 import sys
 
-app = Path(sys.argv[1]).resolve()
-lib = Path(sys.argv[2]).resolve()
+path = sys.argv[1]
 
-service = lib / "htdocs/luci-static/resources/daeuniverse/service.js"
-makefile = lib / "Makefile"
-acl = app / "root/usr/share/rpcd/acl.d/luci-app-dae.json"
-pot = lib / "po/templates/daeuniverse.pot"
-po = lib / "po/zh_Hans/daeuniverse.po"
-helper = lib / "root/usr/libexec/daeuniverse-geodata"
+with open(path, encoding="utf-8") as f:
+    data = json.load(f)
 
-required = [service, makefile, acl, pot, po]
-missing = [str(p) for p in required if not p.is_file()]
-if missing:
-    sys.exit("ERROR: source layout not recognized; missing:\n  " + "\n  ".join(missing))
+rules = data["luci-app-dae"]["write"]["file"]
+rules["/usr/libexec/daeuniverse-geodata *"] = ["exec"]
 
-def replace_once(path, old, new, label):
-    data = path.read_text(encoding="utf-8")
-    if new in data:
-        print("Already patched:", label)
-        return
-    count = data.count(old)
-    if count != 1:
-        sys.exit(f"ERROR: expected exactly one patch anchor for {label}, found {count}: {path}")
-    path.write_text(data.replace(old, new, 1), encoding="utf-8")
-    print("Patched:", label)
+with open(path, "w", encoding="utf-8") as f:
+    json.dump(data, f, ensure_ascii=False, indent="\t")
+    f.write("\n")
+PY
 
-replace_once(
-    makefile,
-    "LUCI_DEPENDS:=+luci-base +jshn +flock +coreutils-timeout",
-    "LUCI_DEPENDS:=+luci-base +jshn +flock +coreutils-timeout +curl",
-    "curl dependency"
-)
+# 3. 修改共享页面：仅 dae 显示规则集更新按钮
+python3 - "$SERVICE" <<'PY'
+import sys
 
-helper_text = r'''#!/bin/sh
-# Managed by patch-dae-geodata.sh
-PATH=/usr/sbin:/usr/bin:/sbin:/bin
-export PATH
-umask 077
+path = sys.argv[1]
 
-. /usr/share/libubox/jshn.sh
+with open(path, encoding="utf-8") as f:
+    src = f.read()
 
-DIR=/usr/share/v2ray
-LOCK=/tmp/dae-geodata.lock
-CRON_LOCK=/tmp/dae-geodata-cron.lock
-LOG=/tmp/dae-geodata.log
-RC=/tmp/dae-geodata.rc
-CRONTAB=/etc/crontabs/root
-MARK='# dae-geodata-auto-update'
+anchor = """\t/* Status and log */"""
 
-fail() {
-    printf '%s\n' "$*" >&2
-    exit 1
-}
-
-write_result() {
-    result_file=$(mktemp /tmp/dae-geodata.rc.XXXXXX) || return 1
-    if printf '%s\n' "$1" > "$result_file" && mv -f "$result_file" "$RC"; then
-        return 0
-    fi
-    rm -f "$result_file"
-    return 1
-}
-
-update_geodata() {
-    mkdir -p "$DIR" || {
-        echo "Unable to create $DIR."
-        return 1
-    }
-
-    tmp=$(mktemp -d "$DIR/.geodata.XXXXXX") || {
-        echo "Unable to create a temporary directory in $DIR."
-        return 1
-    }
-    trap 'rm -rf "$tmp"' EXIT
-
-    for name in geosite geoip; do
-        url="https://gh-proxy.com/https://raw.githubusercontent.com/najloa/rules/release/$name.dat"
-        echo "Downloading $name.dat..."
-        curl -fLsS --connect-timeout 15 --max-time 15 "$url" -o "$tmp/$name.dat" || return 1
-        curl -fLsS --connect-timeout 15 --max-time 15 "$url.sha256sum" -o "$tmp/$name.dat.sha256sum" || return 1
-        echo "Checking $name.dat..."
-        (cd "$tmp" && sha256sum -c "$name.dat.sha256sum") || return 1
-    done
-
-    mv -f "$tmp/geosite.dat" "$DIR/geosite.dat" || return 1
-    mv -f "$tmp/geoip.dat" "$DIR/geoip.dat" || return 1
-    echo "Geosite and geoip updated successfully."
-}
-
-status() {
-    exec 8>>"$LOCK" || fail "Unable to open update lock."
-    running=1
-    if flock -n 8; then
-        running=0
-    fi
-
-    if [ "$running" -eq 0 ] && [ -s "$LOG" ] && [ ! -f "$RC" ]; then
-        echo "Update worker exited without reporting its result." >> "$LOG"
-        write_result 1 || fail "Unable to record update status."
-    fi
-
-    json_init
-    json_add_boolean running "$running"
-    if [ -f "$RC" ]; then
-        IFS= read -r result < "$RC" || result=1
-        case "$result" in
-            ''|*[!0-9]*) result=1 ;;
-        esac
-        json_add_int code "$result"
-    else
-        json_add_null code
-    fi
-    log=
-    [ ! -f "$LOG" ] || log=$(tail -c 16384 "$LOG" 2>/dev/null)
-    json_add_string log "$log"
-    exec 8>&-
-    json_dump
-}
-
-start_update() {
-    exec 9>>"$LOCK" || fail "Unable to open update lock."
-    if ! flock -n 9; then
-        exec 9>&-
-        status
-        return
-    fi
-
-    : > "$LOG" || fail "Unable to reset update log."
-    rm -f "$RC" || fail "Unable to reset update result."
-
-    (
-        trap '' HUP
-        update_geodata
-        result=$?
-        write_result "$result"
-    ) </dev/null >>"$LOG" 2>&1 &
-
-    exec 9>&-
-    status
-}
-
-auto_update() {
-    [ "$(uci -q get dae.config.auto_update 2>/dev/null)" = "1" ] || exit 0
-
-    exec 9>>"$LOCK" || fail "Unable to open update lock."
-    flock -n 9 || exit 0
-    : > "$LOG" || fail "Unable to reset update log."
-    rm -f "$RC" || fail "Unable to reset update result."
-
-    update_geodata >>"$LOG" 2>&1
-    result=$?
-    write_result "$result" || fail "Unable to record update result."
-    return "$result"
-}
-
-sync_schedule() {
-    exec 8>>"$CRON_LOCK" || fail "Unable to open cron lock."
-    flock 8 || fail "Unable to lock crontab."
-
-    mkdir -p /etc/crontabs || fail "Unable to create /etc/crontabs."
-    tmp=$(mktemp /etc/crontabs/.root.XXXXXX) || fail "Unable to create temporary crontab."
-
-    if [ -f "$CRONTAB" ]; then
-        awk -v marker="$MARK" 'index($0, marker) == 0 { print }' "$CRONTAB" > "$tmp" ||
-            fail "Unable to read the existing crontab."
-    fi
-
-    if [ "$(uci -q get dae.config.auto_update 2>/dev/null)" = "1" ]; then
-        printf '%s\n' "0 4 * * * /usr/libexec/daeuniverse-geodata auto $MARK" >> "$tmp"
-    fi
-
-    if [ -f "$CRONTAB" ] && cmp -s "$tmp" "$CRONTAB"; then
-        rm -f "$tmp"
-        return 0
-    fi
-
-    chmod 600 "$tmp" || fail "Unable to set crontab permissions."
-    mv -f "$tmp" "$CRONTAB" || fail "Unable to install the new crontab."
-    /etc/init.d/cron restart || fail "Crontab changed, but cron could not be restarted."
-}
-
-[ "$#" -gt 0 ] || fail "A command is required."
-command=$1
-shift
-
-case "$command" in
-    start)
-        [ "$#" -eq 0 ] || fail "start takes no arguments."
-        start_update
-        ;;
-    status)
-        [ "$#" -eq 0 ] || fail "status takes no arguments."
-        status
-        ;;
-    auto)
-        [ "$#" -eq 0 ] || fail "auto takes no arguments."
-        auto_update
-        ;;
-    schedule)
-        [ "$#" -eq 0 ] || fail "schedule takes no arguments."
-        sync_schedule
-        ;;
-    *)
-        fail "Invalid command."
-        ;;
-esac
-'''
-
-if helper.exists():
-    existing = helper.read_text(encoding="utf-8")
-    if existing != helper_text:
-        sys.exit(f"ERROR: {helper} already exists and is not this patcher's file; refusing to overwrite.")
-    print("Already patched: geodata helper")
-else:
-    helper.parent.mkdir(parents=True, exist_ok=True)
-    helper.write_text(helper_text, encoding="utf-8")
-    helper.chmod(0o755)
-    print("Added: geodata helper")
-
-service_insert = r'''
-	/* Geodata rule sets: independent of the dae/honk package upgrade job. */
-
-	async geodataCommand(args) {
-		const result = await fs.exec('/usr/libexec/daeuniverse-geodata', args);
-		if (result.code !== 0) {
-			const error = new Error(result.stderr || _('Geodata operation failed.'));
-			error.output = result.stdout || '';
-			throw error;
-		}
-		return JSON.parse(result.stdout);
-	},
+methods = r'''
+	/* Geodata: dae only */
 
 	async handleGeodataUpdate() {
-		this.geodataButton.disabled = true;
-		this.geodataStatus.replaceChildren(_('Starting rule-set update…'));
-		try {
-			await this.geodataCommand([ 'start' ]);
-			await this.pollGeodataJob();
-		}
-		catch (error) {
-			this.geodataButton.disabled = false;
-			this.geodataStatus.replaceChildren(E('pre', { 'class': 'du-log' },
-				error.output || error.message));
-		}
-	},
+		const button = this.geodataButton;
+		button.disabled = true;
+		button.textContent = '下载中';
 
-	async pollGeodataJob() {
-		if (!this.geodataStatus)
-			return;
 		try {
-			const status = await this.geodataCommand([ 'status' ]);
-			this.geodataButton.disabled = status.running;
-			const message = status.running ? _('Updating rule sets…')
-				: status.code === 0 ? _('Rule sets updated.')
-				: status.code != null ? _('Rule-set update failed.')
-				: _('Rule sets have not been updated yet.');
-			this.geodataStatus.replaceChildren(
-				E('div', {}, message),
-				status.log ? E('pre', { 'class': 'du-log' }, status.log) : ''
-			);
+			const command = '/usr/libexec/daeuniverse-geodata';
+
+			const start = await fs.exec(command, [ 'start' ]);
+			if (start.code !== 0)
+				throw new Error('Unable to start update');
+
+			let status = 'running';
+
+			while (status === 'running') {
+				await new Promise(resolve => setTimeout(resolve, 1000));
+
+				const result = await fs.exec(command, [ 'status' ]);
+				if (result.code !== 0)
+					throw new Error('Unable to read update status');
+
+				status = result.stdout.trim();
+			}
+
+			if (status !== 'success')
+				throw new Error('Update failed');
+
+			button.textContent = '下载成功';
 		}
-		catch (error) {
-			this.geodataButton.disabled = false;
-			this.geodataStatus.replaceChildren(E('pre', { 'class': 'du-log' }, error.message));
+		catch (err) {
+			button.textContent = '下载失败';
+		}
+		finally {
+			button.disabled = false;
 		}
 	},
 
 '''
-replace_once(service, "\t/* Packages */\n", service_insert + "\t/* Packages */\n", "geodata UI methods")
 
-replace_once(
-    service,
-    "\t\tconst m = new form.Map(name);\n\t\tconst s = m.section(form.NamedSection, 'config', name);",
-    "\t\tconst m = new form.Map(name);\n"
-    "\t\tconst saveMap = m.save.bind(m);\n"
-    "\t\tm.save = (...args) => saveMap(...args).then(() =>\n"
-    "\t\t\tfs.exec('/usr/libexec/daeuniverse-geodata', [ 'schedule' ]).then(result => {\n"
-    "\t\t\t\tif (result.code !== 0)\n"
-    "\t\t\t\t\tthrow new Error(result.stderr || _('Unable to update the automatic rule-set schedule.'));\n"
-    "\t\t\t})\n"
-    "\t\t);\n"
-    "\t\tconst s = m.section(form.NamedSection, 'config', name);",
-    "post-save cron synchronization"
-)
+if src.count(anchor) != 1:
+    raise SystemExit("错误：无法唯一定位 service.js 中的 Status and log 区域")
 
-geodata_row = r'''
-		this.geodataButton = E('button', {
-			'class': 'btn cbi-button cbi-button-action', 'type': 'button',
-			'click': () => this.handleGeodataUpdate()
-		}, _('Update now'));
-		this.geodataStatus = E('div', { 'aria-live': 'polite' });
-		o = s.option(form.Flag, 'auto_update', _('Rule sets'),
-			_('Automatically update geosite.dat and geoip.dat every day at 4:00 AM.'));
-		o.default = '0';
-		o.rmempty = false;
-		const renderAutoUpdateFlag = o.renderWidget.bind(o);
-		o.renderWidget = (section_id, option_index, cfgvalue) => E('div', {}, [
-			this.geodataButton, ' ', renderAutoUpdateFlag(section_id, option_index, cfgvalue),
-			this.geodataStatus
-		]);
+src = src.replace(anchor, methods + anchor, 1)
+
+anchor = """\t\t// Not a UCI option: the rc.d link of the init script;"""
+
+ui = r'''
+		// Geodata update is only shown on the dae page.
+		if (name === 'dae') {
+			this.geodataButton = E('button', {
+				'class': 'btn cbi-button',
+				'type': 'button',
+				'click': () => this.handleGeodataUpdate()
+			}, '立即更新');
+
+			o = s.option(form.DummyValue, '_geodata', '规则集');
+			o.renderWidget = () => E('div', {}, this.geodataButton);
+		}
 
 '''
-replace_once(
-    service,
-    "\t\t// Not a UCI option: the rc.d link of the init script, which the switch\n",
-    geodata_row + "\t\t// Not a UCI option: the rc.d link of the init script, which the switch\n",
-    "rule-set status row"
-)
 
-replace_once(
-    service,
-    "\t\t\t\tthis.updateStatus(),\n\t\t\t\tthis.updateBoot(),",
-    "\t\t\t\tthis.updateStatus(),\n\t\t\t\tthis.updateBoot(),\n\t\t\t\tthis.pollGeodataJob(),",
-    "geodata status polling"
-)
-replace_once(
-    service,
-    "\t\t\tthis.updateStatus();\n\t\t\tthis.packagePolling = true;",
-    "\t\t\tthis.updateStatus();\n\t\t\tthis.pollGeodataJob();\n\t\t\tthis.packagePolling = true;",
-    "initial geodata status"
-)
+if src.count(anchor) != 1:
+    raise SystemExit("错误：无法唯一定位规则集按钮插入位置")
 
-acl_data = json.loads(acl.read_text(encoding="utf-8"))
-entry = acl_data["luci-app-dae"]
-read_file = entry.setdefault("read", {}).setdefault("file", {})
-write_file = entry.setdefault("write", {}).setdefault("file", {})
-read_file["/usr/libexec/daeuniverse-geodata status"] = ["exec"]
-write_file["/usr/libexec/daeuniverse-geodata start"] = ["exec"]
-write_file["/usr/libexec/daeuniverse-geodata schedule"] = ["exec"]
-acl.write_text(json.dumps(acl_data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-print("Patched: RPC ACL")
+src = src.replace(anchor, ui + anchor, 1)
 
-messages = {
-    "Rule sets": "规则集",
-    "Automatically update geosite.dat and geoip.dat every day at 4:00 AM.": "每天凌晨 4 点自动更新 geosite.dat 和 geoip.dat。",
-    "Update now": "立即更新",
-    "Starting rule-set update…": "正在启动规则集更新…",
-    "Updating rule sets…": "正在更新规则集…",
-    "Rule sets updated.": "规则集已更新。",
-    "Rule-set update failed.": "规则集更新失败。",
-    "Rule sets have not been updated yet.": "尚未更新规则集。",
-    "Geodata operation failed.": "规则集操作失败。",
-    "Unable to update the automatic rule-set schedule.": "无法更新规则集自动更新计划。"
-}
-
-def append_messages(path, translations, is_template=False):
-    data = path.read_text(encoding="utf-8")
-    additions = []
-    for msgid, translated in translations.items():
-        marker = 'msgid ' + json.dumps(msgid, ensure_ascii=False)
-        if marker in data:
-            continue
-        if is_template:
-            additions.append(f'\nmsgid {json.dumps(msgid, ensure_ascii=False)}\nmsgstr ""\n')
-        else:
-            additions.append(
-                f'\nmsgid {json.dumps(msgid, ensure_ascii=False)}\n'
-                f'msgstr {json.dumps(translated, ensure_ascii=False)}\n'
-            )
-    if additions:
-        path.write_text(data.rstrip() + "\n" + "".join(additions), encoding="utf-8")
-        print("Updated translations:", path)
-    else:
-        print("Already translated:", path)
-
-append_messages(pot, messages, True)
-append_messages(po, messages)
-
-print("\nGeodata update patch applied.")
-print("Rebuild luci-lib-daeuniverse and luci-app-dae to include the changes.")
+with open(path, "w", encoding="utf-8") as f:
+    f.write(src)
 PY
+
+echo "规则集更新功能已添加。"
