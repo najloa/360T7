@@ -39,6 +39,29 @@ mkdir -p ./feeds/luci/applications && \
 cp -a ./immortalwrt-luci/applications/luci-app-smartdns ./feeds/luci/applications/ && \
 rm -rf ./immortalwrt-luci
 
+SMARTDNS_MK="feeds/packages/net/smartdns/Makefile"
+
+if [ -f "$SMARTDNS_MK" ]; then
+    RELEASE=$(wget -qO- https://github.com/pymumu/smartdns/releases/tag/nightly)
+
+    BUILD_TIME=$(echo "$RELEASE" | sed -n 's/.*Build Time: \([0-9-]*\).*/\1/p' | head -n1)
+
+    if [[ "$BUILD_TIME" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+        VERSION=${BUILD_TIME//-/.}
+
+        sed -i \
+            -e "s/^PKG_VERSION:=.*/PKG_VERSION:=$VERSION/" \
+            -e 's|^PKG_SOURCE_URL:=.*|PKG_SOURCE_URL:=https://codeload.github.com/pymumu/smartdns/tar.gz/nightly?|' \
+            -e 's/^PKG_HASH:=.*/PKG_HASH:=skip/' \
+            -e "s|^PKG_BUILD_DIR:=.*|PKG_BUILD_DIR:=\$(BUILD_DIR)/\$(PKG_NAME)-$VERSION|" \
+            "$SMARTDNS_MK"
+
+        echo "SmartDNS Nightly Build Time: $VERSION"
+    else
+        echo "Warning: Unable to obtain SmartDNS Build Time."
+    fi
+fi
+
 ./scripts/feeds install -f smartdns
 ./scripts/feeds install -f luci-app-smartdns
 
