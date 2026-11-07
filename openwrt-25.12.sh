@@ -9,7 +9,7 @@ sed -i \
     ./package/base-files/files/bin/config_generate
 
 # WED
-echo 'options mt7915e wed_enable=Y' >> package/system/ubox/files/modules.conf
+echo '# options mt7915e wed_enable=Y' >> package/system/ubox/files/modules.conf
 
 # 修改 Passwall
 if [ "$FIRMWARE_VERSION" = "openwrt-25.12" ]; then
