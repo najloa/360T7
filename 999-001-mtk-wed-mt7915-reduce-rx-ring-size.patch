@@ -32,10 +32,10 @@
 
 --- a/drivers/net/ethernet/mediatek/mtk_eth_soc.c
 +++ b/drivers/net/ethernet/mediatek/mtk_eth_soc.c
-@@ -3033,5 +3033,5 @@
+@@ -3037,7 +3037,7 @@
  	if (!ring->data)
  		return -ENOMEM;
- 
--if (mtk_page_pool_enabled(eth)) {
-+if (mtk_page_pool_enabled(eth) && rcu_access_pointer(eth->prog)) {
- 	struct page_pool *pp;
+
+-	if (mtk_page_pool_enabled(eth)) {
++	if (mtk_page_pool_enabled(eth) && rcu_access_pointer(eth->prog)) {
+ 		struct page_pool *pp;
