@@ -29,3 +29,13 @@
  
  #define MT7915_CRIT_TEMP_IDX		0
  #define MT7915_MAX_TEMP_IDX		1
+
+--- a/drivers/net/ethernet/mediatek/mtk_eth_soc.c
++++ b/drivers/net/ethernet/mediatek/mtk_eth_soc.c
+@@ -3033,5 +3033,5 @@
+ 	if (!ring->data)
+ 		return -ENOMEM;
+ 
+-if (mtk_page_pool_enabled(eth)) {
++if (mtk_page_pool_enabled(eth) && rcu_access_pointer(eth->prog)) {
+ 	struct page_pool *pp;
