@@ -148,57 +148,96 @@ jobs:
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
-    - name: Install WED patch
+    - name: Locate and Generate Driver Patches
       run: |
         cd openwrt
-  
-        KERNEL_PATCHVER=$(sed -n 's/^KERNEL_PATCHVER:=//p' target/linux/mediatek/Makefile | head -n 1)
-  
-        if [ -z "$KERNEL_PATCHVER" ]; then
-          echo "::error::Cannot determine KERNEL_PATCHVER"
+    
+        # 准备两套源码
+        make target/linux/prepare -j1
+        make package/kernel/mt76/prepare -j1
+    
+        # 定位内核源码
+        LINUX_DIR=$(find build_dir/target-* -type f \
+          -path '*/drivers/net/ethernet/mediatek/mtk_wed.c' \
+          -print -quit | sed 's#/drivers/net/ethernet/mediatek/mtk_wed.c##')
+    
+        # 定位独立的 mt76 源码
+        MT76_DIR=$(find build_dir/target-* -type f \
+          -path '*/mt7915/mt7915.h' \
+          -print -quit | sed 's#/mt7915/mt7915.h##')
+    
+        if [ -z "$LINUX_DIR" ] || [ -z "$MT76_DIR" ]; then
+          echo "::error::Cannot locate Linux or mt76 source"
           exit 1
         fi
-  
-        PATCH_DIR="target/linux/mediatek/patches-$KERNEL_PATCHVER"
-        PATCH_FILE="$GITHUB_WORKSPACE/999-001-mtk-wed-mt7915-reduce-rx-ring-size.patch"
-  
-        if [ ! -f "$PATCH_FILE" ]; then
-          echo "::error::WED patch file not found: $PATCH_FILE"
+    
+        MTK_WED="$LINUX_DIR/drivers/net/ethernet/mediatek/mtk_wed.c"
+        MT7915="$MT76_DIR/mt7915/mt7915.h"
+    
+        mkdir -p /tmp/wed-patches
+    
+        # 备份原始文件
+        cp "$MTK_WED" /tmp/mtk_wed.c.orig
+        cp "$MT7915" /tmp/mt7915.h.orig
+    
+        # 修改 WED RX Ring
+        sed -i -E \
+          's/^(#define[[:space:]]+MTK_WED_RX_RING_SIZE[[:space:]]+)1536([[:space:]]*)$/\1 512/' \
+          "$MTK_WED"
+    
+        # 修改 mt7915 RX Ring 和 WED Token
+        sed -i -E \
+          's/^(#define[[:space:]]+MT7915_RX_RING_SIZE[[:space:]]+)1536([[:space:]]*)$/\1 512/' \
+          "$MT7915"
+    
+        sed -i -E \
+          's/^(#define[[:space:]]+MT7915_WED_RX_TOKEN_SIZE[[:space:]]+)12288([[:space:]]*)$/\1 4096/' \
+          "$MT7915"
+    
+        # 检查所有修改是否真正生效
+        grep -Eq '^#define[[:space:]]+MTK_WED_RX_RING_SIZE[[:space:]]+512([[:space:]]|$)' "$MTK_WED" || {
+          echo "::error::MTK_WED_RX_RING_SIZE modification failed"
           exit 1
-        fi
-  
-        mkdir -p "$PATCH_DIR"
-        cp -f "$PATCH_FILE" "$PATCH_DIR/"
-  
-        echo "Kernel version: $KERNEL_PATCHVER"
-        echo "Patch installed: $PATCH_DIR/$(basename "$PATCH_FILE")"
+        }
+    
+        grep -Eq '^#define[[:space:]]+MT7915_RX_RING_SIZE[[:space:]]+512([[:space:]]|$)' "$MT7915" || {
+          echo "::error::MT7915_RX_RING_SIZE modification failed"
+          exit 1
+        }
+    
+        grep -Eq '^#define[[:space:]]+MT7915_WED_RX_TOKEN_SIZE[[:space:]]+4096([[:space:]]|$)' "$MT7915" || {
+          echo "::error::MT7915_WED_RX_TOKEN_SIZE modification failed"
+          exit 1
+        }
+    
+        # 分别生成补丁，路径相对于各自源码根目录
+        diff -u \
+          --label a/drivers/net/ethernet/mediatek/mtk_wed.c \
+          --label b/drivers/net/ethernet/mediatek/mtk_wed.c \
+          /tmp/mtk_wed.c.orig "$MTK_WED" \
+          > /tmp/wed-patches/999-001-mtk-wed-reduce-rx-ring-size.patch || [ $? -eq 1 ]
+    
+        diff -u \
+          --label a/mt7915/mt7915.h \
+          --label b/mt7915/mt7915.h \
+          /tmp/mt7915.h.orig "$MT7915" \
+          > /tmp/wed-patches/999-002-mt7915-reduce-rx-ring-size.patch || [ $? -eq 1 ]
+    
+        echo "===== WED patch ====="
+        cat /tmp/wed-patches/999-001-mtk-wed-reduce-rx-ring-size.patch
+    
+        echo "===== mt76 patch ====="
+        cat /tmp/wed-patches/999-002-mt7915-reduce-rx-ring-size.patch
 
-    - name: Compile the firmware
-      id: compile
-      run: |
-        cd openwrt
-        make -j$(nproc) || make -j1 V=s
-
-    - name: Prepare firmware path
-      run: |
-        cd openwrt/bin/targets/*/*
-        echo "FIRMWARE=$PWD" >> $GITHUB_ENV
-
-    - name: Generate build date
-      id: date
-      run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
-
-    - name: Upload firmware to release
-      uses: softprops/action-gh-release@v3
+    - name: Upload WED Patches
+      uses: actions/upload-artifact@v4
       with:
-        tag_name: ${{ env.TAG_NAME }}
-        name: ${{ env.RELEASE_NAME }}-${{ steps.date.outputs.date }}
-        files: |
-          ${{ env.FIRMWARE }}/*.itb
-          ${{ env.FIRMWARE }}/*.fip
-          ${{ env.FIRMWARE }}/*.bin
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: mtk-wed-mt76-patches
+        path: |
+          /tmp/wed-patches/999-001-mtk-wed-reduce-rx-ring-size.patch
+          /tmp/wed-patches/999-002-mt7915-reduce-rx-ring-size.patch
+        if-no-files-found: error
+        retention-days: 7
 
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@main
