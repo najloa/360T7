@@ -140,62 +140,34 @@ jobs:
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
-    - name: Install WED patch
+    - name: Locate and Upload Driver Sources
       run: |
         cd openwrt
-  
-        KERNEL_PATCHVER=$(sed -n 's/^KERNEL_PATCHVER:=//p' target/linux/mediatek/Makefile | head -n 1)
-  
-        if [ -z "$KERNEL_PATCHVER" ]; then
-          echo "::error::Cannot determine KERNEL_PATCHVER"
+        make target/linux/prepare -j1
+
+        echo "===== mtk_eth_soc.c ====="
+        find build_dir -type f -name "mtk_eth_soc.c" -print
+
+        echo "===== mt7915.h ====="
+        find build_dir -type f -name "mt7915.h" -print
+
+        echo "===== mtk_eth_soc.h ====="
+        find build_dir -type f -name "mtk_eth_soc.h" -print
+
+        mtk_eth_soc=$(find build_dir -type f -name "mtk_eth_soc.c" -print -quit)
+
+        if [ -z "$mtk_eth_soc" ]; then
+          echo "::error::mtk_eth_soc.c not found"
           exit 1
         fi
-  
-        PATCH_DIR="target/linux/mediatek/patches-$KERNEL_PATCHVER"
-        PATCH_FILE="$GITHUB_WORKSPACE/999-001-mtk-wed-mt7915-reduce-rx-ring-size.patch"
-  
-        if [ ! -f "$PATCH_FILE" ]; then
-          echo "::error::WED patch file not found: $PATCH_FILE"
-          exit 1
-        fi
-  
-        mkdir -p "$PATCH_DIR"
-        cp -f "$PATCH_FILE" "$PATCH_DIR/"
-  
-        echo "Kernel version: $KERNEL_PATCHVER"
-        echo "Patch installed: $PATCH_DIR/$(basename "$PATCH_FILE")"
 
-    - name: Compile the firmware
-      id: compile
-      run: |
-        cd openwrt
-        make -j$(nproc) || make -j1 V=s
+        mkdir -p "$GITHUB_WORKSPACE/artifacts"
+        cp "$mtk_eth_soc" "$GITHUB_WORKSPACE/artifacts/mtk_eth_soc.c"
 
-    - name: Prepare firmware path
-      run: |
-        cd openwrt/bin/targets/*/*
-        echo "FIRMWARE=$PWD" >> $GITHUB_ENV
-
-    - name: Generate build date
-      id: date
-      run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
-
-    - name: Upload firmware to release
-      uses: softprops/action-gh-release@v3
+    - name: Upload mtk_eth_soc.c
+      uses: actions/upload-artifact@v4
       with:
-        tag_name: ${{ env.TAG_NAME }}
-        name: ${{ env.RELEASE_NAME }}-${{ steps.date.outputs.date }}
-        files: |
-          ${{ env.FIRMWARE }}/*.itb
-          ${{ env.FIRMWARE }}/*.fip
-          ${{ env.FIRMWARE }}/*.bin
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Delete workflow runs
-      uses: Mattraks/delete-workflow-runs@main
-      with:
-        token: ${{ github.token }}
-        repository: ${{ github.repository }}
-        retain_days: 0
-        keep_minimum_runs: 0
+        name: mtk_eth_soc-source
+        path: artifacts/mtk_eth_soc.c
+        if-no-files-found: error
+        retention-days: 7
