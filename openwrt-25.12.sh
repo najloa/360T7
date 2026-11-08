@@ -26,45 +26,6 @@ mv "${rules_file}.tmp" "$rules_file"
 # sed -i 's/GO_DEFAULT_VERSION:=1.26/GO_DEFAULT_VERSION:=1.27/g' ./feeds/packages/lang/golang/golang-values.mk
 fi
 
-# 替换 SmartDNS
-git clone --depth 1 -b master https://github.com/immortalwrt/packages.git immortalwrt-packages && \
-rm -rf ./feeds/packages/net/smartdns && \
-mkdir -p ./feeds/packages/net && \
-cp -a ./immortalwrt-packages/net/smartdns ./feeds/packages/net/ && \
-rm -rf ./immortalwrt-packages
-
-git clone --depth 1 -b master https://github.com/immortalwrt/luci.git immortalwrt-luci && \
-rm -rf ./feeds/luci/applications/luci-app-smartdns && \
-mkdir -p ./feeds/luci/applications && \
-cp -a ./immortalwrt-luci/applications/luci-app-smartdns ./feeds/luci/applications/ && \
-rm -rf ./immortalwrt-luci
-
-SMARTDNS_MK="feeds/packages/net/smartdns/Makefile"
-
-if [ -f "$SMARTDNS_MK" ]; then
-    RELEASE=$(wget -qO- https://github.com/pymumu/smartdns/releases/tag/nightly)
-
-    BUILD_TIME=$(echo "$RELEASE" | sed -n 's/.*Build Time: \([0-9-]*\).*/\1/p' | head -n1)
-
-    if [[ "$BUILD_TIME" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
-        VERSION=${BUILD_TIME//-/.}
-
-        sed -i \
-            -e "s/^PKG_VERSION:=.*/PKG_VERSION:=$VERSION/" \
-            -e 's|^PKG_SOURCE_URL:=.*|PKG_SOURCE_URL:=https://codeload.github.com/pymumu/smartdns/tar.gz/nightly?|' \
-            -e 's/^PKG_HASH:=.*/PKG_HASH:=skip/' \
-            -e "s|^PKG_BUILD_DIR:=.*|PKG_BUILD_DIR:=\$(BUILD_DIR)/\$(PKG_NAME)-$VERSION|" \
-            "$SMARTDNS_MK"
-
-        echo "SmartDNS Nightly Build Time: $VERSION"
-    else
-        echo "Warning: Unable to obtain SmartDNS Build Time."
-    fi
-fi
-
-./scripts/feeds install -f smartdns
-./scripts/feeds install -f luci-app-smartdns
-
 # 为 dae 和 honk 移除 v2ray
 sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/honk_packages/dae/Makefile ./feeds/honk_packages/honk/Makefile
 
