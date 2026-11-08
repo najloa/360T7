@@ -45,11 +45,11 @@ worker() {
 
 	# 下载规则集及对应校验文件
 	for name in geosite geoip; do
-		wget -q --timeout=30 \
+		wget -q --timeout=20 \
 			-O "$tmp/$name.dat" \
 			"$URL/$name.dat" || fail
 
-		wget -q --timeout=30 \
+		wget -q --timeout=20 \
 			-O "$tmp/$name.dat.sha256sum" \
 			"$URL/$name.dat.sha256sum" || fail
 	done
@@ -130,8 +130,10 @@ path = sys.argv[1]
 with open(path, encoding="utf-8") as f:
     data = json.load(f)
 
-rules = data["luci-app-dae"]["write"]["file"]
-rules["/usr/libexec/daeuniverse-geodata *"] = ["exec"]
+app = data["luci-app-dae"]
+
+app["read"]["file"]["/usr/libexec/daeuniverse-geodata status"] = ["exec"]
+app["write"]["file"]["/usr/libexec/daeuniverse-geodata start"] = ["exec"]
 
 with open(path, "w", encoding="utf-8") as f:
     json.dump(data, f, ensure_ascii=False, indent="\t")
