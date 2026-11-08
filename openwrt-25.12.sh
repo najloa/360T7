@@ -9,7 +9,7 @@ sed -i \
     ./package/base-files/files/bin/config_generate
 
 # WED
-echo '# options mt7915e wed_enable=Y' >> package/system/ubox/files/modules.conf
+echo 'options mt7915e wed_enable=Y' >> package/system/ubox/files/modules.conf
 
 # 修改 Passwall
 if [ "$FIRMWARE_VERSION" = "openwrt-25.12" ]; then
@@ -30,7 +30,7 @@ fi
 sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/honk_packages/dae/Makefile ./feeds/honk_packages/honk/Makefile
 
 # dae 规则集更新功能
-sh "$GITHUB_WORKSPACE/patch-dae-geodata.sh" "$PWD/feeds/honk_packages"
+# sh "$GITHUB_WORKSPACE/patch-dae-geodata.sh" "$PWD/feeds/honk_packages"
 
 # 内核配置写入函数
 set_kernel_config() {
