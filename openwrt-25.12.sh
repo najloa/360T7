@@ -30,7 +30,7 @@ fi
 sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/honk_packages/dae/Makefile ./feeds/honk_packages/honk/Makefile
 
 # dae 规则集更新功能
-# sh "$GITHUB_WORKSPACE/patch-dae-geodata.sh" "$PWD/feeds/honk_packages"
+sh "$GITHUB_WORKSPACE/patch-dae-geodata.sh" "$PWD/feeds/honk_packages"
 
 # 内核配置写入函数
 set_kernel_config() {
