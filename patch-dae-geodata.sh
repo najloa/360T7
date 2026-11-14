@@ -45,11 +45,11 @@ worker() {
 
 	# 下载规则集及对应校验文件
 	for name in geosite geoip; do
-		wget -q --timeout=20 \
+		wget -q --timeout=10 \
 			-O "$tmp/$name.dat" \
 			"$URL/$name.dat" || fail
 
-		wget -q --timeout=20 \
+		wget -q --timeout=10 \
 			-O "$tmp/$name.dat.sha256sum" \
 			"$URL/$name.dat.sha256sum" || fail
 	done
