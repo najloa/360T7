@@ -32,7 +32,7 @@ sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/honk_packages/dae/Makefile ./f
 # dae 规则集更新功能
 sh "$GITHUB_WORKSPACE/patch-dae-geodata.sh" "$PWD/feeds/honk_packages"
 
-# 内核配置写入函数
+# Kernel configuration
 set_kernel_config() {
     local option="$1"
     local value="$2"
@@ -44,9 +44,43 @@ set_kernel_config() {
     echo "${option}=${value}" >> "$CONFIG_FILE"
 }
 
-# dae 专属配置
+# Locate the latest kernel configuration
+get_kernel_config() {
+    CONFIG_FILE=$(find target/linux/mediatek/filogic \
+        -maxdepth 1 -name 'config-6.*' | sort -V | tail -n 1)
+
+    if [ -z "$CONFIG_FILE" ] || [ ! -f "$CONFIG_FILE" ]; then
+        echo "Error: Kernel config not found"
+        exit 1
+    fi
+}
+
+# Prepare source from package Makefile
+prepare_source() {
+    local package_dir="$1"
+    local repo="$2"
+    local pattern="$3"
+    shift 3
+
+    local tag
+    tag=$(sed -n "$pattern" "$package_dir/Makefile")
+
+    if [ -z "$tag" ]; then
+        echo "Error: Failed to determine source tag: $package_dir"
+        exit 1
+    fi
+
+    echo "Preparing $package_dir source: $tag"
+
+    if [ ! -d "$package_dir/src" ]; then
+        git clone "$@" --depth 1 \
+            --branch "$tag" "$repo" "$package_dir/src"
+    fi
+}
+
+# dae
 if [ "$FIRMWARE_VERSION" = "openwrt-25.12-dae" ]; then
-    CONFIG_FILE=$(find target/linux/mediatek/filogic -maxdepth 1 -name 'config-6.*' | sort -V | tail -n 1)
+    get_kernel_config
 
     set_kernel_config CONFIG_NETKIT y
     set_kernel_config CONFIG_NET_SCH_INGRESS m
@@ -54,49 +88,47 @@ if [ "$FIRMWARE_VERSION" = "openwrt-25.12-dae" ]; then
     set_kernel_config CONFIG_NET_CLS_ACT y
     set_kernel_config CONFIG_BPF_STREAM_PARSER y
 
-    # dae 源码目录
-    DAE_DIR="$PWD/feeds/honk_packages/dae"
-    
-    # 仅在配置中启用了 dae 时准备源码
     if grep -qx 'CONFIG_PACKAGE_dae=y' .config; then
-    
-        # 从 Makefile 获取 dae 版本
-        DAE_VERSION=$(sed -n \
-            's/^PKG_VERSION:=$(if $(DAE_VERSION),$(DAE_VERSION),\([^)]*\))$/\1/p' \
-            "$DAE_DIR/Makefile")
-    
-        if [ -z "$DAE_VERSION" ]; then
-            echo "Error: Failed to determine DAE_VERSION"
-            exit 1
-        fi
-    
-        DAE_TAG="v${DAE_VERSION}"
-    
-        echo "Preparing dae source: $DAE_TAG"
-    
-        git clone --depth 1 --recurse-submodules \
-            --branch "$DAE_TAG" \
+        prepare_source \
+            "$PWD/feeds/honk_packages/dae" \
             https://github.com/daeuniverse/dae.git \
-            "$DAE_DIR/src"
+            's/^PKG_VERSION:=$(if $(DAE_VERSION),$(DAE_VERSION),\([^)]*\))$/\1/p' \
+            --recurse-submodules \
+            --shallow-submodules
     fi
 fi
 
-# honk 专属配置
-if [ "$FIRMWARE_VERSION" = "openwrt-main-honk" ]; then
-    CONFIG_FILE=$(find target/linux/mediatek/filogic -maxdepth 1 -name 'config-6.*' | sort -V | tail -n 1)
+# honk
+if [ "$FIRMWARE_VERSION" = "openwrt-25.12-honk" ]; then
+    get_kernel_config
 
+    # eBPF / TCX datapath
     for option in \
+        CONFIG_BPF \
+        CONFIG_BPF_SYSCALL \
+        CONFIG_BPF_JIT \
+        CONFIG_CGROUPS \
+        CONFIG_CGROUP_BPF \
+        CONFIG_NET_SCHED \
         CONFIG_NET_CLS_ACT \
-        CONFIG_NETKIT \
-        CONFIG_NF_TABLES_INET \
-        CONFIG_NF_CONNTRACK \
-        CONFIG_NETFILTER_ADVANCED
+        CONFIG_NET_NS
     do
         set_kernel_config "$option" y
     done
 
+    # Optional: netkit (honk falls back to veth)
+    set_kernel_config CONFIG_NETKIT y
+
+    # Netfilter / NAT / flow table
+    set_kernel_config CONFIG_NETFILTER y
+    set_kernel_config CONFIG_NF_CONNTRACK m
+    set_kernel_config CONFIG_NF_NAT m
+    set_kernel_config CONFIG_NF_FLOW_TABLE m
+
+    # NFQUEUE / nftables
     for option in \
         CONFIG_NF_TABLES \
+        CONFIG_NF_TABLES_INET \
         CONFIG_NFT_CT \
         CONFIG_NFT_QUEUE \
         CONFIG_NETFILTER_NETLINK_QUEUE
@@ -104,29 +136,15 @@ if [ "$FIRMWARE_VERSION" = "openwrt-main-honk" ]; then
         set_kernel_config "$option" m
     done
 
-    # honk 源码目录
-    HONK_DIR="$PWD/feeds/honk_packages/honk"
-
-    # 仅在配置中启用了 honk 时准备源码和编译环境
+    # honk source and build environment
     if grep -qx 'CONFIG_PACKAGE_honk=y' .config; then
+        HONK_DIR="$PWD/feeds/honk_packages/honk"
 
-        # Prepare honk source
-        HONK_TAG=$(sed -n \
-            's/^HONK_GIT_TAG:=$(if $(HONK_GIT_TAG),$(HONK_GIT_TAG),\([^)]*\))$/\1/p' \
-            "$HONK_DIR/Makefile")
-
-        if [ -z "$HONK_TAG" ]; then
-            echo "Error: Failed to determine HONK_GIT_TAG"
-            exit 1
-        fi
-
-        echo "Preparing honk source: $HONK_TAG"
-
-        git clone --depth 1 --branch "$HONK_TAG" \
+        prepare_source \
+            "$HONK_DIR" \
             https://github.com/daeuniverse/honk.git \
-            "$HONK_DIR/src"
+            's/^HONK_GIT_TAG:=$(if $(HONK_GIT_TAG),$(HONK_GIT_TAG),\([^)]*\))$/\1/p'
 
-        # Prepare honk build environment
         HONK_SRC="$HONK_DIR/src"
         CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
         export CARGO_HOME
@@ -134,39 +152,50 @@ if [ "$FIRMWARE_VERSION" = "openwrt-main-honk" ]; then
 
         # Install rustup if missing
         if ! command -v rustup >/dev/null 2>&1; then
-            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-                | sh -s -- -y --profile minimal --default-toolchain none
+            curl --proto '=https' --tlsv1.2 -sSf \
+                https://sh.rustup.rs | sh -s -- -y \
+                --profile minimal --default-toolchain none
         fi
 
-        # Read pinned toolchain versions
+        # Read pinned toolchains
         STABLE_TOOLCHAIN=$(sed -n \
             's/^[[:space:]]*channel[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' \
-            "$HONK_SRC/rust-toolchain.toml" | head -n1)
+            "$HONK_SRC/rust-toolchain.toml" | head -n 1)
 
         NIGHTLY_TOOLCHAIN=$(sed -n \
             's/^[[:space:]]*channel[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' \
-            "$HONK_SRC/crates/honk-ebpf/rust-toolchain.toml" | head -n1)
+            "$HONK_SRC/crates/honk-ebpf/rust-toolchain.toml" | head -n 1)
 
         if [ -z "$STABLE_TOOLCHAIN" ] || [ -z "$NIGHTLY_TOOLCHAIN" ]; then
-            echo "Error: Failed to read honk Rust toolchain versions"
+            echo "Error: Failed to read honk Rust toolchains"
             exit 1
         fi
 
-        # Install stable Rust and the OpenWrt target standard library
+        # Install stable toolchain for honk userspace
         rustup toolchain install "$STABLE_TOOLCHAIN" \
-            --profile minimal --component rustfmt --component clippy
+            --profile minimal
 
-        rustup target add --toolchain "$STABLE_TOOLCHAIN" \
+        rustup component add \
+            --toolchain "$STABLE_TOOLCHAIN" \
+            rustfmt clippy
+
+        rustup target add \
+            --toolchain "$STABLE_TOOLCHAIN" \
             aarch64-unknown-linux-musl
 
-        # Install nightly Rust for eBPF compilation
+        # Install nightly toolchain for eBPF
         rustup toolchain install "$NIGHTLY_TOOLCHAIN" \
-            --profile minimal --component rust-src --component llvm-tools
+            --profile minimal \
+            --component rust-src \
+            --component llvm-tools
 
-        # Install the pinned bpf-linker
-        sudo apt-get install -y zstd
+        # Install zstd only when missing
+        if ! command -v zstd >/dev/null 2>&1; then
+            sudo apt-get install -y zstd
+        fi
 
-        source "$HONK_SRC/.github/ci/pins.env"
+        # Install pinned bpf-linker
+        . "$HONK_SRC/.github/ci/pins.env"
 
         mkdir -p "$CARGO_HOME/bin"
 
@@ -182,10 +211,9 @@ if [ "$FIRMWARE_VERSION" = "openwrt-main-honk" ]; then
 
         chmod +x "$CARGO_HOME/bin/bpf-linker"
 
-        # Make Cargo and bpf-linker available in subsequent workflow steps
         echo "$CARGO_HOME/bin" >> "$GITHUB_PATH"
 
-        echo "honk Rust build environment ready"
+        echo "honk build environment ready"
         rustc "+$STABLE_TOOLCHAIN" --version
         rustc "+$NIGHTLY_TOOLCHAIN" --version
         bpf-linker --version
