@@ -3,7 +3,7 @@ name: 360T7 Firmware Configuration Publisher
 on:
   workflow_dispatch:
     inputs:
-      firmware_version:
+      version:
         description: '选择固件编译版本'
         type: choice
         required: true
@@ -32,7 +32,7 @@ jobs:
 
       - name: Clone Firmware Source
         env:
-          FIRMWARE_VERSION: ${{ inputs.firmware_version }}
+          FIRMWARE_VERSION: ${{ inputs.version }}
         run: |
           case "$FIRMWARE_VERSION" in
             openwrt-25.12|openwrt-25.12-dae|openwrt-25.12-honk|openwrt-25.12-ubi)
@@ -61,7 +61,7 @@ jobs:
 
       - name: Configure Feeds and Theme
         env:
-          FIRMWARE_VERSION: ${{ inputs.firmware_version }}
+          FIRMWARE_VERSION: ${{ inputs.version }}
         run: |
           cd openwrt
           # Passwall & honk feeds
@@ -93,7 +93,7 @@ jobs:
 
       - name: Apply OpenWrt Device Defconfig
         env:
-          FIRMWARE_VERSION: ${{ inputs.firmware_version }}
+          FIRMWARE_VERSION: ${{ inputs.version }}
         run: |
           cd openwrt
 
@@ -116,19 +116,18 @@ jobs:
           fi
 
       - name: Apply ImmortalWrt Device Defconfig
-        if: ${{ startsWith(inputs.firmware_version, 'immortalwrt-') }}
+        if: ${{ startsWith(inputs.version, 'immortalwrt-') }}
         run: |
           cd openwrt
           cp -f defconfig/mt7981-ax3000.config .config
 
       - name: Load custom configuration
         env:
-          FIRMWARE_VERSION: ${{ inputs.firmware_version }}
+          FIRMWARE_VERSION: ${{ inputs.version }}
         run: |
-          [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
-          chmod +x $DIY_P2_SH
+          chmod +x openwrt-25.12.sh
           cd openwrt
-          $GITHUB_WORKSPACE/$DIY_P2_SH
+          $GITHUB_WORKSPACE/openwrt-25.12.sh
 
       - name: 【先q 后cd openwrt && make menuconfig 完sudo touch /continue】
         uses: Warpbuilds/action-debugger@v1.3 #【多配置install -Dp .config ./publish/openwrt-25.12-.config && cp -f defconfig/mt7981-ax3000.config .config】【https://github.com/mxschmitt/action-tmate】
@@ -136,7 +135,7 @@ jobs:
 
       - name: Publish Firmware Configuration
         env:
-          FIRMWARE_VERSION: ${{ inputs.firmware_version }}
+          FIRMWARE_VERSION: ${{ inputs.version }}
         run: |
           cd openwrt
           install -Dp .config "./publish/${FIRMWARE_VERSION}.config"
@@ -148,7 +147,7 @@ jobs:
 
       - name: Commit and Push Configurations
         env:
-          FIRMWARE_VERSION: ${{ inputs.firmware_version }}
+          FIRMWARE_VERSION: ${{ inputs.version }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
