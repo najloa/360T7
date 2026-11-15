@@ -27,10 +27,10 @@ mv "${rules_file}.tmp" "$rules_file"
 fi
 
 # 为 dae 和 honk 移除 v2ray
-sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/honk_packages/dae/Makefile ./feeds/honk_packages/honk/Makefile
+sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/daeuniverse_packages/dae/Makefile ./feeds/daeuniverse_packages/honk/Makefile
 
 # dae 规则集更新功能
-sh "$GITHUB_WORKSPACE/patch-dae-geodata.sh" "$PWD/feeds/honk_packages"
+sh "$GITHUB_WORKSPACE/patch-dae-geodata.sh" "$PWD/feeds/daeuniverse_packages"
 
 # Kernel configuration
 set_kernel_config() {
@@ -90,7 +90,7 @@ if [ "$FIRMWARE_VERSION" = "openwrt-25.12-dae" ]; then
 
     if grep -qx 'CONFIG_PACKAGE_dae=y' .config; then
         prepare_source \
-            "$PWD/feeds/honk_packages/dae" \
+            "$PWD/feeds/daeuniverse_packages/dae" \
             https://github.com/daeuniverse/dae.git \
             's/^PKG_VERSION:=$(if $(DAE_VERSION),$(DAE_VERSION),\([^)]*\))$/\1/p' \
             --recurse-submodules \
@@ -138,7 +138,7 @@ if [ "$FIRMWARE_VERSION" = "openwrt-25.12-honk" ]; then
 
     # honk source and build environment
     if grep -qx 'CONFIG_PACKAGE_honk=y' .config; then
-        HONK_DIR="$PWD/feeds/honk_packages/honk"
+        HONK_DIR="$PWD/feeds/daeuniverse_packages/honk"
 
         prepare_source \
             "$HONK_DIR" \
