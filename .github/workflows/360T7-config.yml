@@ -11,8 +11,8 @@ on:
         options:
           - 'openwrt-25.12'
           - 'openwrt-25.12-dae'
+          - 'openwrt-25.12-honk'
           - 'openwrt-25.12-ubi'
-          - 'openwrt-main-honk'
           - 'immortalwrt-21.02'
           - 'immortalwrt-25.12'
 
@@ -35,13 +35,9 @@ jobs:
           FIRMWARE_VERSION: ${{ inputs.firmware_version }}
         run: |
           case "$FIRMWARE_VERSION" in
-            openwrt-25.12|openwrt-25.12-dae|openwrt-25.12-ubi)
+            openwrt-25.12|openwrt-25.12-dae|openwrt-25.12-honk|openwrt-25.12-ubi)
               REPO="https://github.com/openwrt/openwrt.git"
               BRANCH="openwrt-25.12"
-              ;;
-            openwrt-main-honk)
-              REPO="https://github.com/openwrt/openwrt.git"
-              BRANCH="main"
               ;;
             immortalwrt-21.02)
               REPO="https://github.com/hanwckf/immortalwrt-mt798x.git"
@@ -73,7 +69,7 @@ jobs:
             printf '%s\n' \
               'src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main' \
               'src-git passwall_luci https://github.com/Openwrt-Passwall/openwrt-passwall.git;main' \
-              'src-git honk_packages https://github.com/daeuniverse/openwrt-packages.git;main'
+              'src-git daeuniverse_packages https://github.com/daeuniverse/openwrt-packages.git;main'
             cat feeds.conf.default
           } > feeds.conf.default.tmp && mv feeds.conf.default.tmp feeds.conf.default
           
@@ -102,7 +98,7 @@ jobs:
           cd openwrt
 
           case "$FIRMWARE_VERSION" in
-            openwrt-25.12|openwrt-25.12-dae|openwrt-main-honk|openwrt-25.12-ubi)
+            openwrt-25.12|openwrt-25.12-dae|openwrt-25.12-honk|openwrt-25.12-ubi)
               CONFIG_FILE="$GITHUB_WORKSPACE/config/defconfig-${FIRMWARE_VERSION}.config"
               ;;
             *)
