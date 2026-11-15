@@ -130,8 +130,10 @@ jobs:
           $GITHUB_WORKSPACE/openwrt-25.12.sh
 
       - name: 【先q 后cd openwrt && make menuconfig 完sudo touch /continue】
-        uses: Warpbuilds/action-debugger@v1.3 #【多配置install -Dp .config ./publish/openwrt-25.12-.config && cp -f defconfig/mt7981-ax3000.config .config】【https://github.com/mxschmitt/action-tmate】
+        uses: Warpbuilds/action-debugger@v2 #【多配置install -Dp .config ./publish/openwrt-25.12-.config && cp -f defconfig/mt7981-ax3000.config .config】【https://github.com/mxschmitt/action-tmate】
         timeout-minutes: 50
+        with:
+          limit-access-to-actor: false
 
       - name: Publish Firmware Configuration
         env:
