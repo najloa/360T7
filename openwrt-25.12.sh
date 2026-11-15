@@ -83,10 +83,15 @@ if [ "$FIRMWARE_VERSION" = "openwrt-25.12-dae" ]; then
     get_kernel_config
 
     set_kernel_config CONFIG_NETKIT y
+    set_kernel_config CONFIG_CGROUPS y
+    set_kernel_config CONFIG_KPROBES y
     set_kernel_config CONFIG_NET_SCH_INGRESS m
     set_kernel_config CONFIG_NET_CLS_BPF m
     set_kernel_config CONFIG_NET_CLS_ACT y
     set_kernel_config CONFIG_BPF_STREAM_PARSER y
+    set_kernel_config CONFIG_DEBUG_INFO_BTF y
+    set_kernel_config CONFIG_KPROBE_EVENTS y
+    set_kernel_config CONFIG_BPF_EVENTS y
 
     if grep -qx 'CONFIG_PACKAGE_dae=y' .config; then
         prepare_source \
@@ -104,12 +109,8 @@ if [ "$FIRMWARE_VERSION" = "openwrt-25.12-honk" ]; then
 
     # eBPF / TCX datapath
     for option in \
-        CONFIG_BPF \
-        CONFIG_BPF_SYSCALL \
-        CONFIG_BPF_JIT \
         CONFIG_CGROUPS \
         CONFIG_CGROUP_BPF \
-        CONFIG_NET_SCHED \
         CONFIG_NET_CLS_ACT \
         CONFIG_NET_NS
     do
