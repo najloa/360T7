@@ -4,7 +4,7 @@
 
 set -eu
 
-ROOT="${1:-$PWD/feeds/honk_packages}"
+ROOT="${1:-$PWD/feeds/daeuniverse_packages}"
 
 PKG="$ROOT/luci-lib-daeuniverse/root/usr/libexec/daeuniverse-pkg"
 SERVICE="$ROOT/luci-lib-daeuniverse/htdocs/luci-static/resources/daeuniverse/service.js"
