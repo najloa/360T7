@@ -82,16 +82,22 @@ prepare_source() {
 if [ "$FIRMWARE_VERSION" = "openwrt-25.12-dae" ]; then
     get_kernel_config
 
-    set_kernel_config CONFIG_NETKIT y
+    # eBPF / TC-BPF datapath
     set_kernel_config CONFIG_CGROUPS y
     set_kernel_config CONFIG_KPROBES y
     set_kernel_config CONFIG_NET_SCH_INGRESS m
     set_kernel_config CONFIG_NET_CLS_BPF m
     set_kernel_config CONFIG_NET_CLS_ACT y
     set_kernel_config CONFIG_BPF_STREAM_PARSER y
+
+    # Kernel BTF / tracing
+    set_kernel_config CONFIG_DEBUG_INFO y
     set_kernel_config CONFIG_DEBUG_INFO_BTF y
     set_kernel_config CONFIG_KPROBE_EVENTS y
     set_kernel_config CONFIG_BPF_EVENTS y
+
+    # Optional: netkit (honk falls back to veth)
+    set_kernel_config CONFIG_NETKIT y
 
     if grep -qx 'CONFIG_PACKAGE_dae=y' .config; then
         prepare_source \
@@ -108,34 +114,31 @@ if [ "$FIRMWARE_VERSION" = "openwrt-25.12-honk" ]; then
     get_kernel_config
 
     # eBPF / TCX datapath
-    for option in \
-        CONFIG_CGROUPS \
-        CONFIG_CGROUP_BPF \
-        CONFIG_NET_CLS_ACT \
-        CONFIG_NET_NS
-    do
-        set_kernel_config "$option" y
-    done
+    set_kernel_config CONFIG_NAMESPACES y
+    set_kernel_config CONFIG_CGROUPS y
+    set_kernel_config CONFIG_CGROUP_BPF y
+    set_kernel_config CONFIG_NET_CLS_ACT y
+    set_kernel_config CONFIG_NET_NS y
+
+    # Kernel BTF
+    set_kernel_config CONFIG_DEBUG_INFO y
+    set_kernel_config CONFIG_DEBUG_INFO_BTF y
 
     # Optional: netkit (honk falls back to veth)
     set_kernel_config CONFIG_NETKIT y
 
-    # Netfilter / NAT / flow table
+    # Netfilter framework
     set_kernel_config CONFIG_NETFILTER y
-    set_kernel_config CONFIG_NF_CONNTRACK m
-    set_kernel_config CONFIG_NF_NAT m
-    set_kernel_config CONFIG_NF_FLOW_TABLE m
 
-    # NFQUEUE / nftables
-    for option in \
-        CONFIG_NF_TABLES \
-        CONFIG_NF_TABLES_INET \
-        CONFIG_NFT_CT \
-        CONFIG_NFT_QUEUE \
-        CONFIG_NETFILTER_NETLINK_QUEUE
-    do
-        set_kernel_config "$option" m
-    done
+    # Connection tracking
+    set_kernel_config CONFIG_NF_CONNTRACK m
+
+    # nftables / NFQUEUE
+    set_kernel_config CONFIG_NF_TABLES m
+    set_kernel_config CONFIG_NF_TABLES_INET y
+    set_kernel_config CONFIG_NFT_CT m
+    set_kernel_config CONFIG_NFT_QUEUE m
+    set_kernel_config CONFIG_NETFILTER_NETLINK_QUEUE m
 
     # honk source and build environment
     if grep -qx 'CONFIG_PACKAGE_honk=y' .config; then
