@@ -121,12 +121,14 @@ jobs:
           cd openwrt
           cp -f defconfig/mt7981-ax3000.config .config
 
-      - name: Replace
-        if: ${{ startsWith(inputs.firmware_version, 'openwrt-') }}
+      - name: Load custom configuration
+        env:
+          FIRMWARE_VERSION: ${{ inputs.firmware_version }}
         run: |
+          [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
+          chmod +x $DIY_P2_SH
           cd openwrt
-          # 移除 v2ray
-          sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/daeuniverse_packages/dae/Makefile ./feeds/daeuniverse_packages/honk/Makefile
+          $GITHUB_WORKSPACE/$DIY_P2_SH
 
       - name: 【先q 后cd openwrt && make menuconfig 完sudo touch /continue】
         uses: Warpbuilds/action-debugger@v1.3 #【多配置install -Dp .config ./publish/openwrt-25.12-.config && cp -f defconfig/mt7981-ax3000.config .config】【https://github.com/mxschmitt/action-tmate】
