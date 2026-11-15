@@ -5,7 +5,7 @@
   printf '%s\n' \
     'src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main' \
     'src-git passwall_luci https://github.com/Openwrt-Passwall/openwrt-passwall.git;main' \
-    'src-git honk_packages https://github.com/daeuniverse/openwrt-packages.git;main'
+    'src-git daeuniverse_packages https://github.com/daeuniverse/openwrt-packages.git;main'
   cat feeds.conf.default
 } > feeds.conf.default.tmp && mv feeds.conf.default.tmp feeds.conf.default
 
