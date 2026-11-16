@@ -74,7 +74,15 @@ prepare_source() {
 
     if [ ! -d "$package_dir/src" ]; then
         git clone "$@" --depth 1 \
-            --branch "$tag" "$repo" "$package_dir/src"
+            --branch "$tag" "$repo" "$package_dir/src" || {
+                echo "Error: Failed to clone source: $repo ($tag)"
+                exit 1
+            }
+    fi
+
+    if [ ! -d "$package_dir/src" ]; then
+        echo "Error: Source directory missing: $package_dir/src"
+        exit 1
     fi
 }
 
@@ -103,7 +111,7 @@ if [ "$FIRMWARE_VERSION" = "openwrt-25.12-dae" ]; then
         prepare_source \
             "$PWD/feeds/daeuniverse_packages/dae" \
             https://github.com/daeuniverse/dae.git \
-            's/^PKG_VERSION:=$(if $(DAE_VERSION),$(DAE_VERSION),\([^)]*\))$/\1/p' \
+            's/^PKG_VERSION:=$(if $(DAE_VERSION),$(DAE_VERSION),\([^)]*\))$/v\1/p' \
             --recurse-submodules \
             --shallow-submodules
     fi
