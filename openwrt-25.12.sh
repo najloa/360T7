@@ -32,6 +32,18 @@ sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/daeuniverse_packages/dae/Makef
 # dae 规则集更新功能
 sh "$GITHUB_WORKSPACE/patch-dae-geodata.sh" "$PWD/feeds/daeuniverse_packages"
 
+# OpenWrt configuration
+set_openwrt_config() {
+    local option="$1"
+    local value="$2"
+
+    sed -i -E \
+        "/^# ${option} is not set$/d; /^${option}=/d" \
+        .config
+
+    echo "${option}=${value}" >> .config
+}
+
 # Kernel configuration
 set_kernel_config() {
     local option="$1"
@@ -90,9 +102,19 @@ prepare_source() {
 if [ "$FIRMWARE_VERSION" = "openwrt-25.12-dae" ]; then
     get_kernel_config
 
+    # OpenWrt kernel configuration
+    set_openwrt_config CONFIG_KERNEL_DEBUG_INFO y
+    set_openwrt_config CONFIG_KERNEL_DEBUG_INFO_BTF y
+    set_openwrt_config CONFIG_KERNEL_DEBUG_INFO_REDUCED n
+    set_openwrt_config CONFIG_KERNEL_KPROBES y
+    set_openwrt_config CONFIG_KERNEL_BPF_EVENTS y
+    set_openwrt_config CONFIG_KERNEL_CGROUPS y
+
     # eBPF / TC-BPF datapath
     set_kernel_config CONFIG_CGROUPS y
     set_kernel_config CONFIG_KPROBES y
+    set_kernel_config CONFIG_NET_INGRESS y
+    set_kernel_config CONFIG_NET_EGRESS y
     set_kernel_config CONFIG_NET_SCH_INGRESS m
     set_kernel_config CONFIG_NET_CLS_BPF m
     set_kernel_config CONFIG_NET_CLS_ACT y
