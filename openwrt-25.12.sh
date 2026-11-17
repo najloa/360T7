@@ -153,12 +153,17 @@ if [ "$FIRMWARE_VERSION" = "openwrt-25.12-honk" ]; then
     # OpenWrt kernel configuration
     set_openwrt_config CONFIG_KERNEL_DEBUG_INFO y
     set_openwrt_config CONFIG_KERNEL_DEBUG_INFO_BTF y
-    set_openwrt_config CONFIG_KERNEL_DYNAMIC_FTRACE y
     set_openwrt_config CONFIG_KERNEL_DEBUG_INFO_REDUCED n
     set_openwrt_config CONFIG_KERNEL_CGROUPS y
     set_openwrt_config CONFIG_KERNEL_CGROUP_BPF y
     set_openwrt_config CONFIG_KERNEL_NAMESPACES y
     set_openwrt_config CONFIG_KERNEL_NET_NS y
+    set_openwrt_config CONFIG_KERNEL_KPROBES y
+    set_openwrt_config CONFIG_KERNEL_KPROBE_EVENTS y
+    set_openwrt_config CONFIG_KERNEL_BPF_EVENTS y
+    set_openwrt_config CONFIG_KERNEL_FTRACE y
+    set_openwrt_config CONFIG_KERNEL_FUNCTION_TRACER y
+    set_openwrt_config CONFIG_KERNEL_DYNAMIC_FTRACE y
 
     # eBPF / TCX datapath
     set_kernel_config CONFIG_CGROUPS y
@@ -170,6 +175,10 @@ if [ "$FIRMWARE_VERSION" = "openwrt-25.12-honk" ]; then
     # Kernel BTF
     set_kernel_config CONFIG_DEBUG_INFO y
     set_kernel_config CONFIG_DEBUG_INFO_BTF y
+    set_kernel_config CONFIG_KPROBES y
+    set_kernel_config CONFIG_KPROBE_EVENTS y
+    set_kernel_config CONFIG_BPF_EVENTS y
+    set_kernel_config CONFIG_FTRACE y
     set_kernel_config CONFIG_FUNCTION_TRACER y
     set_kernel_config CONFIG_DYNAMIC_FTRACE y
 
