@@ -28,8 +28,7 @@ fi
 
 # 为 dae 和 honk 移除 v2ray
 sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/daeuniverse_packages/dae/Makefile ./feeds/daeuniverse_packages/honk/Makefile
-
-# dae 规则集更新功能
+# 规则集更新功能
 sh "$GITHUB_WORKSPACE/patch-dae-geodata.sh" "$PWD/feeds/daeuniverse_packages"
 
 # OpenWrt configuration
@@ -102,6 +101,10 @@ prepare_source() {
 if [ "$FIRMWARE_VERSION" = "openwrt-25.12-dae" ]; then
     get_kernel_config
 
+    # /proc/config.gz
+    set_kernel_config CONFIG_IKCONFIG y
+    set_kernel_config CONFIG_IKCONFIG_PROC y
+
     # OpenWrt kernel configuration
     set_openwrt_config CONFIG_KERNEL_DEBUG_INFO y
     set_openwrt_config CONFIG_KERNEL_DEBUG_INFO_BTF y
@@ -142,6 +145,10 @@ fi
 # honk
 if [ "$FIRMWARE_VERSION" = "openwrt-25.12-honk" ]; then
     get_kernel_config
+
+    # /proc/config.gz
+    set_kernel_config CONFIG_IKCONFIG y
+    set_kernel_config CONFIG_IKCONFIG_PROC y
 
     # OpenWrt kernel configuration
     set_openwrt_config CONFIG_KERNEL_DEBUG_INFO y
