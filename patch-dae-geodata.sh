@@ -1,105 +1,126 @@
 #!/bin/sh
-# dae / honk shared Geo update
-# Extend daeuniverse-pkg and reuse its existing job mechanism.
-
 set -eu
 
-ROOT="${1:-$PWD/feeds/daeuniverse_packages}"
-
-PKG="$ROOT/luci-lib-daeuniverse/root/usr/libexec/daeuniverse-pkg"
-SERVICE="$ROOT/luci-lib-daeuniverse/htdocs/luci-static/resources/daeuniverse/service.js"
-
-[ -f "$PKG" ] || { echo "错误：找不到 $PKG"; exit 1; }
-[ -f "$SERVICE" ] || { echo "错误：找不到 $SERVICE"; exit 1; }
-
-for app in dae honk; do
-	ACL="$ROOT/luci-app-$app/root/usr/share/rpcd/acl.d/luci-app-$app.json"
-	[ -f "$ACL" ] || { echo "错误：找不到 $ACL"; exit 1; }
-done
-
-# 1. Extend the existing package manager
-python3 - "$PKG" <<'PY'
-import sys
-
-path = sys.argv[1]
-
-with open(path, encoding="utf-8") as f:
-    src = f.read()
-
-if "geodata_job()" in src:
-    raise SystemExit("Geo 更新后端已经存在，请勿重复打补丁")
-
-anchor = '[ "$#" -gt 0 ] || fail \'A command is required.\''
-
-functions = r'''
-# Update Geo data using the same background job and lock as apk upgrades.
-geodata_update() {
-	BASE=/usr/share/v2ray
-	URL=https://gh-proxy.com/https://raw.githubusercontent.com/najloa/rules/release
-
-	tmp=$(mktemp -d "$BASE/.geodata.XXXXXX") || {
-		echo "Unable to create temporary directory."
-		return 1
-	}
-	trap 'rm -rf "$tmp"' EXIT
-
-	for name in geosite geoip; do
-		wget -q -T 10 -O "$tmp/$name.dat" \
-			"$URL/$name.dat" || {
-			echo "Download $name.dat failed."
-			return 1
-		}
-
-		wget -q -T 10 -O "$tmp/$name.dat.sha256sum" \
-			"$URL/$name.dat.sha256sum" || {
-			echo "Download $name checksum failed."
-			return 1
-		}
-	done
-
-	cd "$tmp" || return 1
-
-	for name in geosite geoip; do
-		sha256sum -c "$name.dat.sha256sum" || {
-			echo "$name.dat checksum verification failed."
-			return 1
-		}
-	done
-
-	mkdir "$tmp/backup" || return 1
-
-	for name in geosite geoip; do
-		if [ -e "$BASE/$name.dat" ]; then
-			cp -p "$BASE/$name.dat" "$tmp/backup/$name.dat" || {
-				echo "Backup $name.dat failed."
-				return 1
-			}
-		fi
-	done
-
-	for name in geosite geoip; do
-		if ! mv -f "$tmp/$name.dat" "$BASE/$name.dat"; then
-			echo "Replace $name.dat failed; restoring backups."
-
-			for restore in geosite geoip; do
-				if [ -e "$tmp/backup/$restore.dat" ]; then
-					cp -p "$tmp/backup/$restore.dat" "$BASE/$restore.dat" ||
-						echo "Restore $restore.dat failed."
-				else
-					rm -f "$BASE/$restore.dat"
-				fi
-			done
-
-			return 1
-		fi
-	done
-
-	echo "Geo data updated successfully."
+ROOT=${1:-"$PWD/feeds/daeuniverse_packages"}
+[ -d "$ROOT" ] || {
+	printf '错误：找不到 feeds 目录：%s\n' "$ROOT" >&2
+	exit 1
 }
 
-geodata_job() {
-	app=$1
+PKG="$ROOT/luci-lib-daeuniverse/root/usr/libexec/daeuniverse-pkg"
+JS="$ROOT/luci-lib-daeuniverse/htdocs/luci-static/resources/daeuniverse/service.js"
+ACL_DAE="$ROOT/luci-app-dae/root/usr/share/rpcd/acl.d/luci-app-dae.json"
+ACL_HONK="$ROOT/luci-app-honk/root/usr/share/rpcd/acl.d/luci-app-honk.json"
 
+for file in "$PKG" "$JS" "$ACL_DAE" "$ACL_HONK"; do
+	[ -f "$file" ] || {
+		printf '错误：找不到上游文件：%s\n' "$file" >&2
+		exit 1
+	}
+done
+
+WORK=$(mktemp -d)
+rollback=0
+
+cleanup() {
+	rc=$?
+	if [ "$rollback" -eq 1 ]; then
+		i=0
+		for file in "$PKG" "$JS" "$ACL_DAE" "$ACL_HONK"; do
+			[ ! -f "$WORK/backup.$i" ] || cp -p "$WORK/backup.$i" "$file"
+			i=$((i + 1))
+		done
+	fi
+	rm -rf "$WORK"
+	exit "$rc"
+}
+trap cleanup EXIT HUP INT TERM
+
+# 先在临时目录完成全部变更和锚点校验；四个文件全部生成成功后才写回。
+python3 - "$ROOT" "$WORK" <<'PY'
+from pathlib import Path
+import sys
+
+root = Path(sys.argv[1])
+work = Path(sys.argv[2])
+
+paths = [
+    root / "luci-lib-daeuniverse/root/usr/libexec/daeuniverse-pkg",
+    root / "luci-lib-daeuniverse/htdocs/luci-static/resources/daeuniverse/service.js",
+    root / "luci-app-dae/root/usr/share/rpcd/acl.d/luci-app-dae.json",
+    root / "luci-app-honk/root/usr/share/rpcd/acl.d/luci-app-honk.json",
+]
+src = [p.read_text() for p in paths]
+
+def once(text, old, new, label):
+    count = text.count(old)
+    if count != 1:
+        raise SystemExit(f"错误：{label} 锚点应匹配 1 次，实际 {count} 次；未写回任何文件")
+    return text.replace(old, new, 1)
+
+# 1. daeuniverse-pkg：沿用上游 LOCK / STATE / LOG / RC / flock / status。
+pkg = src[0]
+
+pkg = once(
+    pkg,
+    '''\tjson_add_string app "$app"
+\tjson_add_string id "$(date +%s)-$$"
+\tjson_add_array packages
+''',
+    '''\tjson_add_string kind upgrade
+\tjson_add_string app "$app"
+\tjson_add_string id "$(date +%s)-$$"
+\tjson_add_array packages
+''',
+    "APK 任务 kind"
+)
+
+pkg = once(
+    pkg,
+    "Upgrade worker exited without reporting its status.",
+    "Background worker exited without reporting its status.",
+    "worker 中断提示"
+)
+
+geo_functions = r'''
+# Download and verify both files before replacing either installed data file.
+geodata_update() {
+	app=$1
+	base='https://gh-proxy.com/https://raw.githubusercontent.com/najloa/rules/release'
+	tmpdir=$(mktemp -d /tmp/daeuniverse-geodata.XXXXXX) || return 1
+
+	(
+		cd "$tmpdir" || exit 1
+		for file in geosite.dat geoip.dat; do
+			wget -q -T 15 -O "$file" "$base/$file" || {
+				echo "Unable to download $file."
+				exit 1
+			}
+			wget -q -T 15 -O "$file.sha256sum" "$base/$file.sha256sum" || {
+				echo "Unable to download $file.sha256sum."
+				exit 1
+			}
+			sha256sum -c "$file.sha256sum" || exit 1
+		done
+
+		mkdir -p /usr/share/v2ray || exit 1
+		for file in geosite.dat geoip.dat; do
+			cp "$file" "/usr/share/v2ray/.$file.$$" || exit 1
+			chmod 0644 "/usr/share/v2ray/.$file.$$" || exit 1
+		done
+		for file in geosite.dat geoip.dat; do
+			mv -f "/usr/share/v2ray/.$file.$$" "/usr/share/v2ray/$file" || exit 1
+		done
+	)
+	code=$?
+	rm -rf "$tmpdir"
+	[ "$code" -eq 0 ] || return "$code"
+
+	reload_assets "$app" v2ray-geoip v2ray-geosite
+}
+
+geodata() {
+	app=$1
 	exec 9>>"$LOCK" || fail 'Unable to open the package lock.'
 	if ! flock -n 9; then
 		exec 9>&-
@@ -108,154 +129,142 @@ geodata_job() {
 	fi
 
 	json_init
+	json_add_string kind geodata
 	json_add_string app "$app"
 	json_add_string id "$(date +%s)-$$"
-
 	json_add_array packages
 	json_add_string '' geosite.dat
 	json_add_string '' geoip.dat
 	json_close_array
-
 	json_add_array before
 	json_close_array
-
-	state_file=$(mktemp /tmp/daeuniverse-pkg.XXXXXX) ||
-		fail 'Unable to create Geo data state.'
-
+	state_file=$(mktemp /tmp/daeuniverse-pkg.XXXXXX) || fail 'Unable to create geodata state.'
 	if ! json_dump > "$state_file" || ! mv -f "$state_file" "$STATE"; then
 		rm -f "$state_file"
-		fail 'Unable to save Geo data state.'
+		fail 'Unable to save geodata state.'
 	fi
 
-	log_file=$(mktemp /tmp/daeuniverse-pkg.XXXXXX) ||
-		fail 'Unable to create Geo data log.'
-
+	log_file=$(mktemp /tmp/daeuniverse-pkg.XXXXXX) || fail 'Unable to create the geodata log.'
 	if ! mv -f "$log_file" "$LOG"; then
 		rm -f "$log_file"
-		fail 'Unable to reset Geo data log.'
+		fail 'Unable to reset the geodata log.'
 	fi
-
-	rm -f "$RC" || fail 'Unable to reset Geo data result.'
+	rm -f "$RC" || fail 'Unable to reset the geodata result.'
 
 	(
 		trap '' HUP
-
-		if mkdir -p /usr/share/v2ray; then
-			geodata_update
-		else
-			echo "Unable to create Geo data directory."
-			false
-		fi
-
+		geodata_update "$app"
 		code=$?
 		write_result "$code"
 	) </dev/null >>"$LOG" 2>&1 &
-
 	exec 9>&-
 	status 0
 }
-
 '''
 
-if src.count(anchor) != 1:
-    raise SystemExit("错误：无法定位 daeuniverse-pkg 命令入口")
+pkg = once(
+    pkg,
+    "\nstatus() {\n",
+    "\n" + geo_functions + "\nstatus() {\n",
+    "Geo 数据后台任务函数插入位置"
+)
 
-src = src.replace(anchor, functions + anchor, 1)
+pkg = once(
+    pkg,
+    '''\t\tjson_add_null id
+\t\tjson_add_string app ''
+''',
+    '''\t\tjson_add_null id
+\t\tjson_add_string kind ''
+\t\tjson_add_string app ''
+''',
+    "status 空状态 kind"
+)
 
-anchor = '\tupgrade)\n'
+pkg = once(
+    pkg,
+    '''\tstatus)
+\t\t[ "$#" -eq 0 ] || fail 'Status takes no arguments.'
+\t\tstatus 0
+\t\t;;
+\t*) fail 'Invalid command.' ;;
+''',
+    '''\tgeodata)
+\t\t[ "$#" -eq 1 ] || fail 'Exactly one application is required.'
+\t\tvalid_app "$1" || fail 'Invalid application.'
+\t\tgeodata "$1"
+\t\t;;
+\tstatus)
+\t\t[ "$#" -eq 0 ] || fail 'Status takes no arguments.'
+\t\tstatus 0
+\t\t;;
+\t*) fail 'Invalid command.' ;;
+''',
+    "geodata 命令入口"
+)
 
-case = '''\tgeodata)
-		[ "$#" -eq 1 ] || fail 'Geo data requires an application name.'
-		valid_app "$1" || fail 'Invalid application.'
-		geodata_job "$1"
-		;;
-'''
+# 2. service.js：共用原有 packageCommand / 状态轮询 / modal。
+js = src[1]
 
-if src.count(anchor) != 1:
-    raise SystemExit("错误：无法定位 upgrade 命令")
+js = once(
+    js,
+    '''\tshowPackageJob(status, message) {
+\t\tthis.packageLog = E('pre', { 'class': 'du-log', 'aria-live': 'polite' }, status.log || '');
+\t\tthis.packageProgress = E('p', { 'class': 'spinning' }, message || _('Upgrading…'));
+\t\tui.showModal(_('Upgrade'), [ this.packageProgress, this.packageLog ]);
+\t},
+''',
+    '''\tshowPackageJob(status, message) {
+\t\tconst title = this.packageJobKind === 'geodata' ? _('Geo data update') : _('Upgrade');
+\t\tthis.packageLog = E('pre', { 'class': 'du-log', 'aria-live': 'polite' }, status.log || '');
+\t\tthis.packageProgress = E('p', { 'class': 'spinning' }, message ||
+\t\t\t(this.packageJobKind === 'geodata' ? _('Downloading geo data…') : _('Upgrading…')));
+\t\tui.showModal(title, [ this.packageProgress, this.packageLog ]);
+\t},
+''',
+    "showPackageJob"
+)
 
-src = src.replace(anchor, case + anchor, 1)
+js = once(
+    js,
+    '''\tasync handleUpgrade(packages) {
+\t\tthis.checkButton.disabled = true;
+\t\tthis.packageLaunchError = null;
+''',
+    '''\tasync handleUpgrade(packages) {
+\t\tthis.packageJobKind = 'upgrade';
+\t\tthis.checkButton.disabled = true;
+\t\tthis.geodataButton.disabled = true;
+\t\tthis.packageLaunchError = null;
+''',
+    "handleUpgrade 初始化"
+)
 
-with open(path, "w", encoding="utf-8") as f:
-    f.write(src)
-PY
+js = once(
+    js,
+    '''\t\tthis.packagePreviousJob = previous.id;
+\t\ttry {
+\t\t\tconst status = previous.running ? previous :
+''',
+    '''\t\tthis.packagePreviousJob = previous.id;
+\t\tif (previous.running)
+\t\t\tthis.packageJobKind = previous.kind || 'upgrade';
+\t\ttry {
+\t\t\tconst status = previous.running ? previous :
+''',
+    "handleUpgrade 识别已有任务"
+)
 
-# 2. Extend the shared LuCI page
-python3 - "$SERVICE" <<'PY'
-import sys
-
-path = sys.argv[1]
-
-with open(path, encoding="utf-8") as f:
-    src = f.read()
-
-if "handleGeodataUpdate()" in src:
-    raise SystemExit("Geo 更新前端已经存在，请勿重复打补丁")
-
-# Use a generic command error instead of incorrectly referring to apk.
-old = "apk exited with code %s."
-new = "Command exited with code %s."
-
-if src.count(old) != 1:
-    raise SystemExit("错误：无法唯一定位 packageCommand 错误提示")
-
-src = src.replace(old, new, 1)
-
-# Reuse the existing package-job completion mechanism.
-old = """\t\t\telse if (status.code != null && this.packageProgress) {
-\t\t\t\tif (status.code !== 0) {"""
-
-new = """\t\t\telse if (status.code != null && this.packageProgress) {
-				if (this.geodataJob) {
-					this.finishPackageJob([
-						E('pre', { 'class': 'du-log' }, status.log),
-						E('p', {}, status.code === 0
-							? _('Geo data updated.')
-							: _('Geo data update failed (exit code %s).').format(status.code))
-					], false);
-				}
-				else if (status.code !== 0) {"""
-
-if src.count(old) != 1:
-    raise SystemExit("错误：无法唯一定位任务完成处理区域")
-
-src = src.replace(old, new, 1)
-
-# Restore both buttons when a job finishes.
-old = """\t\tthis.packageProgress = null;
-		ui.showModal"""
-
-new = """\t\tthis.packageProgress = null;
-		this.geodataJob = false;
-		if (this.geodataButton)
-			this.geodataButton.disabled = false;
-		ui.showModal"""
-
-if src.count(old) != 1:
-    raise SystemExit("错误：无法定位 finishPackageJob")
-
-src = src.replace(old, new, 1)
-
-# Add the Geo update handler, reusing packageCommand and existing polling.
-anchor = "\t/* Status and log */"
-
-method = r'''
-	/* Geo data */
+geo_handler = r'''
 	async handleGeodataUpdate() {
-		if (this.packagePolling)
-			return;
-
+		this.packageJobKind = 'geodata';
+		this.checkButton.disabled = true;
 		this.geodataButton.disabled = true;
-		this.geodataJob = true;
 		this.packageLaunchError = null;
-		this.showPackageJob({});
-
+		this.showPackageJob({}, _('Downloading geo data…'));
 		let previous;
-
 		try {
 			previous = await this.packageCommand([ 'status' ]);
-			if (previous.running)
-				throw new Error(_('Another background task is running.'));
 		}
 		catch (error) {
 			this.finishPackageJob(this.packageError(error), false);
@@ -263,87 +272,231 @@ method = r'''
 		}
 
 		this.packagePreviousJob = previous.id;
-
+		if (previous.running)
+			this.packageJobKind = previous.kind || 'upgrade';
 		try {
-			const status = await this.packageCommand([ 'geodata', this.app.name ]);
-
-			if (status.already_running) {
-				this.finishPackageJob([
-					E('p', {}, _('Another background task is running.'))
-				], false);
-				return;
-			}
-
-			this.showPackageJob(status);
+			const status = previous.running ? previous :
+				await this.packageCommand([ 'geodata', this.app.name ]);
+			this.showPackageJob(status, previous.running || status.already_running
+				? _('A background task is already running.') : null);
 		}
 		catch (error) {
 			if (error.exitCode != null || error.name === 'PermissionError') {
+				if (error.exitCode != null)
+					error.message = _('Geo data update command exited with code %s.').format(error.exitCode);
 				this.finishPackageJob(this.packageError(error), false);
 				return;
 			}
-
-			// The RPC reply may be lost after the background task starts.
-			// Reuse the existing status polling to determine what happened.
+			// rpcd may restart after the worker has started but before its reply arrives.
 			this.packageLaunchError = error;
 		}
-
 		this.packagePolling = true;
 		this.packagePollFailure = null;
 	},
 
 '''
 
-if src.count(anchor) != 1:
-    raise SystemExit("错误：无法定位 Status and log 区域")
+js = once(
+    js,
+    "\tasync pollPackageJob() {\n",
+    geo_handler + "\tasync pollPackageJob() {\n",
+    "Geo 更新前端处理函数插入位置"
+)
 
-src = src.replace(anchor, method + anchor, 1)
+js = once(
+    js,
+    '''\t\t\tif (status.running) {
+\t\t\t\tthis.checkButton.disabled = true;
+\t\t\t\tif (!this.packageProgress)
+\t\t\t\t\tthis.showPackageJob(status, _('An upgrade is already running.'));
+\t\t\t\telse if (this.packagePollFailure)
+\t\t\t\t\tthis.packageProgress.replaceChildren(_('Upgrading…'));
+''',
+    '''\t\t\tif (status.running) {
+\t\t\t\tthis.packageJobKind = status.kind || this.packageJobKind || 'upgrade';
+\t\t\t\tthis.checkButton.disabled = true;
+\t\t\t\tthis.geodataButton.disabled = true;
+\t\t\t\tconst runningMessage = this.packageJobKind === 'geodata'
+\t\t\t\t\t? _('A geo data update is already running.') : _('An upgrade is already running.');
+\t\t\t\tif (!this.packageProgress)
+\t\t\t\t\tthis.showPackageJob(status, runningMessage);
+\t\t\t\telse if (this.packagePollFailure)
+\t\t\t\t\tthis.packageProgress.replaceChildren(this.packageJobKind === 'geodata'
+\t\t\t\t\t\t? _('Downloading geo data…') : _('Upgrading…'));
+''',
+    "poll running 分支"
+)
 
-# Add the button after the version field, for both applications.
-anchor = """\t\t// Not a UCI option: the rc.d link of the init script, which the switch"""
+js = once(
+    js,
+    '''\t\t\telse if (status.code != null && this.packageProgress) {
+\t\t\t\tif (status.code !== 0) {
+\t\t\t\t\tconst error = new Error(_('apk exited with code %s.').format(status.code));
+\t\t\t\t\terror.output = status.log;
+\t\t\t\t\tthis.finishPackageJob(this.packageError(error), false);
+\t\t\t\t}
+\t\t\t\telse {
+''',
+    '''\t\t\telse if (status.code != null && this.packageProgress) {
+\t\t\t\tthis.packageJobKind = status.kind || this.packageJobKind || 'upgrade';
+\t\t\t\tif (this.packageJobKind === 'geodata') {
+\t\t\t\t\tthis.finishPackageJob([
+\t\t\t\t\t\tE('pre', { 'class': 'du-log' }, status.log),
+\t\t\t\t\t\tE('p', {}, status.code === 0
+\t\t\t\t\t\t\t? _('Geo data updated.')
+\t\t\t\t\t\t\t: _('Geo data update failed (exit code %s).').format(status.code))
+\t\t\t\t\t], false);
+\t\t\t\t}
+\t\t\t\telse if (status.code !== 0) {
+\t\t\t\t\tconst error = new Error(_('apk exited with code %s.').format(status.code));
+\t\t\t\t\terror.output = status.log;
+\t\t\t\t\tthis.finishPackageJob(this.packageError(error), false);
+\t\t\t\t}
+\t\t\t\telse {
+''',
+    "poll 完成分支"
+)
 
-ui = r'''
-		// Shared Geo data update for dae and honk.
-		this.geodataButton = E('button', {
-			'class': 'btn cbi-button',
-			'type': 'button',
-			'click': () => this.handleGeodataUpdate()
-		}, '立即更新');
+js = once(
+    js,
+    '''\t\t\t\tif (this.packageLaunchError)
+\t\t\t\t\tthrow this.packageLaunchError;
+\t\t\t\tthis.packagePolling = false;
+\t\t\t\tthis.checkButton.disabled = false;
+''',
+    '''\t\t\t\tif (this.packageLaunchError)
+\t\t\t\t\tthrow this.packageLaunchError;
+\t\t\t\tthis.packagePolling = false;
+\t\t\t\tthis.checkButton.disabled = false;
+\t\t\t\tthis.geodataButton.disabled = false;
+\t\t\t\tthis.packageJobKind = null;
+''',
+    "poll 无任务复位"
+)
 
-		o = s.option(form.DummyValue, '_geodata', '规则集');
-		o.renderWidget = () => E('div', {}, this.geodataButton);
+js = once(
+    js,
+    '''\t\t\t\tif (this.packageProgress)
+\t\t\t\t\tthis.packageProgress.replaceChildren(_('Waiting for the package manager to reconnect…'));
+''',
+    '''\t\t\t\tif (this.packageProgress)
+\t\t\t\t\tthis.packageProgress.replaceChildren(this.packageJobKind === 'geodata'
+\t\t\t\t\t\t? _('Waiting for the service manager to reconnect…')
+\t\t\t\t\t\t: _('Waiting for the package manager to reconnect…'));
+''',
+    "poll 重连提示"
+)
 
-'''
+js = once(
+    js,
+    '''\t\t\tthis.finishPackageJob([
+\t\t\t\tE('p', {}, _('Unable to read upgrade status. The job may still be running; reload to reconnect.')),
+\t\t\t\t...this.packageError(error)
+\t\t\t], false);
+''',
+    '''\t\t\tthis.finishPackageJob([
+\t\t\t\tE('p', {}, this.packageJobKind === 'geodata'
+\t\t\t\t\t? _('Unable to read geo data update status. The job may still be running; reload to reconnect.')
+\t\t\t\t\t: _('Unable to read upgrade status. The job may still be running; reload to reconnect.')),
+\t\t\t\t...this.packageError(error)
+\t\t\t], false);
+''',
+    "poll 最终错误提示"
+)
 
-if src.count(anchor) != 1:
-    raise SystemExit("错误：无法定位启动开关区域")
+js = once(
+    js,
+    '''\tfinishPackageJob(nodes, reload) {
+\t\tthis.packagePolling = false;
+\t\tthis.checkButton.disabled = false;
+\t\tthis.packageProgress = null;
+\t\tui.showModal(_('Upgrade'), [ ...nodes,
+''',
+    '''\tfinishPackageJob(nodes, reload) {
+\t\tconst title = this.packageJobKind === 'geodata' ? _('Geo data update') : _('Upgrade');
+\t\tthis.packagePolling = false;
+\t\tthis.checkButton.disabled = false;
+\t\tthis.geodataButton.disabled = false;
+\t\tthis.packageProgress = null;
+\t\tthis.packageJobKind = null;
+\t\tui.showModal(title, [ ...nodes,
+''',
+    "finishPackageJob"
+)
 
-src = src.replace(anchor, ui + anchor, 1)
+js = once(
+    js,
+    '''\t\tthis.checkButton = E('button', {
+\t\t\t'class': 'btn cbi-button', 'type': 'button',
+\t\t\t'click': () => this.handleCheckUpdates()
+\t\t}, _('Check for updates'));
+''',
+    '''\t\tthis.checkButton = E('button', {
+\t\t\t'class': 'btn cbi-button', 'type': 'button',
+\t\t\t'click': () => this.handleCheckUpdates()
+\t\t}, _('Check for updates'));
+\t\tthis.geodataButton = E('button', {
+\t\t\t'class': 'btn cbi-button', 'type': 'button',
+\t\t\t'click': () => this.handleGeodataUpdate()
+\t\t}, _('Update geo data'));
+''',
+    "Geo 更新按钮定义"
+)
 
-with open(path, "w", encoding="utf-8") as f:
-    f.write(src)
+js = once(
+    js,
+    '''\t\t\t\t: installed.find(pkg => pkg.name === name)?.version || _('Not installed')),
+\t\t\t' ', this.checkButton, this.packageStatus
+''',
+    '''\t\t\t\t: installed.find(pkg => pkg.name === name)?.version || _('Not installed')),
+\t\t\t' ', this.checkButton, ' ', this.geodataButton, this.packageStatus
+''',
+    "Geo 更新按钮显示"
+)
+
+# 3. 两份 ACL：仅在 write.file 增加 geodata 命令执行权限。
+def patch_acl(text, label):
+    return once(
+        text,
+        '''\t\t\t\t"/usr/libexec/daeuniverse-pkg upgrade *": [ "exec" ]''',
+        '''\t\t\t\t"/usr/libexec/daeuniverse-pkg upgrade *": [ "exec" ],
+\t\t\t\t"/usr/libexec/daeuniverse-pkg geodata *": [ "exec" ]''',
+        label
+    )
+
+acl_dae = patch_acl(src[2], "dae ACL geodata 权限")
+acl_honk = patch_acl(src[3], "honk ACL geodata 权限")
+
+outputs = [pkg, js, acl_dae, acl_honk]
+for i, content in enumerate(outputs):
+    (work / f"new.{i}").write_text(content)
+
+for i, path in enumerate(paths):
+    if path.read_text() == outputs[i]:
+        raise SystemExit(f"错误：文件已经包含本补丁内容或无需修改：{path}")
+
+print("四个文件的变更均已生成，所有锚点匹配唯一。")
 PY
 
-# 3. Grant both applications permission to start Geo updates.
-python3 - "$ROOT" <<'PY'
-import json
-import sys
-from pathlib import Path
+# 保存原文件，随后写回；写回中途失败则由 trap 恢复全部原文件。
+i=0
+for file in "$PKG" "$JS" "$ACL_DAE" "$ACL_HONK"; do
+	cp -p "$file" "$WORK/backup.$i"
+	i=$((i + 1))
+done
 
-root = Path(sys.argv[1])
+rollback=1
+i=0
+for file in "$PKG" "$JS" "$ACL_DAE" "$ACL_HONK"; do
+	cat "$WORK/new.$i" > "$file"
+	i=$((i + 1))
+done
+rollback=0
 
-for app in ("dae", "honk"):
-    path = root / f"luci-app-{app}/root/usr/share/rpcd/acl.d/luci-app-{app}.json"
-
-    with path.open(encoding="utf-8") as f:
-        data = json.load(f)
-
-    acl = data[f"luci-app-{app}"]
-
-    acl["write"]["file"]["/usr/libexec/daeuniverse-pkg geodata *"] = ["exec"]
-
-    with path.open("w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent="\t")
-        f.write("\n")
-PY
-
-echo "dae / honk 共享 Geo 更新功能已添加。"
+printf '%s\n' \
+	"daeuniverse Geo 数据更新功能补丁已应用。" \
+	"修改文件：" \
+	"  luci-lib-daeuniverse/root/usr/libexec/daeuniverse-pkg" \
+	"  luci-lib-daeuniverse/htdocs/luci-static/resources/daeuniverse/service.js" \
+	"  luci-app-dae/root/usr/share/rpcd/acl.d/luci-app-dae.json" \
+	"  luci-app-honk/root/usr/share/rpcd/acl.d/luci-app-honk.json"
