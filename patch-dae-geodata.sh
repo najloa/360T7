@@ -86,34 +86,65 @@ geo_functions = r'''
 # Download and verify both files before replacing either installed data file.
 geodata_update() {
 	app=$1
+
+	case "$app" in
+		dae)
+			data_dir=/usr/share/dae
+			;;
+		honk)
+			data_dir=/etc/honk/data
+			;;
+		*)
+			echo "Unknown application: $app"
+			return 1
+			;;
+	esac
+
+	mkdir -p "$data_dir" || {
+		echo "Unable to create data directory: $data_dir"
+		return 1
+	}
+
 	base='https://gh-proxy.com/https://raw.githubusercontent.com/najloa/rules/release'
 	tmpdir=$(mktemp -d /tmp/daeuniverse-geodata.XXXXXX) || return 1
 
 	(
 		cd "$tmpdir" || exit 1
+
+		# Download and verify both files first.
 		for file in geosite.dat geoip.dat; do
-			wget -q -T 15 -O "$file" "$base/$file" || {
+			wget -q -T 10 -O "$file" "$base/$file" || {
 				echo "Unable to download $file."
 				exit 1
 			}
-			wget -q -T 15 -O "$file.sha256sum" "$base/$file.sha256sum" || {
+
+			wget -q -T 5 -O "$file.sha256sum" "$base/$file.sha256sum" || {
 				echo "Unable to download $file.sha256sum."
 				exit 1
 			}
+
 			sha256sum -c "$file.sha256sum" || exit 1
 		done
 
-		mkdir -p /usr/share/v2ray || exit 1
+		# Stage verified files in the destination filesystem.
+		stage_dir=$(mktemp -d "$data_dir/.daeuniverse-geodata.XXXXXX") || exit 1
+
 		for file in geosite.dat geoip.dat; do
-			cp "$file" "/usr/share/v2ray/.$file.$$" || exit 1
-			chmod 0644 "/usr/share/v2ray/.$file.$$" || exit 1
+			cp "$file" "$stage_dir/$file" || exit 1
+			chmod 0644 "$stage_dir/$file" || exit 1
 		done
+
+		# Replace installed files only after both staged files are ready.
 		for file in geosite.dat geoip.dat; do
-			mv -f "/usr/share/v2ray/.$file.$$" "/usr/share/v2ray/$file" || exit 1
+			mv -f "$stage_dir/$file" "$data_dir/$file" || exit 1
 		done
+
+		rmdir "$stage_dir" || exit 1
 	)
+
 	code=$?
 	rm -rf "$tmpdir"
+
 	[ "$code" -eq 0 ] || return "$code"
 
 	reload_assets "$app" v2ray-geoip v2ray-geosite
@@ -138,6 +169,7 @@ geodata() {
 	json_close_array
 	json_add_array before
 	json_close_array
+
 	state_file=$(mktemp /tmp/daeuniverse-pkg.XXXXXX) || fail 'Unable to create geodata state.'
 	if ! json_dump > "$state_file" || ! mv -f "$state_file" "$STATE"; then
 		rm -f "$state_file"
@@ -149,14 +181,19 @@ geodata() {
 		rm -f "$log_file"
 		fail 'Unable to reset the geodata log.'
 	fi
+
 	rm -f "$RC" || fail 'Unable to reset the geodata result.'
 
 	(
 		trap '' HUP
-		geodata_update "$app"
-		code=$?
+		if geodata_update "$app"; then
+			code=0
+		else
+			code=$?
+		fi
 		write_result "$code"
 	) </dev/null >>"$LOG" 2>&1 &
+
 	exec 9>&-
 	status 0
 }
