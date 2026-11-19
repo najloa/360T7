@@ -213,6 +213,17 @@ if [ "$FIRMWARE_VERSION" = "openwrt-25.12-honk" ]; then
             https://github.com/daeuniverse/honk.git \
             's/^HONK_GIT_TAG:=$(if $(HONK_GIT_TAG),$(HONK_GIT_TAG),\([^)]*\))$/\1/p'
 
+        # 移除
+        # Build honk: stock allocator + native-api
+        sed -i \
+            -e 's/--features ebpf,native-ui/--no-default-features --features ebpf,native-api,rprx/' \
+            "$HONK_DIR/build.sh"
+
+        # Remove embedded UI verification (not built in native-api variant)
+        sed -i '/^# native-ui embeds the asset table/,/^echo "honk: .* contains the embedded doona UI"$/d' \
+            "$HONK_DIR/build.sh"
+        # 移除
+
         HONK_SRC="$HONK_DIR/src"
         CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
         export CARGO_HOME
