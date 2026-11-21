@@ -1,3 +1,4 @@
+
 name: 360T7 Firmware Configuration Publisher
 
 on:
@@ -15,6 +16,14 @@ on:
           - 'openwrt-25.12-ubi'
           - 'immortalwrt-21.02'
           - 'immortalwrt-25.12'
+      openwrt_source:
+        description: 'OpenWrt 源码方案'
+        type: choice
+        required: true
+        default: 'openwrt'
+        options:
+          - 'openwrt'
+          - 'mediatek-sdk'
 
 permissions:
   contents: write
@@ -22,7 +31,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout Repository
@@ -48,7 +57,7 @@ jobs:
               BRANCH="25.12"
               ;;
             *)
-              echo "::error::"
+              echo "::error::Unsupported firmware version: $FIRMWARE_VERSION"
               exit 1
               ;;
           esac
@@ -59,11 +68,19 @@ jobs:
 
           git clone --depth 1 -b "$BRANCH" "$REPO" openwrt
 
+      - name: Clone MediaTek SDK Feeds
+        if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
+        run: |
+          git clone --depth 1 -b main \
+            https://github.com/mediatek/mtk-openwrt-feeds.git \
+            mtk-openwrt-feeds
+
       - name: Configure Feeds and Theme
         env:
           FIRMWARE_VERSION: ${{ inputs.version }}
         run: |
           cd openwrt
+
           # Passwall & honk feeds
           {
             printf '%s\n' \
@@ -72,31 +89,33 @@ jobs:
               'src-git daeuniverse_packages https://github.com/daeuniverse/openwrt-packages.git;main'
             cat feeds.conf.default
           } > feeds.conf.default.tmp && mv feeds.conf.default.tmp feeds.conf.default
-          
+
           # Aurora 主题
           git clone --depth 1 https://github.com/eamonxg/luci-theme-aurora.git package/luci-theme-aurora
           git clone --depth 1 https://github.com/eamonxg/luci-app-aurora-config.git package/luci-app-aurora-config
 
       - name: Update Feeds
+        if: ${{ !startsWith(inputs.version, 'openwrt-') || inputs.openwrt_source == 'openwrt' }}
+        if: ${{ !startsWith(inputs.version, 'openwrt-') || inputs.openwrt_source == 'openwrt' }}
         run: cd openwrt && ./scripts/feeds update -a
 
-      - name: SmartDNS
-        run: |
-          cd openwrt
-          rm -rf feeds/packages/net/smartdns
-          git clone --depth 1 https://github.com/pymumu/openwrt-smartdns.git feeds/packages/net/smartdns
-          rm -rf feeds/luci/applications/luci-app-smartdns
-          git clone --depth 1 https://github.com/pymumu/luci-app-smartdns.git feeds/luci/applications/luci-app-smartdns
-
       - name: Install Feeds
+        if: ${{ !startsWith(inputs.version, 'openwrt-') || inputs.openwrt_source == 'openwrt' }}
         run: cd openwrt && ./scripts/feeds install -a
 
+      - name: Prepare MediaTek SDK
+        if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
+        run: |
+          cd openwrt
+          bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh list
+          bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh filogic-mac80211 prepare
+
       - name: Apply OpenWrt Device Defconfig
+        if: ${{ !startsWith(inputs.version, 'openwrt-') || inputs.openwrt_source == 'openwrt' }}
         env:
           FIRMWARE_VERSION: ${{ inputs.version }}
         run: |
           cd openwrt
-
           case "$FIRMWARE_VERSION" in
             openwrt-25.12|openwrt-25.12-dae|openwrt-25.12-honk|openwrt-25.12-ubi)
               CONFIG_FILE="$GITHUB_WORKSPACE/config/defconfig-openwrt-25.12.config"
@@ -121,15 +140,22 @@ jobs:
           cd openwrt
           cp -f defconfig/mt7981-ax3000.config .config
 
+      - name: SmartDNS
+        run: |
+          cd openwrt
+          rm -rf feeds/packages/net/smartdns
+          git clone --depth 1 https://github.com/pymumu/openwrt-smartdns.git feeds/packages/net/smartdns
+          rm -rf feeds/luci/applications/luci-app-smartdns
+          git clone --depth 1 https://github.com/pymumu/luci-app-smartdns.git feeds/luci/applications/luci-app-smartdns
+
       - name: Replace
         if: ${{ startsWith(inputs.version, 'openwrt-') }}
         run: |
           cd openwrt
-          # 移除 v2ray
           sed -i 's/ +v2ray-geoip +v2ray-geosite//' ./feeds/daeuniverse_packages/dae/Makefile ./feeds/daeuniverse_packages/honk/Makefile
 
       - name: 【先q 后cd openwrt && make menuconfig 完sudo touch /continue】
-        uses: Warpbuilds/action-debugger@v2 #【多配置install -Dp .config ./publish/openwrt-25.12-.config && cp -f defconfig/mt7981-ax3000.config .config】【https://github.com/mxschmitt/action-tmate】
+        uses: Warpbuilds/action-debugger@v2
         timeout-minutes: 50
         with:
           limit-access-to-actor: false
@@ -164,7 +190,7 @@ jobs:
       - name: Delete workflow runs
         uses: Mattraks/delete-workflow-runs@main
         with:
-           token: ${{ github.token }}
-           repository: ${{ github.repository }}
-           retain_days: 0
-           keep_minimum_runs: 0
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 0
+          keep_minimum_runs: 0
