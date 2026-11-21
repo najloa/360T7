@@ -1,4 +1,3 @@
-
 name: 360T7 Firmware Configuration Publisher
 
 on:
@@ -95,7 +94,6 @@ jobs:
           git clone --depth 1 https://github.com/eamonxg/luci-app-aurora-config.git package/luci-app-aurora-config
 
       - name: Update Feeds
-        if: ${{ !startsWith(inputs.version, 'openwrt-') || inputs.openwrt_source == 'openwrt' }}
         if: ${{ !startsWith(inputs.version, 'openwrt-') || inputs.openwrt_source == 'openwrt' }}
         run: cd openwrt && ./scripts/feeds update -a
 
