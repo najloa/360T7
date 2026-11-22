@@ -15,6 +15,14 @@ on:
           - 'openwrt-25.12-ubi'
           - 'immortalwrt-21.02'
           - 'immortalwrt-25.12'
+      openwrt_source:
+        description: 'OpenWrt 源码方案'
+        type: choice
+        required: true
+        default: 'openwrt'
+        options:
+          - 'openwrt'
+          - 'mediatek-sdk'
 
 permissions:
   contents: write
@@ -26,7 +34,7 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-22.04
 
     steps:
     - name: Checkout
@@ -35,7 +43,14 @@ jobs:
         persist-credentials: true
 
     - name: Set build configuration
+      env:
+        FIRMWARE_VERSION: ${{ inputs.version }}
+        OPENWRT_SOURCE: ${{ inputs.openwrt_source }}
       run: |
+        if [[ "$OPENWRT_SOURCE" == "mediatek-sdk" && "$FIRMWARE_VERSION" != openwrt-* ]]; then
+          echo "::error::MediaTek SDK is only supported for OpenWrt versions."
+          exit 1
+        fi
         case "${{ inputs.version }}" in
           openwrt-25.12)
             echo "REPO_URL=https://github.com/openwrt/openwrt" >> $GITHUB_ENV
@@ -91,6 +106,10 @@ jobs:
             ;;
         esac
 
+        if [[ "$OPENWRT_SOURCE" == "mediatek-sdk" && "$FIRMWARE_VERSION" == openwrt-* ]]; then
+          echo "CONFIG_FILE=./config/${FIRMWARE_VERSION}-mtk.config" >> "$GITHUB_ENV"
+        fi
+
     - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
@@ -99,7 +118,10 @@ jobs:
         sudo apt install -y \
           build-essential bzip2 gawk libncurses-dev \
           clang llvm libbpf-dev pkg-config \
-          cmake libclang-dev binutils git curl ca-certificates
+          cmake libclang-dev binutils git curl ca-certificates \
+          flex bison g++ \
+          gcc-multilib g++-multilib gettext libssl-dev \
+          python3-distutils python3-setuptools rsync swig unzip zlib1g-dev file wget
         sudo timedatectl set-timezone "$TZ"
         sudo mkdir -p /workdir
         sudo chown $USER:$GROUPS /workdir
@@ -110,6 +132,13 @@ jobs:
         git clone --depth 1 -b $REPO_BRANCH $REPO_URL openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
+    - name: Clone MediaTek SDK Feeds
+      if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
+      working-directory: /workdir
+      run: |
+        git clone --depth 1 -b main \
+          https://github.com/mediatek/mtk-openwrt-feeds.git
+
     - name: Load custom feeds
       run: |
         chmod +x $DIY_P1_SH
@@ -117,7 +146,19 @@ jobs:
         $GITHUB_WORKSPACE/$DIY_P1_SH
 
     - name: Update feeds
+      if: ${{ !startsWith(inputs.version, 'openwrt-') || inputs.openwrt_source == 'openwrt' }}
       run: cd openwrt && ./scripts/feeds update -a
+
+    - name: Install feeds
+      if: ${{ !startsWith(inputs.version, 'openwrt-') || inputs.openwrt_source == 'openwrt' }}
+      run: cd openwrt && ./scripts/feeds install -a
+
+    - name: Prepare MediaTek SDK
+      if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
+      run: |
+        cd openwrt
+        bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
+          filogic-mac80211 prepare
 
     - name: SmartDNS
       run: |
@@ -126,9 +167,6 @@ jobs:
         git clone --depth 1 https://github.com/pymumu/openwrt-smartdns.git feeds/packages/net/smartdns
         rm -rf feeds/luci/applications/luci-app-smartdns
         git clone --depth 1 https://github.com/pymumu/luci-app-smartdns.git feeds/luci/applications/luci-app-smartdns
-
-    - name: Install feeds
-      run: cd openwrt && ./scripts/feeds install -a
 
     - name: Load custom configuration
       env:
@@ -149,31 +187,24 @@ jobs:
         find dl -size -1024c -exec rm -f {} \;
 
     - name: Install WED and mt76 Patches
+      if: ${{ !startsWith(inputs.version, 'openwrt-') || inputs.openwrt_source == 'openwrt' }}
       run: |
         cd openwrt
-    
         KERNEL_PATCHVER=$(sed -n 's/^KERNEL_PATCHVER:=//p' \
           target/linux/mediatek/Makefile | head -n 1)
-    
         if [ -z "$KERNEL_PATCHVER" ]; then
           echo "::error::Cannot determine KERNEL_PATCHVER"
           exit 1
         fi
-    
         KERNEL_PATCH_DIR="target/linux/mediatek/patches-$KERNEL_PATCHVER"
         MT76_PATCH_DIR="package/kernel/mt76/patches"
-    
         mkdir -p "$KERNEL_PATCH_DIR" "$MT76_PATCH_DIR"
-    
         cp "$GITHUB_WORKSPACE/999-001-mtk-wed-reduce-rx-ring-size.patch" \
           "$KERNEL_PATCH_DIR/"
-    
         cp "$GITHUB_WORKSPACE/999-003-mtk-eth.patch" \
           "$KERNEL_PATCH_DIR/"
-    
         cp "$GITHUB_WORKSPACE/999-002-mt7915-reduce-rx-ring-size.patch" \
           "$MT76_PATCH_DIR/"
-    
         echo "Kernel patch installed: $KERNEL_PATCH_DIR"
         echo "mt76 patch installed: $MT76_PATCH_DIR"
 
