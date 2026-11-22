@@ -108,6 +108,82 @@ jobs:
           bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh list
           bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh filogic-mac80211 prepare
 
+      - name: Configure MediaTek SDK for Qihoo 360T7
+        if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
+        run: |
+          cd openwrt
+
+          # 修改 .config 中的 Kconfig 选项
+          set_config() {
+            local option="$1"
+            local value="$2"
+
+            sed -i -E \
+              "/^# ${option} is not set$/d; /^${option}=/d" \
+              .config
+
+            if [ "$value" = "n" ]; then
+              echo "# ${option} is not set" >> .config
+            else
+              echo "${option}=${value}" >> .config
+            fi
+          }
+
+          # 1. 单设备构建
+          set_config CONFIG_TARGET_MULTI_PROFILE n
+          set_config CONFIG_TARGET_PER_DEVICE_ROOTFS y
+
+          # 清除其他 Filogic 设备选择
+          sed -i -E \
+            '/^(# )?CONFIG_TARGET_(DEVICE_)?mediatek_filogic_DEVICE_.*$/d' \
+            .config
+
+          # 只选择 Qihoo 360T7（普通分区布局）
+          set_config CONFIG_TARGET_mediatek_filogic_DEVICE_qihoo_360t7 y
+
+          # 2. 保留 360T7 所需无线驱动
+          set_config CONFIG_PACKAGE_kmod-mt7915e y
+          set_config CONFIG_PACKAGE_kmod-mt7981-firmware y
+
+          # WO 固件由 360T7 的 DEVICE_PACKAGES 引入
+          set_config CONFIG_PACKAGE_mt7981-wo-firmware n
+
+          # 3. 禁用其他 SoC 的专用固件
+          set_config CONFIG_PACKAGE_mt7988-wo-firmware n
+          set_config CONFIG_PACKAGE_kmod-mt7986-firmware n
+          set_config CONFIG_PACKAGE_kmod-mt7990-firmware n
+          set_config CONFIG_PACKAGE_kmod-mt7992-23-firmware n
+          set_config CONFIG_PACKAGE_kmod-mt7992-firmware n
+          set_config CONFIG_PACKAGE_kmod-mt7996-233-firmware n
+
+          # 4. 重新执行 Kconfig 依赖解析
+          make defconfig
+
+          # 5. 检查最终设备选择
+          echo "========== Target Configuration =========="
+
+          grep -E '^(CONFIG_TARGET_MULTI_PROFILE=|# CONFIG_TARGET_MULTI_PROFILE is not set|CONFIG_TARGET_PER_DEVICE_ROOTFS=|CONFIG_TARGET_mediatek_filogic_DEVICE_.*=y)' .config
+
+          if ! grep -q '^CONFIG_TARGET_mediatek_filogic_DEVICE_qihoo_360t7=y$' .config; then
+            echo "::error::Qihoo 360T7 target configuration is missing!"
+            exit 1
+          fi
+
+          OTHER_DEVICES=$(grep -E '^CONFIG_TARGET_mediatek_filogic_DEVICE_.*=y$' .config \
+            | grep -v 'CONFIG_TARGET_mediatek_filogic_DEVICE_qihoo_360t7=y' || true)
+          
+          if [ -n "$OTHER_DEVICES" ]; then
+            echo "::error::Unexpected device profiles:"
+            echo "$OTHER_DEVICES"
+            exit 1
+          fi
+
+          echo "========== Firmware Configuration =========="
+
+          grep -E '^(CONFIG_PACKAGE_(kmod-mt7915e|kmod-mt7981-firmware|mt7981-wo-firmware|mt7988-wo-firmware|kmod-mt7986-firmware|kmod-mt7990-firmware|kmod-mt7992-23-firmware|kmod-mt7992-firmware|kmod-mt7996-233-firmware)=|# CONFIG_PACKAGE_(mt7981-wo-firmware|mt7988-wo-firmware|kmod-mt7986-firmware|kmod-mt7990-firmware|kmod-mt7992-23-firmware|kmod-mt7992-firmware|kmod-mt7996-233-firmware) is not set)' .config || true
+
+          echo "360T7 single-device configuration completed."
+
       - name: Apply OpenWrt Device Defconfig
         if: ${{ !startsWith(inputs.version, 'openwrt-') || inputs.openwrt_source == 'openwrt' }}
         env:
@@ -123,9 +199,7 @@ jobs:
               exit 0
               ;;
           esac
-
           echo "配置文件路径：$CONFIG_FILE"
-
           if [ -f "$CONFIG_FILE" ]; then
             cp -f "$CONFIG_FILE" .config
           else
@@ -161,9 +235,16 @@ jobs:
       - name: Publish Firmware Configuration
         env:
           FIRMWARE_VERSION: ${{ inputs.version }}
+          OPENWRT_SOURCE: ${{ inputs.openwrt_source }}
         run: |
           cd openwrt
-          install -Dp .config "./publish/${FIRMWARE_VERSION}.config"
+          CONFIG_SUFFIX=""
+          if [ "$OPENWRT_SOURCE" = "mediatek-sdk" ]; then
+            CONFIG_SUFFIX="-mtk"
+          fi
+          CONFIG_NAME="${FIRMWARE_VERSION}${CONFIG_SUFFIX}.config"
+          echo "发布配置：./publish/${CONFIG_NAME}"
+          install -Dp .config "./publish/${CONFIG_NAME}"
 
       - name: Sync Configurations to Repository
         run: |
@@ -176,7 +257,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
           git add config/
           if git diff --cached --quiet; then
             echo "配置文件没有变化，无需提交。"
