@@ -1,4 +1,4 @@
-name: 固件构建测试
+name: 360T7 MediaTek SDK Build
 
 on:
   workflow_dispatch:
@@ -11,59 +11,174 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+      # --------------------------------------------------
+      # Checkout workflow repository
+      # --------------------------------------------------
+
       - name: Checkout
         uses: actions/checkout@v4
+
+      # --------------------------------------------------
+      # Build dependencies
+      # --------------------------------------------------
 
       - name: Initialization environment
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
           sudo apt update
-          sudo apt install build-essential clang flex bison g++ gawk \
-          gcc-multilib g++-multilib gettext git libncurses-dev libssl-dev \
-          python3-distutils python3-setuptools rsync swig unzip zlib1g-dev file wget
+          sudo apt install -y \
+            build-essential clang flex bison g++ gawk \
+            gcc-multilib g++-multilib gettext git \
+            libncurses-dev libssl-dev \
+            python3-distutils python3-setuptools \
+            rsync swig unzip zlib1g-dev file wget
+
+      # --------------------------------------------------
+      # Clone OpenWrt 25.12
+      # --------------------------------------------------
 
       - name: Clone OpenWrt
         run: |
-          git clone --branch openwrt-25.12 https://github.com/openwrt/openwrt.git openwrt
+          git clone --branch openwrt-25.12 \
+            https://git.openwrt.org/openwrt/openwrt.git openwrt
+
           cd openwrt
-          git checkout 8d054d984a54c9ff4a733b14cd7400742e844b46
+          git checkout 8a18e84a887379db8954449a9fabe6df54084dea
+
+          echo "========== OpenWrt commit =========="
+          git log -1 --oneline
+
+      # --------------------------------------------------
+      # Clone MediaTek feeds
+      # --------------------------------------------------
 
       - name: Clone MediaTek feeds
-        run: git clone --branch main https://github.com/mediatek/mtk-openwrt-feeds.git
+        run: |
+          git clone \
+            https://github.com/mediatek/mtk-openwrt-feeds.git
 
-      - name: Build
+          cd mtk-openwrt-feeds
+          git checkout 5ee86b89bc62dee10d8db1e0a48fdd140dd2ec3e
+
+          echo "========== MediaTek feeds commit =========="
+          git log -1 --oneline
+
+      # --------------------------------------------------
+      # Prepare MediaTek SDK
+      # --------------------------------------------------
+
+      - name: Prepare MediaTek SDK
         run: |
           cd openwrt
-          bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh filogic-mac80211 log_file=make
 
-      - name: Prepare firmware path
+          bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
+            filogic-mac80211 prepare log_file=prepare
+
+      # --------------------------------------------------
+      # Verify Wi-Fi integration
+      # --------------------------------------------------
+
+      - name: Verify Wi-Fi integration
         run: |
-          echo "FIRMWARE=$GITHUB_WORKSPACE/openwrt/autobuild_release/filogic-mac80211" >> "$GITHUB_ENV"
+          cd openwrt
+
+          echo "========== Source commits =========="
+          git rev-parse HEAD
+          git -C ../mtk-openwrt-feeds rev-parse HEAD
+
+          echo "========== MediaTek wifi-scripts source =========="
+          MTK_WIFI_DIR="../mtk-openwrt-feeds/autobuild/unified/filogic/mac80211/25.12/files/package/network/config/wifi-scripts"
+
+          if [ ! -d "$MTK_WIFI_DIR" ]; then
+            echo "::error::MediaTek wifi-scripts source directory is missing"
+            exit 1
+          fi
+
+          find "$MTK_WIFI_DIR" -maxdepth 3 -print
+
+          echo "========== Integrated wifi-scripts =========="
+          WIFI_DIR="package/network/config/wifi-scripts"
+
+          for dir in files files-ucodes; do
+            if [ ! -d "$WIFI_DIR/$dir" ]; then
+              echo "::error::Missing integrated directory: $WIFI_DIR/$dir"
+              exit 1
+            fi
+
+            echo "Found: $WIFI_DIR/$dir"
+            find "$WIFI_DIR/$dir" -maxdepth 3 -type f -print
+          done
+
+          echo "========== wifi-scripts Makefile =========="
+          sed -n '1,140p' "$WIFI_DIR/Makefile"
+
+      # --------------------------------------------------
+      # Build
+      # --------------------------------------------------
+
+      - name: Build MediaTek SDK
+        run: |
+          cd openwrt
+
+          bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
+            build log_file=build
+
+      # --------------------------------------------------
+      # Collect firmware
+      # --------------------------------------------------
+
+      - name: Release MediaTek firmware
+        run: |
+          cd openwrt
+
+          bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
+            release log_file=release
+
+      # --------------------------------------------------
+      # Inspect firmware
+      # --------------------------------------------------
 
       - name: Inspect firmware
         run: |
           echo "========== autobuild_release =========="
-          find openwrt/autobuild_release -type f -printf '%p %s bytes\n' | sort
+
+          if [ ! -d openwrt/autobuild_release/filogic-mac80211 ]; then
+            echo "::error::MediaTek release directory not found"
+            exit 1
+          fi
+
+          find openwrt/autobuild_release/filogic-mac80211 \
+            -type f -printf '%p %s bytes\n' | sort
 
           echo "========== bin/targets =========="
-          find openwrt/bin/targets/mediatek/filogic -maxdepth 1 \
-            -type f -printf '%p %s bytes\n' 2>/dev/null | sort
+
+          find openwrt/bin/targets/mediatek/filogic \
+            -maxdepth 1 -type f \
+            -printf '%p %s bytes\n' 2>/dev/null | sort
+
+      # --------------------------------------------------
+      # Generate release information
+      # --------------------------------------------------
 
       - name: Generate release information
         id: release
         run: |
           echo "date=$(date +'%Y%m%d')" >> "$GITHUB_OUTPUT"
-          echo "tag=360t7-test-$(date +'%Y%m%d')-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "tag=360t7-mtk-test-$(date +'%Y%m%d')-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
 
-      - name: Upload firmware to release
+      # --------------------------------------------------
+      # Upload firmware
+      # --------------------------------------------------
+
+      - name: Upload firmware to GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.release.outputs.tag }}
-          name: 360T7 OpenWrt 25.12 Test ${{ steps.release.outputs.date }}
+          name: 360T7 MediaTek SDK Test ${{ steps.release.outputs.date }}
           files: |
-            ${{ env.FIRMWARE }}/*.itb
-            ${{ env.FIRMWARE }}/*.fip
-            ${{ env.FIRMWARE }}/*.bin
+            openwrt/autobuild_release/filogic-mac80211/*.itb
+            openwrt/autobuild_release/filogic-mac80211/*.fip
+            openwrt/autobuild_release/filogic-mac80211/*.bin
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
