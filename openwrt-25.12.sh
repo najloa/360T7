@@ -9,7 +9,9 @@ sed -i \
     ./package/base-files/files/bin/config_generate
 
 # WED
+if [ "${OPENWRT_SOURCE:-openwrt}" != "mediatek-sdk" ]; then
 echo 'options mt7915e wed_enable=Y' >> package/system/ubox/files/modules.conf
+fi
 
 # 修改 Passwall
 if [ "$FIRMWARE_VERSION" = "openwrt-25.12" ]; then
@@ -195,7 +197,8 @@ if [ "$FIRMWARE_VERSION" = "openwrt-25.12-honk" ]; then
     set_kernel_config CONFIG_NETFILTER y
 
     # Connection tracking
-    set_kernel_config CONFIG_NF_CONNTRACK m
+    # m
+    set_kernel_config CONFIG_NF_CONNTRACK y
 
     # nftables / NFQUEUE
     set_kernel_config CONFIG_NF_TABLES m
