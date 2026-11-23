@@ -171,6 +171,7 @@ jobs:
     - name: Load custom configuration
       env:
         FIRMWARE_VERSION: ${{ inputs.version }}
+        OPENWRT_SOURCE: ${{ inputs.openwrt_source }}
       run: |
         [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
         chmod +x $DIY_P2_SH
