@@ -1,4 +1,4 @@
-name: 360T7
+name: 360T7 固件构建发布
 
 on:
   workflow_dispatch:
