@@ -192,6 +192,21 @@ jobs:
 
           echo "========== Configuration Complete =========="
 
+      - name: Save final config
+        working-directory: openwrt
+        run: |
+          ./scripts/diffconfig.sh > diffconfig
+
+      - name: Upload final config
+        uses: actions/upload-artifact@v4
+        with:
+          name: openwrt-360t7-config
+          path: |
+            openwrt/.config
+            openwrt/diffconfig
+          if-no-files-found: error
+          retention-days: 3
+
       - name: Build OpenWrt
         working-directory: openwrt
         run: |
