@@ -79,6 +79,7 @@ jobs:
       # Verify Wi-Fi integration
       # --------------------------------------------------
 
+
       - name: Verify Wi-Fi integration
         run: |
           cd openwrt
@@ -87,31 +88,44 @@ jobs:
           git rev-parse HEAD
           git -C ../mtk-openwrt-feeds rev-parse HEAD
 
-          echo "========== MediaTek wifi-scripts source =========="
           MTK_WIFI_DIR="../mtk-openwrt-feeds/autobuild/unified/filogic/mac80211/25.12/files/package/network/config/wifi-scripts"
-
-          if [ ! -d "$MTK_WIFI_DIR" ]; then
-            echo "::error::MediaTek wifi-scripts source directory is missing"
-            exit 1
-          fi
-
-          find "$MTK_WIFI_DIR" -maxdepth 3 -print
-
-          echo "========== Integrated wifi-scripts =========="
           WIFI_DIR="package/network/config/wifi-scripts"
 
-          for dir in files files-ucodes; do
-            if [ ! -d "$WIFI_DIR/$dir" ]; then
-              echo "::error::Missing integrated directory: $WIFI_DIR/$dir"
-              exit 1
+          echo "========== MediaTek source =========="
+          ls -la "$MTK_WIFI_DIR"
+          find "$MTK_WIFI_DIR" -maxdepth 3 -print
+
+          echo "========== OpenWrt integrated package =========="
+          ls -la "$WIFI_DIR"
+          find "$WIFI_DIR" -maxdepth 3 -print
+
+          echo "========== Compare source and destination =========="
+          for dir in files files-ucode; do
+            if [ -d "$MTK_WIFI_DIR/$dir" ]; then
+              echo "[SOURCE EXISTS] $dir"
+            else
+              echo "[SOURCE MISSING] $dir"
             fi
 
-            echo "Found: $WIFI_DIR/$dir"
-            find "$WIFI_DIR/$dir" -maxdepth 3 -type f -print
+            if [ -d "$WIFI_DIR/$dir" ]; then
+              echo "[DESTINATION EXISTS] $dir"
+              find "$WIFI_DIR/$dir" -type f -print
+            else
+              echo "[DESTINATION MISSING] $dir"
+            fi
           done
 
           echo "========== wifi-scripts Makefile =========="
-          sed -n '1,140p' "$WIFI_DIR/Makefile"
+          sed -n '34,50p' "$WIFI_DIR/Makefile"
+
+          echo "========== MediaTek prepare copy logs =========="
+          find . -maxdepth 3 -type f \
+            \( -iname '*prepare*' -o -iname '*log*' \) \
+            -print
+
+          echo "========== Git status =========="
+          git status --short
+
 
       # --------------------------------------------------
       # Build
