@@ -1,0 +1,161 @@
+name: mtk
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: OpenWrt source branch
+        required: true
+        type: string
+        default: openwrt-25.12
+      openwrt_source:
+        description: Source integration method
+        required: true
+        type: choice
+        options:
+          - openwrt
+          - mediatek-sdk
+        default: openwrt
+      tag_name:
+        description: Release tag
+        required: true
+        type: string
+        default: mtk
+      release_name:
+        description: Release name
+        required: true
+        type: string
+        default: mtk
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Initialization environment
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            build-essential bzip2 gawk libncurses-dev \
+            clang llvm libbpf-dev pkg-config \
+            cmake libclang-dev binutils git curl ca-certificates \
+            flex bison g++ \
+            gcc-multilib g++-multilib gettext libssl-dev \
+            python3-distutils python3-setuptools rsync swig unzip zlib1g-dev file wget
+
+      - name: Clone Firmware Source
+        env:
+          OPENWRT_BRANCH: ${{ inputs.version }}
+        run: |
+          git clone --depth 1 -b "$OPENWRT_BRANCH" \
+            https://github.com/openwrt/openwrt.git openwrt
+
+      - name: Configure Feeds and Theme
+        run: |
+          cd openwrt
+
+          # Passwall & honk feeds
+          {
+            printf '%s\n' \
+              'src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main' \
+              'src-git passwall_luci https://github.com/Openwrt-Passwall/openwrt-passwall.git;main' \
+              'src-git daeuniverse_packages https://github.com/daeuniverse/openwrt-packages.git;main' \
+              'src-git mtk_openwrt_feed https://github.com/mediatek/mtk-openwrt-feeds.git;main'
+            cat feeds.conf.default
+          } > feeds.conf.default.tmp && mv feeds.conf.default.tmp feeds.conf.default
+
+          # Aurora 主题
+          git clone --depth 1 https://github.com/eamonxg/luci-theme-aurora.git package/luci-theme-aurora
+          git clone --depth 1 https://github.com/eamonxg/luci-app-aurora-config.git package/luci-app-aurora-config
+
+      - name: Update Feeds
+        run: cd openwrt && ./scripts/feeds update -a
+
+      - name: Install Feeds
+        run: cd openwrt && ./scripts/feeds install -a
+
+      - name: Prepare MediaTek SDK
+        run: |
+          cd openwrt
+          cp -af ./feeds/mtk_openwrt_feed/25.12/files/* .
+          for file in $(find ./feeds/mtk_openwrt_feed/25.12/patches-base -name "*.patch" | sort); do patch -f -p1 -i ${file}; done
+
+      - name: SmartDNS
+        run: |
+          cd openwrt
+          rm -rf feeds/packages/net/smartdns
+          git clone --depth 1 \
+            https://github.com/pymumu/openwrt-smartdns.git \
+            feeds/packages/net/smartdns
+
+          rm -rf feeds/luci/applications/luci-app-smartdns
+          git clone --depth 1 \
+            https://github.com/pymumu/luci-app-smartdns.git \
+            feeds/luci/applications/luci-app-smartdns
+
+      - name: Replace
+        run: |
+          cd openwrt
+          sed -i 's/ +v2ray-geoip +v2ray-geosite//' \
+            ./feeds/daeuniverse_packages/dae/Makefile \
+            ./feeds/daeuniverse_packages/honk/Makefile
+
+      - name: 【先q 后cd openwrt && make menuconfig 完sudo touch /continue】
+        uses: Warpbuilds/action-debugger@v2
+        timeout-minutes: 50
+        with:
+          limit-access-to-actor: false
+
+      - name: Compile the firmware
+        id: compile
+        run: |
+          cd openwrt
+          make V=s -j$(nproc)
+
+      - name: Prepare firmware path
+        run: |
+          TARGET_DIR="$(find openwrt/bin/targets \
+            -mindepth 2 -maxdepth 2 -type d | head -n 1)"
+
+          if [ -z "$TARGET_DIR" ]; then
+            echo "Firmware directory not found!"
+            exit 1
+          fi
+
+          echo "FIRMWARE=$GITHUB_WORKSPACE/$TARGET_DIR" >> "$GITHUB_ENV"
+
+      - name: Generate build date
+        id: date
+        run: |
+          echo "date=$(date +'%Y%m%d')" >> "$GITHUB_OUTPUT"
+
+      - name: Upload firmware to release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ inputs.tag_name }}
+          name: ${{ inputs.release_name }}-${{ steps.date.outputs.date }}
+          files: |
+            ${{ env.FIRMWARE }}/*.itb
+            ${{ env.FIRMWARE }}/*.fip
+            ${{ env.FIRMWARE }}/*.bin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete workflow runs
+        uses: Mattraks/delete-workflow-runs@main
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 0
+          keep_minimum_runs: 1
