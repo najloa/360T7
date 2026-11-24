@@ -1,198 +1,159 @@
-name: 360T7 MediaTek SDK Build
+
+name: Test MediaTek SDK Integration - 360T7
 
 on:
   workflow_dispatch:
+    inputs:
+      build_firmware:
+        description: "Run a full firmware build after preparation"
+        required: true
+        type: boolean
+        default: false
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: test-mtk-360t7
+  cancel-in-progress: true
 
 jobs:
-  build:
-    runs-on: ubuntu-22.04
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
 
     steps:
-      # --------------------------------------------------
-      # Checkout workflow repository
-      # --------------------------------------------------
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      # --------------------------------------------------
-      # Build dependencies
-      # --------------------------------------------------
-
-      - name: Initialization environment
-        env:
-          DEBIAN_FRONTEND: noninteractive
+      - name: Install build dependencies
         run: |
-          sudo apt update
-          sudo apt install -y \
+          sudo apt-get update
+          sudo apt-get install -y \
             build-essential clang flex bison g++ gawk \
-            gcc-multilib g++-multilib gettext git \
-            libncurses-dev libssl-dev \
-            python3-distutils python3-setuptools \
-            rsync swig unzip zlib1g-dev file wget
+            gcc-multilib gettext git libncurses-dev \
+            libssl-dev python3-setuptools rsync swig \
+            unzip zlib1g-dev file wget curl \
+            device-tree-compiler libelf-dev
 
-      # --------------------------------------------------
-      # Clone OpenWrt 25.12
-      # --------------------------------------------------
-
-      - name: Clone OpenWrt
+      - name: Checkout OpenWrt 25.12
         run: |
-          git clone --branch openwrt-25.12 \
-            https://git.openwrt.org/openwrt/openwrt.git openwrt
+          git clone --depth 1 \
+            --branch openwrt-25.12 \
+            https://github.com/openwrt/openwrt.git \
+            "$GITHUB_WORKSPACE/openwrt"
 
-          cd openwrt
-          git checkout 8a18e84a887379db8954449a9fabe6df54084dea
-
-          echo "========== OpenWrt commit =========="
-          git log -1 --oneline
-
-      # --------------------------------------------------
-      # Clone MediaTek feeds
-      # --------------------------------------------------
-
-      - name: Clone MediaTek feeds
+      - name: Checkout MediaTek feeds
         run: |
-          git clone \
-            https://github.com/mediatek/mtk-openwrt-feeds.git
+          git clone --depth 1 \
+            --branch main \
+            https://github.com/mediatek/mtk-openwrt-feeds.git \
+            "$GITHUB_WORKSPACE/mtk-openwrt-feeds"
 
-          cd mtk-openwrt-feeds
-          git checkout 5ee86b89bc62dee10d8db1e0a48fdd140dd2ec3e
-
-          echo "========== MediaTek feeds commit =========="
-          git log -1 --oneline
-
-      # --------------------------------------------------
-      # Prepare MediaTek SDK
-      # --------------------------------------------------
-
-      - name: Prepare MediaTek SDK
+      - name: Record source revisions
         run: |
-          cd openwrt
+          {
+            echo "OpenWrt:"
+            git -C openwrt rev-parse HEAD
+            echo
+            echo "MediaTek feeds:"
+            git -C mtk-openwrt-feeds rev-parse HEAD
+          } | tee source-revisions.txt
+
+      - name: Seed 360T7 device configuration
+        working-directory: openwrt
+        run: |
+          cat > .config <<'EOF'
+          CONFIG_TARGET_mediatek=y
+          CONFIG_TARGET_mediatek_filogic=y
+          CONFIG_TARGET_mediatek_filogic_DEVICE_qihoo_360t7=y
+          EOF
+
+          echo "Initial device configuration:"
+          cat .config
+
+      - name: Run MediaTek SDK prepare
+        working-directory: openwrt
+        shell: bash
+        run: |
+          set -o pipefail
 
           bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
-            filogic-mac80211 prepare log_file=prepare
+            filogic prepare 2>&1 | tee ../prepare.log
 
-      # --------------------------------------------------
-      # Verify Wi-Fi integration
-      # --------------------------------------------------
-
-
-      - name: Verify Wi-Fi integration
+      - name: Validate 360T7 configuration
+        working-directory: openwrt
         run: |
-          cd openwrt
+          set -euo pipefail
 
-          echo "========== Source commits =========="
-          git rev-parse HEAD
-          git -C ../mtk-openwrt-feeds rev-parse HEAD
+          echo "Running make defconfig again to verify final Kconfig resolution..."
+          make defconfig
 
-          MTK_WIFI_DIR="../mtk-openwrt-feeds/autobuild/unified/filogic/mac80211/25.12/files/package/network/config/wifi-scripts"
-          WIFI_DIR="package/network/config/wifi-scripts"
-
-          echo "========== MediaTek source =========="
-          ls -la "$MTK_WIFI_DIR"
-          find "$MTK_WIFI_DIR" -maxdepth 3 -print
-
-          echo "========== OpenWrt integrated package =========="
-          ls -la "$WIFI_DIR"
-          find "$WIFI_DIR" -maxdepth 3 -print
-
-          echo "========== Compare source and destination =========="
-          for dir in files files-ucode; do
-            if [ -d "$MTK_WIFI_DIR/$dir" ]; then
-              echo "[SOURCE EXISTS] $dir"
-            else
-              echo "[SOURCE MISSING] $dir"
+          check_config() {
+            if ! grep -qx "$1" .config; then
+              echo "::error::Missing configuration: $1"
+              return 1
             fi
+            echo "[OK] $1"
+          }
 
-            if [ -d "$WIFI_DIR/$dir" ]; then
-              echo "[DESTINATION EXISTS] $dir"
-              find "$WIFI_DIR/$dir" -type f -print
-            else
-              echo "[DESTINATION MISSING] $dir"
-            fi
-          done
+          check_config "CONFIG_TARGET_mediatek=y"
+          check_config "CONFIG_TARGET_mediatek_filogic=y"
+          check_config "CONFIG_TARGET_mediatek_filogic_DEVICE_qihoo_360t7=y"
 
-          echo "========== wifi-scripts Makefile =========="
-          sed -n '34,50p' "$WIFI_DIR/Makefile"
+          echo
+          echo "Final target configuration:"
+          grep -E '^CONFIG_TARGET_(mediatek|mediatek_filogic)' .config
 
-          echo "========== MediaTek prepare copy logs =========="
-          find . -maxdepth 3 -type f \
-            \( -iname '*prepare*' -o -iname '*log*' \) \
-            -print
+          ./scripts/diffconfig.sh > ../final-diffconfig
+          echo
+          echo "Final diffconfig:"
+          cat ../final-diffconfig
 
-          echo "========== Git status =========="
-          git status --short
-
-
-      # --------------------------------------------------
-      # Build
-      # --------------------------------------------------
-
-      - name: Build MediaTek SDK
+      - name: Validate 360T7 source files
+        working-directory: openwrt
         run: |
-          cd openwrt
+          set -euo pipefail
 
-          bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
-            build log_file=build
+          echo "Searching for 360T7 device files..."
+          find target/linux/mediatek -iname '*360t7*' -print
 
-      # --------------------------------------------------
-      # Collect firmware
-      # --------------------------------------------------
-
-      - name: Release MediaTek firmware
-        run: |
-          cd openwrt
-
-          bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
-            release log_file=release
-
-      # --------------------------------------------------
-      # Inspect firmware
-      # --------------------------------------------------
-
-      - name: Inspect firmware
-        run: |
-          echo "========== autobuild_release =========="
-
-          if [ ! -d openwrt/autobuild_release/filogic-mac80211 ]; then
-            echo "::error::MediaTek release directory not found"
+          if ! find target/linux/mediatek -iname '*360t7*' \
+              -print -quit | grep -q .; then
+            echo "::error::No 360T7 device file found in target/linux/mediatek"
             exit 1
           fi
 
-          find openwrt/autobuild_release/filogic-mac80211 \
-            -type f -printf '%p %s bytes\n' | sort
+          echo
+          echo "Checking device references:"
+          grep -R -n -i 'qihoo_360t7\|qihoo,360t7' \
+            target/linux/mediatek || true
 
-          echo "========== bin/targets =========="
-
-          find openwrt/bin/targets/mediatek/filogic \
-            -maxdepth 1 -type f \
-            -printf '%p %s bytes\n' 2>/dev/null | sort
-
-      # --------------------------------------------------
-      # Generate release information
-      # --------------------------------------------------
-
-      - name: Generate release information
-        id: release
+      - name: Optional firmware build
+        if: ${{ inputs.build_firmware }}
+        working-directory: openwrt
+        shell: bash
         run: |
-          echo "date=$(date +'%Y%m%d')" >> "$GITHUB_OUTPUT"
-          echo "tag=360t7-mtk-test-$(date +'%Y%m%d')-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          set -o pipefail
+          make -j"$(nproc)" V=s 2>&1 | tee ../build.log
 
-      # --------------------------------------------------
-      # Upload firmware
-      # --------------------------------------------------
+      - name: Collect diagnostics
+        if: always()
+        run: |
+          mkdir -p diagnostics
 
-      - name: Upload firmware to GitHub Release
-        uses: softprops/action-gh-release@v3
+          cp source-revisions.txt diagnostics/ 2>/dev/null || true
+          cp prepare.log diagnostics/ 2>/dev/null || true
+          cp final-diffconfig diagnostics/ 2>/dev/null || true
+          cp build.log diagnostics/ 2>/dev/null || true
+          cp openwrt/.config diagnostics/ 2>/dev/null || true
+
+          if [ -d openwrt/bin/targets ]; then
+            cp -a openwrt/bin/targets diagnostics/targets
+          fi
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: ${{ steps.release.outputs.tag }}
-          name: 360T7 MediaTek SDK Test ${{ steps.release.outputs.date }}
-          files: |
-            openwrt/autobuild_release/filogic-mac80211/*.itb
-            openwrt/autobuild_release/filogic-mac80211/*.fip
-            openwrt/autobuild_release/filogic-mac80211/*.bin
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: mtk-360t7-diagnostics
+          path: diagnostics/
+          retention-days: 14
+          if-no-files-found: warn
