@@ -77,6 +77,24 @@ jobs:
           bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
             filogic prepare 2>&1 | tee ../prepare.log
 
+      - name: Select 360T7 device
+        working-directory: openwrt
+        run: |
+          set -euo pipefail
+
+          # SDK uses multi-profile mode.
+          grep -qx 'CONFIG_TARGET_MULTI_PROFILE=y' .config
+
+          # Remove the previous disabled entry, then select 360T7.
+          sed -i '/^# CONFIG_TARGET_DEVICE_mediatek_filogic_DEVICE_qihoo_360t7 is not set$/d' .config
+
+          echo 'CONFIG_TARGET_DEVICE_mediatek_filogic_DEVICE_qihoo_360t7=y' >> .config
+
+          make defconfig
+
+          grep -qx 'CONFIG_TARGET_DEVICE_mediatek_filogic_DEVICE_qihoo_360t7=y' .config
+          echo "[OK] 360T7 device selected"
+
       - name: Validate 360T7 configuration
         working-directory: openwrt
         run: |
@@ -95,17 +113,12 @@ jobs:
 
           check_config "CONFIG_TARGET_mediatek=y"
           check_config "CONFIG_TARGET_mediatek_filogic=y"
-          if grep -qxE 'CONFIG_TARGET_(DEVICE_)?mediatek_filogic_DEVICE_qihoo_360t7=y' .config; then
-            echo "[OK] 360T7 device selected"
-          else
-            echo "::error::360T7 device is not selected"
-            grep -E '360t7|TARGET_MULTI_PROFILE' .config || true
-            exit 1
-          fi
+          check_config "CONFIG_TARGET_MULTI_PROFILE=y"
+          check_config "CONFIG_TARGET_DEVICE_mediatek_filogic_DEVICE_qihoo_360t7=y"
 
           echo
           echo "Final target configuration:"
-          grep -E '^CONFIG_TARGET_(mediatek|mediatek_filogic|DEVICE_mediatek)' .config || true
+          grep -E '^CONFIG_TARGET_(mediatek|mediatek_filogic|MULTI_PROFILE|DEVICE_mediatek)' .config
 
           ./scripts/diffconfig.sh > ../final-diffconfig
           echo
