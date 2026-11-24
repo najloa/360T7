@@ -1,161 +1,211 @@
-name: mtk
+
+name: Build OpenWrt 25.12 - Qihoo 360T7
 
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: OpenWrt source branch
-        required: true
-        type: string
-        default: openwrt-25.12
-      openwrt_source:
-        description: Source integration method
-        required: true
-        type: choice
-        options:
-          - openwrt
-          - mediatek-sdk
-        default: openwrt
-      tag_name:
-        description: Release tag
-        required: true
-        type: string
-        default: mtk
-      release_name:
-        description: Release name
-        required: true
-        type: string
-        default: mtk
 
 permissions:
-  contents: write
-  actions: write
+  contents: read
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout build configuration
         uses: actions/checkout@v4
-        with:
-          persist-credentials: true
 
-      - name: Initialization environment
-        env:
-          DEBIAN_FRONTEND: noninteractive
+      - name: Install build dependencies
         run: |
-          sudo apt update
-          sudo apt install -y \
-            build-essential bzip2 gawk libncurses-dev \
-            clang llvm libbpf-dev pkg-config \
-            cmake libclang-dev binutils git curl ca-certificates \
-            flex bison g++ \
-            gcc-multilib g++-multilib gettext libssl-dev \
-            python3-distutils python3-setuptools rsync swig unzip zlib1g-dev file wget
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            clang \
+            flex \
+            bison \
+            g++ \
+            gawk \
+            gcc-multilib \
+            gettext \
+            git \
+            libelf-dev \
+            libncurses-dev \
+            libssl-dev \
+            libxml-parser-perl \
+            python3 \
+            python3-dev \
+            python3-setuptools \
+            python3-yaml \
+            rsync \
+            swig \
+            time \
+            unzip \
+            wget \
+            xsltproc \
+            zlib1g-dev \
+            file \
+            zstd
 
-      - name: Clone Firmware Source
-        env:
-          OPENWRT_BRANCH: ${{ inputs.version }}
+      - name: Checkout OpenWrt 25.12
         run: |
-          git clone --depth 1 -b "$OPENWRT_BRANCH" \
-            https://github.com/openwrt/openwrt.git openwrt
+          git clone \
+            --depth 1 \
+            --branch openwrt-25.12 \
+            https://github.com/openwrt/openwrt.git \
+            openwrt
 
-      - name: Configure Feeds and Theme
+      - name: Checkout MediaTek OpenWrt feeds
         run: |
-          cd openwrt
+          git clone \
+            --depth 1 \
+            https://github.com/mediatek/mtk-openwrt-feeds.git \
+            mtk-openwrt-feeds
 
-          # Passwall & honk feeds
-          {
-            printf '%s\n' \
-              'src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main' \
-              'src-git passwall_luci https://github.com/Openwrt-Passwall/openwrt-passwall.git;main' \
-              'src-git daeuniverse_packages https://github.com/daeuniverse/openwrt-packages.git;main' \
-              'src-git mtk_openwrt_feed https://github.com/mediatek/mtk-openwrt-feeds.git;main'
-            cat feeds.conf.default
-          } > feeds.conf.default.tmp && mv feeds.conf.default.tmp feeds.conf.default
+      - name: MediaTek
+        working-directory: openwrt
+        run: bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh list
 
-          # Aurora 主题
-          git clone --depth 1 https://github.com/eamonxg/luci-theme-aurora.git package/luci-theme-aurora
-          git clone --depth 1 https://github.com/eamonxg/luci-app-aurora-config.git package/luci-app-aurora-config
-
-      - name: Update Feeds
-        run: cd openwrt && ./scripts/feeds update -a
-
-      - name: Install Feeds
-        run: cd openwrt && ./scripts/feeds install -a
-
-      - name: Prepare MediaTek SDK
+      - name: Apply MediaTek OpenWrt files and patches
+        working-directory: openwrt
         run: |
-          cd openwrt
-          cp -af ./feeds/mtk_openwrt_feed/25.12/files/* .
-          for file in $(find ./feeds/mtk_openwrt_feed/25.12/patches-base -name "*.patch" | sort); do patch -f -p1 -i ${file}; done
+          set -e
 
-      - name: SmartDNS
+          bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
+            filogic-mac80211-mt798x_rfb-wifi6_nic \
+            prepare log_file=prepare
+
+      - name: Configure Qihoo 360T7
+        working-directory: openwrt
         run: |
-          cd openwrt
-          rm -rf feeds/packages/net/smartdns
-          git clone --depth 1 \
-            https://github.com/pymumu/openwrt-smartdns.git \
-            feeds/packages/net/smartdns
+          set -e
 
-          rm -rf feeds/luci/applications/luci-app-smartdns
-          git clone --depth 1 \
-            https://github.com/pymumu/luci-app-smartdns.git \
-            feeds/luci/applications/luci-app-smartdns
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
 
-      - name: Replace
-        run: |
-          cd openwrt
-          sed -i 's/ +v2ray-geoip +v2ray-geosite//' \
-            ./feeds/daeuniverse_packages/dae/Makefile \
-            ./feeds/daeuniverse_packages/honk/Makefile
+          config = Path(".config")
+          minimal = Path(
+              "../config/defconfig-openwrt-25.12.config"
+          )
 
-      - name: 【先q 后cd openwrt && make menuconfig 完sudo touch /continue】
-        uses: Warpbuilds/action-debugger@v2
-        timeout-minutes: 50
-        with:
-          limit-access-to-actor: false
+          lines = config.read_text().splitlines()
 
-      - name: Compile the firmware
-        id: compile
-        run: |
-          cd openwrt
-          make V=s -j$(nproc)
+          def set_config(name, value):
+              global lines
 
-      - name: Prepare firmware path
-        run: |
-          TARGET_DIR="$(find openwrt/bin/targets \
-            -mindepth 2 -maxdepth 2 -type d | head -n 1)"
+              lines = [
+                  line for line in lines
+                  if not (
+                      line.startswith(name + "=")
+                      or line == f"# {name} is not set"
+                  )
+              ]
 
-          if [ -z "$TARGET_DIR" ]; then
-            echo "Firmware directory not found!"
+              if value == "n":
+                  lines.append(f"# {name} is not set")
+              else:
+                  lines.append(f"{name}={value}")
+
+          # Disable all other device profiles inherited
+          # from the MediaTek multi-profile configuration.
+          other_devices = set()
+
+          for line in lines:
+              match = re.match(
+                  r"^(CONFIG_TARGET_DEVICE_[A-Za-z0-9_]+)=y$",
+                  line
+              )
+              if match:
+                  other_devices.add(match.group(1))
+
+          for name in other_devices:
+              set_config(name, "n")
+
+          # Disable multi-profile builds.
+          set_config("CONFIG_TARGET_MULTI_PROFILE", "n")
+          set_config("CONFIG_TARGET_PER_DEVICE_ROOTFS", "n")
+
+          # Apply the minimal Qihoo 360T7 target configuration.
+          for line in minimal.read_text().splitlines():
+              if line.startswith("CONFIG_") and "=" in line:
+                  name, value = line.split("=", 1)
+                  set_config(name, value)
+
+          # Ensure MT7981 wireless components are enabled.
+          for name in (
+              "CONFIG_PACKAGE_mt7981-wo-firmware",
+              "CONFIG_PACKAGE_kmod-mt7981-firmware",
+              "CONFIG_PACKAGE_kmod-mt7915e",
+              "CONFIG_PACKAGE_iw-full",
+          ):
+              set_config(name, "y")
+
+          # Disable firmware and drivers for unrelated chipsets.
+          excluded_packages = (
+              "mt7986-wo-firmware",
+              "mt7988-wo-firmware",
+              "kmod-mt7986-firmware",
+              "kmod-mt7990-firmware",
+              "kmod-mt7992-23-firmware",
+              "kmod-mt7992-firmware",
+              "kmod-mt7996-233-firmware",
+              "kmod-mt7996-firmware",
+          )
+
+          for package in excluded_packages:
+              set_config(
+                  f"CONFIG_PACKAGE_{package}",
+                  "n"
+              )
+
+          config.write_text("\n".join(lines) + "\n")
+          PY
+
+          # Resolve dependencies and generate the final configuration.
+          make defconfig
+
+          echo "========== Target Configuration =========="
+
+          grep -E \
+            '^CONFIG_TARGET_(mediatek|TARGET_MULTI_PROFILE|TARGET_PER_DEVICE_ROOTFS)' \
+            .config || true
+
+          grep -E \
+            '^CONFIG_TARGET_mediatek_filogic_DEVICE_qihoo_360t7=y$' \
+            .config
+
+          echo "========== MT7981 Wireless Configuration =========="
+
+          grep -E \
+            '^CONFIG_PACKAGE_(mt7981-wo-firmware|kmod-mt7981-firmware|kmod-mt7915e|iw-full)=' \
+            .config
+
+          # Ensure no unrelated chipset firmware remains enabled.
+          if grep -E \
+            '^CONFIG_PACKAGE_(mt7986-wo-firmware|mt7988-wo-firmware|kmod-mt7986-firmware|kmod-mt7990-firmware|kmod-mt7992-23-firmware|kmod-mt7992-firmware|kmod-mt7996-233-firmware|kmod-mt7996-firmware)=(y|m)$' \
+            .config
+          then
+            echo "ERROR: Unrelated chipset firmware is enabled!"
             exit 1
           fi
 
-          echo "FIRMWARE=$GITHUB_WORKSPACE/$TARGET_DIR" >> "$GITHUB_ENV"
+          echo "========== Configuration Complete =========="
 
-      - name: Generate build date
-        id: date
+      - name: Build OpenWrt
+        working-directory: openwrt
         run: |
-          echo "date=$(date +'%Y%m%d')" >> "$GITHUB_OUTPUT"
+          set -e
 
-      - name: Upload firmware to release
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ inputs.tag_name }}
-          name: ${{ inputs.release_name }}-${{ steps.date.outputs.date }}
-          files: |
-            ${{ env.FIRMWARE }}/*.itb
-            ${{ env.FIRMWARE }}/*.fip
-            ${{ env.FIRMWARE }}/*.bin
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
+            build log_file=build
 
-      - name: Delete workflow runs
-        uses: Mattraks/delete-workflow-runs@main
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
         with:
-          token: ${{ github.token }}
-          repository: ${{ github.repository }}
-          retain_days: 0
-          keep_minimum_runs: 1
+          name: OpenWrt-25.12-Qihoo-360T7
+          path: |
+            openwrt/bin/targets/mediatek/filogic/
+            openwrt/.config
+          if-no-files-found: error
+          retention-days: 7
