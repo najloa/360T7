@@ -62,6 +62,11 @@ jobs:
             https://github.com/mediatek/mtk-openwrt-feeds.git \
             mtk-openwrt-feeds
 
+      - name: Prune MediaTek defconfigs
+        run: |
+          bash scripts/prune-mtk-defconfig.sh \
+            "$GITHUB_WORKSPACE/mtk-openwrt-feeds"
+
       - name: Apply MediaTek OpenWrt files and patches
         working-directory: openwrt
         run: |
