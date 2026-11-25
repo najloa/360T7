@@ -1,4 +1,3 @@
-
 #!/usr/bin/env bash
 #
 # Prune MediaTek Unified Autobuild defconfigs for Qihoo 360T7.
