@@ -2,7 +2,8 @@
 #
 # Prune MediaTek Unified Autobuild package selections for Qihoo 360T7.
 #
-# This script modifies only the four inherited defconfig files.
+# This script prunes the four inherited defconfigs and patches the Unified
+# Autobuild rules for Qihoo 360T7. Run it before `autobuild.sh ... prepare`.
 #
 # Usage:
 #   bash scripts/prune-mtk-defconfig.sh [mtk-openwrt-feeds]
@@ -185,6 +186,103 @@ for symbol in "${PACKAGE_SYMBOLS[@]}"; do
     fi
 done
 
+echo "========== Patching Unified Autobuild rules =========="
+
+python3 - "$BASE_DIR" <<'PYRULES'
+from pathlib import Path
+import re
+import sys
+
+base = Path(sys.argv[1])
+platform_rules = base / "rules"
+wifi_rules = base / "mac80211" / "rules"
+
+for path in (platform_rules, wifi_rules):
+    if not path.is_file():
+        raise SystemExit(f"ERROR: Missing Unified Autobuild rules file: {path}")
+
+
+def remove_function(text: str, name: str) -> str:
+    pattern = re.compile(r"(?ms)^[A-Za-z_][A-Za-z0-9_]*\(\)\s*\{.*?^\}\s*\n?")
+    matches = [m for m in pattern.finditer(text) if re.match(rf"{re.escape(name)}\(\)", m.group(0))]
+    if len(matches) > 1:
+        raise SystemExit(f"ERROR: Multiple definitions of {name} in rules file")
+    if matches:
+        m = matches[0]
+        text = text[:m.start()] + text[m.end():]
+    return text
+
+
+def remove_exact_line(text: str, line: str) -> str:
+    return "\n".join(x for x in text.split("\n") if x.strip() != line.strip())
+
+
+def patch_platform_rules(text: str) -> str:
+    # 360T7 uses SPI-NAND, not eMMC. Keep the hook symbol but skip eMMC QVL packages.
+    func_pattern = re.compile(r"(?ms)^platform_change_openwrt_config\(\)\s*\{.*?^\}\s*\n?")
+    noop = "platform_change_openwrt_config() {\n\t:\n}\n"
+    if func_pattern.search(text):
+        text = func_pattern.sub(lambda _: noop, text, count=1)
+        comment = "# Qihoo 360T7 uses SPI-NAND, not eMMC; skip the eMMC QVL package set."
+        if comment not in text:
+            text = text.replace(noop, comment + "\n" + noop, 1)
+    else:
+        raise SystemExit("ERROR: Cannot find platform_change_openwrt_config()")
+
+    # Remove the interactive KDB/KGDB kernel debugger hook and implementation.
+    text = remove_exact_line(text, "list_add_after $(hooks autobuild_prepare) filogic_change_kernel_config change_kernel_kdb_config")
+    text = remove_function(text, "change_kernel_kdb_config")
+
+    # Remove firmware preparation for external PHYs absent from the 360T7.
+    text = remove_exact_line(text, "list_append $(hooks autobuild_prepare) airoha_firmware_install")
+    text = remove_exact_line(text, "list_add_after $(hooks autobuild_prepare) airoha_firmware_install copy_phy_firmware")
+    text = re.sub(r"(?m)^[ \t]*extra_firmware(?:\+)?=.*\n", "", text)
+    text = remove_function(text, "airoha_firmware_install")
+    text = remove_function(text, "copy_phy_firmware")
+    text = re.sub(r"(?m)^[ \t]*kernel_config_enable CONFIG_EXTRA_FIRMWARE(?:_DIR)?(?:[ \t]+.*)?\n", "", text)
+
+    # Explicitly disable unused external PHY/switch, sensor and emulation drivers.
+    disable = [
+        "CONFIG_AIR_EN8811H_PHY", "CONFIG_AIR_EN8811H_PHY_DEBUGFS",
+        "CONFIG_AN8855_GSW", "CONFIG_NET_DSA_MXL862",
+        "CONFIG_NET_DSA_TAG_MXL862", "CONFIG_NET_DSA_TAG_MXL862_8021Q",
+        "CONFIG_SENSORS_PWM_FAN", "CONFIG_AS21XXX_PHY", "CONFIG_AQUANTIA_PHY",
+        "CONFIG_AIROHA_AN8801_PHY", "CONFIG_AIR_AN8811HB_PHY",
+        "CONFIG_AIR_AN8811HB_PHY_DEBUGFS", "CONFIG_IIO", "CONFIG_ZTS8032",
+        "CONFIG_ZTS8232", "CONFIG_THERMAL_EMULATION",
+    ]
+    for symbol in disable:
+        text = re.sub(rf"(?m)^[ \t]*kernel_config_enable {re.escape(symbol)}(?:[ \t]+.*)?\n", "", text)
+
+    func = re.search(r"(?ms)^filogic_change_kernel_config\(\)\s*\{.*?^\}", text)
+    if not func:
+        raise SystemExit("ERROR: Cannot find filogic_change_kernel_config()")
+    body = func.group(0)
+    for symbol in disable:
+        line = f"\tkernel_config_disable {symbol}"
+        if line not in body:
+            body = body[:-1].rstrip() + "\n" + line + "\n}"
+    text = text[:func.start()] + body + text[func.end():]
+    return text
+
+
+def patch_wifi_rules(text: str) -> str:
+    # Preserve change_kernel_coredump_conf; remove only relayd's re-enable hook.
+    text = remove_exact_line(text, "list_add_after $(hooks autobuild_prepare) variant_change_openwrt_config change_openwrt_relayd_conf")
+    text = remove_function(text, "change_openwrt_relayd_conf")
+    return text
+
+
+for path, patcher in ((platform_rules, patch_platform_rules), (wifi_rules, patch_wifi_rules)):
+    original = path.read_text()
+    updated = patcher(original)
+    if updated != original:
+        path.write_text(updated)
+        print(f"Patched: {path}")
+    else:
+        print(f"Already patched: {path}")
+PYRULES
+
 echo
 echo "========== Pruning completed =========="
-echo "Modified files: the four defconfigs only."
+echo "Modified: four defconfigs, filogic/rules, filogic/mac80211/rules."
