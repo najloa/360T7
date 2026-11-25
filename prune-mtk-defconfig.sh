@@ -91,7 +91,7 @@ should_remove_package() {
 
     case "$pkg" in
         # No external USB port; no USB host/storage stack or USB utilities.
-        kmod-usb*|usbutils|usbids|libusb-1.0|usb-modeswitch*)
+        kmod-usb*|usbutils)
             return 0
             ;;
 
