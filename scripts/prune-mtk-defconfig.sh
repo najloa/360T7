@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 #
-# Prune MediaTek Unified Autobuild configuration for Qihoo 360T7.
+# Prune MediaTek Unified Autobuild package selections for Qihoo 360T7.
 #
-# This script operates only on a fresh mtk-openwrt-feeds checkout.
-# It prunes the four inherited defconfigs and removes MediaTek rule hooks
-# that would otherwise re-enable RFB-only test packages or unrelated PHYs.
+# This script modifies only the four inherited defconfig files.
 #
 # Usage:
 #   bash scripts/prune-mtk-defconfig.sh [mtk-openwrt-feeds]
@@ -21,81 +19,46 @@ DEFCONFIGS=(
     "${BASE_DIR}/mac80211/mt798x_rfb/wifi6_nic/25.12/defconfig"
 )
 
-FINAL_DEFCONFIG="${DEFCONFIGS[3]}"
-FILOGIC_RULES="${BASE_DIR}/rules"
-MAC80211_RULES="${BASE_DIR}/mac80211/rules"
-
-for file in "${DEFCONFIGS[@]}" "${FILOGIC_RULES}" "${MAC80211_RULES}"; do
+for file in "${DEFCONFIGS[@]}"; do
     if [[ ! -f "$file" ]]; then
-        echo "ERROR: Missing required file: $file" >&2
+        echo "ERROR: Missing defconfig: $file" >&2
         exit 1
     fi
 done
 
-# Remove every assignment (y/m or an existing not-set line) for this symbol
-# from all four layers, then put one explicit not-set override in layer 4.
-# MediaTek's aconf merges layers in parent-to-child order; the child layer wins.
-set_not_set_in_final_layer() {
-    local symbol="$1"
-    local file
-    local tmp
+# Keep the platform-level MT7981 WO firmware selection.
+# A child-layer not-set entry overrides the parent-layer y entry, so remove
+# assignments for this symbol from layers 2-4 and let layer 1 take effect.
+MT7981_WO_SYMBOL="CONFIG_PACKAGE_mt7981-wo-firmware"
 
-    for file in "${DEFCONFIGS[@]}"; do
-        tmp="$(mktemp "${file}.XXXXXX")"
-        awk -v symbol="$symbol" '
-            index($0, symbol "=") == 1 { next }
-            $0 == "# " symbol " is not set" { next }
-            { print }
-        ' "$file" > "$tmp"
-        mv "$tmp" "$file"
-    done
+if ! grep -Fxq "${MT7981_WO_SYMBOL}=y" "${DEFCONFIGS[0]}"; then
+    echo "ERROR: ${MT7981_WO_SYMBOL}=y is missing from ${DEFCONFIGS[0]}" >&2
+    exit 1
+fi
 
-    printf '# %s is not set\n' "$symbol" >> "$FINAL_DEFCONFIG"
-    echo "Disabled: ${symbol}"
-}
+for file in "${DEFCONFIGS[@]:1}"; do
+    tmp="$(mktemp "${file}.XXXXXX")"
+    awk -v symbol="$MT7981_WO_SYMBOL" '
+        index($0, symbol "=") == 1 { next }
+        $0 == "# " symbol " is not set" { next }
+        { print }
+    ' "$file" > "$tmp"
+    mv "$tmp" "$file"
+done
 
-# This package is enabled in the platform layer and explicitly disabled in
-# the mac80211 layer. Remove active assignments from every layer, but preserve
-# the existing child-level not-set line that cancels the parent selection.
-remove_enabled_assignments_preserve_not_set() {
-    local symbol="$1"
-    local file
-    local tmp
+echo "Preserved: ${MT7981_WO_SYMBOL}=y (platform layer)"
 
-    for file in "${DEFCONFIGS[@]}"; do
-        tmp="$(mktemp "${file}.XXXXXX")"
-        awk -v symbol="$symbol" '
-            index($0, symbol "=") == 1 { next }
-            { print }
-        ' "$file" > "$tmp"
-        mv "$tmp" "$file"
-    done
-}
-
-remove_enabled_assignments_preserve_not_set \
-    "CONFIG_PACKAGE_mt7981-wo-firmware"
-
-# Package names are collected from the actual four defconfigs, not from a
-# previously generated diffconfig or a saved .config artifact.
-mapfile -t PACKAGE_SYMBOLS < <(
-    awk '
-        /^CONFIG_PACKAGE_[A-Za-z0-9_.+-]+=(y|m)$/ {
-            sub(/=.*/, "")
-            print
-        }
-    ' "${DEFCONFIGS[@]}" | sort -u
-)
-
+# Match only packages explicitly enabled (y or m) in the four defconfigs.
 should_remove_package() {
     local pkg="$1"
 
     case "$pkg" in
-        # No external USB port; no USB host/storage stack or USB utilities.
+        # No external USB port; remove USB host/storage support and utilities.
         kmod-usb*|usbutils)
             return 0
             ;;
 
-        # No removable block storage / eMMC on this board.
+        # Removable storage and filesystem support not used by this board.
         block-mount|blkid|e2fsprogs|f2fsck|mkf2fs|lsblk|sfdisk|mmc-utils|fio|\
         kmod-ata-core|kmod-scsi-core|kmod-scsi-generic|\
         kmod-fs-ext4|kmod-fs-f2fs|kmod-fs-vfat|kmod-fs-msdos|\
@@ -179,163 +142,49 @@ should_remove_package() {
     esac
 }
 
-echo "========== Pruning MediaTek defconfigs =========="
+# Remove a selected package from all layers and put one explicit not-set
+# override in the most specific layer.
+disable_package() {
+    local symbol="$1"
+    local file
+    local tmp
 
-for symbol in "${PACKAGE_SYMBOLS[@]}"; do
-    pkg="${symbol#CONFIG_PACKAGE_}"
-    if should_remove_package "$pkg"; then
-        set_not_set_in_final_layer "$symbol"
-    fi
-done
+    for file in "${DEFCONFIGS[@]}"; do
+        tmp="$(mktemp "${file}.XXXXXX")"
+        awk -v symbol="$symbol" '
+            index($0, symbol "=") == 1 { next }
+            $0 == "# " symbol " is not set" { next }
+            { print }
+        ' "$file" > "$tmp"
+        mv "$tmp" "$file"
+    done
 
-# Disable the multi-profile build and per-device rootfs mode.
-for symbol in \
-    CONFIG_TARGET_MULTI_PROFILE \
-    CONFIG_TARGET_PER_DEVICE_ROOTFS
-do
-    if grep -Fq -- "${symbol}=y" "${DEFCONFIGS[@]}"; then
-        set_not_set_in_final_layer "$symbol"
-    fi
-done
+    printf '# %s is not set\n' "$symbol" >> "${DEFCONFIGS[3]}"
+    echo "Disabled: ${symbol}"
+}
 
-# Disable all inherited Filogic RFB device profiles. These are distinct from
-# CONFIG_TARGET_mediatek_filogic_DEVICE_qihoo_360t7 in the user's own config.
-mapfile -t DEVICE_SYMBOLS < <(
+echo "========== Pruning selected packages =========="
+
+mapfile -t PACKAGE_SYMBOLS < <(
     awk '
-        /^CONFIG_TARGET_DEVICE_mediatek_filogic_DEVICE_[A-Za-z0-9_.+-]+=y$/ {
+        /^CONFIG_PACKAGE_[A-Za-z0-9_.+-]+=(y|m)$/ {
             sub(/=.*/, "")
             print
         }
     ' "${DEFCONFIGS[@]}" | sort -u
 )
 
-for symbol in "${DEVICE_SYMBOLS[@]}"; do
-    set_not_set_in_final_layer "$symbol"
-done
+for symbol in "${PACKAGE_SYMBOLS[@]}"; do
+    pkg="${symbol#CONFIG_PACKAGE_}"
 
-# Disable kernel profiling and trim optional BusyBox applets explicitly enabled
-# by the inherited configs. CONFIG_KERNEL_BPF_EVENTS is deliberately untouched.
-BUSYBOX_SYMBOLS=(
-    CONFIG_KERNEL_PROFILING
-    CONFIG_BUSYBOX_CONFIG_TFTP
-    CONFIG_BUSYBOX_CONFIG_FEATURE_TFTP_GET
-    CONFIG_BUSYBOX_CONFIG_FEATURE_TFTP_PUT
-    CONFIG_BUSYBOX_CONFIG_VCONFIG
-    CONFIG_BUSYBOX_CONFIG_MPSTAT
-    CONFIG_BUSYBOX_CONFIG_TELNET
-    CONFIG_BUSYBOX_CONFIG_TELNETD
-    CONFIG_BUSYBOX_CONFIG_FEATURE_TELNETD_STANDALONE
-)
+    # This platform-required package must never be removed by the package list.
+    [[ "$symbol" == "$MT7981_WO_SYMBOL" ]] && continue
 
-for symbol in "${BUSYBOX_SYMBOLS[@]}"; do
-    if grep -Fq -- "${symbol}=y" "${DEFCONFIGS[@]}"; then
-        set_not_set_in_final_layer "$symbol"
+    if should_remove_package "$pkg"; then
+        disable_package "$symbol"
     fi
 done
 
-# Some packages are force-enabled by MediaTek's prepare hooks after aconf has
-# merged the defconfigs. Remove only the specific hooks that are not needed
-# for this single-device build. Keep ephy-utils and ethtool-full enabled.
-python3 - "$FILOGIC_RULES" "$MAC80211_RULES" <<'PY'
-from pathlib import Path
-import sys
-
-filogic_rules = Path(sys.argv[1])
-mac80211_rules = Path(sys.argv[2])
-
-filogic_drop_exact = {
-    "list_append $(hooks autobuild_prepare) airoha_firmware_install",
-    "list_add_after $(hooks autobuild_prepare) airoha_firmware_install copy_phy_firmware",
-    "openwrt_config_enable CONFIG_PACKAGE_fio",
-    "openwrt_config_enable CONFIG_PACKAGE_lsblk",
-    "openwrt_config_enable CONFIG_PACKAGE_sfdisk",
-    "openwrt_config_enable CONFIG_PACKAGE_mmc-utils",
-}
-
-# These kernel drivers / firmware are for PHYs, switches or sensors not fitted
-# on Qihoo 360T7. Keep MT753X_GSW and the MT7981 built-in GPHY support.
-filogic_drop_kernel_symbols = {
-    "CONFIG_AIR_EN8811H_PHY",
-    "CONFIG_AIR_EN8811H_PHY_DEBUGFS",
-    "CONFIG_AQUANTIA_PHY",
-    "CONFIG_AS21XXX_PHY",
-    "CONFIG_AIROHA_AN8801_PHY",
-    "CONFIG_AIR_AN8811HB_PHY",
-    "CONFIG_AIR_AN8811HB_PHY_DEBUGFS",
-    "CONFIG_AN8855_GSW",
-    "CONFIG_NET_DSA_MXL862",
-    "CONFIG_NET_DSA_TAG_MXL862",
-    "CONFIG_NET_DSA_TAG_MXL862_8021Q",
-    "CONFIG_IIO",
-    "CONFIG_ZTS8032",
-    "CONFIG_ZTS8232",
-    "CONFIG_EXTRA_FIRMWARE",
-    "CONFIG_EXTRA_FIRMWARE_DIR",
-}
-
-mac80211_drop_exact = {
-    "openwrt_config_enable CONFIG_PACKAGE_relayd",
-    "openwrt_config_enable CONFIG_PACKAGE_luci-proto-relay",
-}
-
-filogic_replacements = {
-    # Keep the shell function syntactically valid after removing all QVL enables.
-    "openwrt_config_enable CONFIG_PACKAGE_fio": "    : # QVL-only package enables removed for 360T7",
-}
-
-mac80211_replacements = {
-    # Keep the relayd hook function syntactically valid but inert.
-    "openwrt_config_enable CONFIG_PACKAGE_relayd": "    : # relayd disabled for 360T7",
-}
-
-def rewrite(path: Path, *, exact: set[str], drop_kernel: set[str] = set(),
-            drop_prefixes: tuple[str, ...] = (),
-            replacements: dict[str, str] = {}) -> None:
-    original = path.read_text().splitlines()
-    kept = []
-    removed = []
-
-    for line in original:
-        stripped = line.strip()
-        words = stripped.split()
-        drop = stripped in exact or any(stripped.startswith(p) for p in drop_prefixes)
-
-        if len(words) >= 2 and words[0] == "kernel_config_enable":
-            if words[1] in drop_kernel:
-                drop = True
-
-        if drop:
-            removed.append(stripped)
-            replacement = replacements.get(stripped)
-            if replacement is not None:
-                kept.append(replacement)
-        else:
-            kept.append(line)
-
-    if removed:
-        path.write_text("\n".join(kept) + "\n")
-
-    print(f"Updated {path}: removed {len(removed)} rule line(s)")
-    for line in removed:
-        print(f"  - {line}")
-
-rewrite(
-    filogic_rules,
-    exact=filogic_drop_exact,
-    drop_kernel=filogic_drop_kernel_symbols,
-    drop_prefixes=("extra_firmware=", "extra_firmware+=",),
-    replacements=filogic_replacements,
-)
-rewrite(
-    mac80211_rules,
-    exact=mac80211_drop_exact,
-    replacements=mac80211_replacements,
-)
-PY
-
 echo
 echo "========== Pruning completed =========="
-echo "The user's own defconfig is applied later, after MediaTek prepare."
-echo "Keep required packages such as kmod-mt7915e, kmod-mt7981-firmware,"
-echo "ephy-utils, ethtool-full, mtkhnat_util, tcpdump and iperf3 in the"
-echo "MediaTek config or add them through the user's own defconfig."
+echo "Modified files: the four defconfigs only."
