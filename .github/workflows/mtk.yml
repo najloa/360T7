@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 360
 
     steps:
@@ -71,7 +71,6 @@ jobs:
         working-directory: openwrt
         run: |
           set -e
-
           bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
             filogic-mac80211-mt798x_rfb-wifi6_nic \
             prepare log_file=prepare
@@ -79,20 +78,8 @@ jobs:
       - name: Configure Qihoo 360T7
         working-directory: openwrt
         run: |
-          set -e
-
           cat ../config/defconfig-openwrt-25.12.config >> .config
-
           make defconfig
-
-          grep -q \
-            '^CONFIG_TARGET_mediatek_filogic_DEVICE_qihoo_360t7=y$' \
-            .config || {
-              echo "ERROR: Qihoo 360T7 target is not enabled!"
-              exit 1
-            }
-
-          echo "Qihoo 360T7 configuration completed."
 
       - name: Save final config
         working-directory: openwrt
@@ -114,18 +101,8 @@ jobs:
         working-directory: openwrt
         run: |
           set -e
-
           bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
             build log_file=build
-
-      - name: Upload firmware
-        uses: actions/upload-artifact@v4
-        with:
-          name: OpenWrt-25.12-Qihoo-360T7
-          path: |
-            openwrt/bin/targets/mediatek/filogic/
-          if-no-files-found: error
-          retention-days: 3
 
       - name: Delete workflow runs
         uses: Mattraks/delete-workflow-runs@main
