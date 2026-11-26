@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 #
-# Prune MediaTek Unified Autobuild package selections for Qihoo 360T7.
+# Prune MediaTek Unified Autobuild selections for Qihoo 360T7.
 #
-# This script prunes the four inherited defconfigs and patches the Unified
-# Autobuild rules for Qihoo 360T7. Run it before `autobuild.sh ... prepare`.
+# This script:
+#   1. Prunes selected packages from the four inherited Filogic defconfigs.
+#   2. Keeps only the configured MT7981 RFB target-device profile.
+#   3. Disables selected, unnecessary BusyBox applets/features.
+#   4. Patches Unified Autobuild rules for the 360T7 hardware.
 #
-# Usage:
-#   bash scripts/prune-mtk-defconfig.sh [mtk-openwrt-feeds]
+# Run before: autobuild.sh ... prepare
+# Usage: bash scripts/prune-mtk-defconfig-v2.sh [mtk-openwrt-feeds]
 
 set -euo pipefail
 
@@ -27,9 +30,47 @@ for file in "${DEFCONFIGS[@]}"; do
     fi
 done
 
-# Keep the platform-level MT7981 WO firmware selection.
-# A child-layer not-set entry overrides the parent-layer y entry, so remove
-# assignments for this symbol from layers 2-4 and let layer 1 take effect.
+# -----------------------------------------------------------------------------
+# Generic config helpers
+# -----------------------------------------------------------------------------
+
+# Remove a symbol's assignments/not-set entries from all layers, then place one
+# explicit not-set override in the most-specific layer.
+disable_symbol() {
+    local symbol="$1"
+    local file
+    local tmp
+
+    for file in "${DEFCONFIGS[@]}"; do
+        tmp="$(mktemp "${file}.XXXXXX")"
+        awk -v symbol="$symbol" '
+            index($0, symbol "=") == 1 { next }
+            $0 == "# " symbol " is not set" { next }
+            { print }
+        ' "$file" > "$tmp"
+        mv "$tmp" "$file"
+    done
+
+    printf '# %s is not set\n' "$symbol" >> "${DEFCONFIGS[3]}"
+    echo "Disabled: ${symbol}"
+}
+
+symbol_is_enabled() {
+    local symbol="$1"
+    local file
+
+    for file in "${DEFCONFIGS[@]}"; do
+        if grep -Eq "^${symbol}=(y|m)$" "$file"; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+# -----------------------------------------------------------------------------
+# Preserve the MT7981 platform-level WO firmware selection.
+# -----------------------------------------------------------------------------
+
 MT7981_WO_SYMBOL="CONFIG_PACKAGE_mt7981-wo-firmware"
 
 if ! grep -Fxq "${MT7981_WO_SYMBOL}=y" "${DEFCONFIGS[0]}"; then
@@ -49,7 +90,94 @@ done
 
 echo "Preserved: ${MT7981_WO_SYMBOL}=y (platform layer)"
 
-# Match only packages explicitly enabled (y or m) in the four defconfigs.
+# -----------------------------------------------------------------------------
+# Target-device profile pruning
+# -----------------------------------------------------------------------------
+
+# Conservative default: retain the MT7981 RFB profile as the closest MediaTek
+# reference profile. It is NOT the Qihoo 360T7 device profile. If the build has
+# a dedicated 360T7 profile, add its exact CONFIG_TARGET_DEVICE_ symbol here
+# and verify that the autobuild flow actually selects it.
+KEEP_TARGET_DEVICE_SYMBOLS=(
+    "CONFIG_TARGET_DEVICE_mediatek_filogic_DEVICE_mediatek_mt7981-rfb"
+)
+
+is_kept_target_device() {
+    local candidate="$1"
+    local keep
+    for keep in "${KEEP_TARGET_DEVICE_SYMBOLS[@]}"; do
+        [[ "$candidate" == "$keep" ]] && return 0
+    done
+    return 1
+}
+
+# Fail rather than silently producing a multi-profile build with no retained
+# device profile when the source defconfigs have changed.
+KEEP_PROFILE_FOUND=0
+for symbol in "${KEEP_TARGET_DEVICE_SYMBOLS[@]}"; do
+    if symbol_is_enabled "$symbol"; then
+        KEEP_PROFILE_FOUND=1
+        break
+    fi
+done
+
+if [[ "$KEEP_PROFILE_FOUND" -ne 1 ]]; then
+    echo "ERROR: None of the configured KEEP_TARGET_DEVICE_SYMBOLS is enabled." >&2
+    echo "Check the current MediaTek defconfigs and update the profile allowlist." >&2
+    exit 1
+fi
+
+echo "========== Pruning target-device profiles =========="
+mapfile -t TARGET_DEVICE_SYMBOLS < <(
+    awk '
+        /^CONFIG_TARGET_DEVICE_[A-Za-z0-9_.+-]+=(y|m)$/ {
+            sub(/=.*/, "")
+            print
+        }
+    ' "${DEFCONFIGS[@]}" | sort -u
+)
+
+for symbol in "${TARGET_DEVICE_SYMBOLS[@]}"; do
+    if is_kept_target_device "$symbol"; then
+        echo "Preserved profile: ${symbol}"
+    else
+        disable_symbol "$symbol"
+    fi
+done
+
+# Deliberately leave CONFIG_TARGET_MULTI_PROFILE and
+# CONFIG_TARGET_PER_DEVICE_ROOTFS unchanged. They control the multi-profile
+# build/rootfs behavior rather than selecting an individual device.
+
+# -----------------------------------------------------------------------------
+# BusyBox applet / feature pruning
+# -----------------------------------------------------------------------------
+
+# These are optional applets/features. TFTP is removed only because this build
+# does not require TFTP recovery or file transfer; remove it from this list if
+# TFTP is part of the user's recovery workflow.
+BUSYBOX_DISABLE_SYMBOLS=(
+    "CONFIG_BUSYBOX_CONFIG_TFTP"
+    "CONFIG_BUSYBOX_CONFIG_FEATURE_TFTP_GET"
+    "CONFIG_BUSYBOX_CONFIG_FEATURE_TFTP_PUT"
+)
+
+echo "========== Pruning selected BusyBox features =========="
+for symbol in "${BUSYBOX_DISABLE_SYMBOLS[@]}"; do
+    if symbol_is_enabled "$symbol"; then
+        disable_symbol "$symbol"
+    else
+        echo "Unchanged (not enabled): ${symbol}"
+    fi
+done
+
+# CONFIG_BUSYBOX_CUSTOM is intentionally preserved. Other BusyBox options are
+# untouched unless explicitly listed above.
+
+# -----------------------------------------------------------------------------
+# Package pruning
+# -----------------------------------------------------------------------------
+
 should_remove_package() {
     local pkg="$1"
 
@@ -95,9 +223,10 @@ should_remove_package() {
             return 0
             ;;
 
-        # StrongSwan / IPsec and its optional hardware accelerator.
-        strongswan|strongswan-*|kmod-ipsec*|kmod-ipt-ipsec|\
-        iptables-mod-ipsec|kmod-crypto-eip*)
+        # StrongSwan / IPsec packages. Do NOT wildcard-match kmod-crypto-eip*:
+        # keep kmod-crypto-eip-ddk available for separate MT7981 compatibility
+        # testing. This does not imply that proxy userspace crypto uses the EIP.
+        strongswan|strongswan-*|kmod-ipsec*|kmod-ipt-ipsec|iptables-mod-ipsec)
             return 0
             ;;
 
@@ -143,29 +272,7 @@ should_remove_package() {
     esac
 }
 
-# Remove a selected package from all layers and put one explicit not-set
-# override in the most specific layer.
-disable_package() {
-    local symbol="$1"
-    local file
-    local tmp
-
-    for file in "${DEFCONFIGS[@]}"; do
-        tmp="$(mktemp "${file}.XXXXXX")"
-        awk -v symbol="$symbol" '
-            index($0, symbol "=") == 1 { next }
-            $0 == "# " symbol " is not set" { next }
-            { print }
-        ' "$file" > "$tmp"
-        mv "$tmp" "$file"
-    done
-
-    printf '# %s is not set\n' "$symbol" >> "${DEFCONFIGS[3]}"
-    echo "Disabled: ${symbol}"
-}
-
 echo "========== Pruning selected packages =========="
-
 mapfile -t PACKAGE_SYMBOLS < <(
     awk '
         /^CONFIG_PACKAGE_[A-Za-z0-9_.+-]+=(y|m)$/ {
@@ -182,12 +289,15 @@ for symbol in "${PACKAGE_SYMBOLS[@]}"; do
     [[ "$symbol" == "$MT7981_WO_SYMBOL" ]] && continue
 
     if should_remove_package "$pkg"; then
-        disable_package "$symbol"
+        disable_symbol "$symbol"
     fi
 done
 
-echo "========== Patching Unified Autobuild rules =========="
+# -----------------------------------------------------------------------------
+# Patch Unified Autobuild rules
+# -----------------------------------------------------------------------------
 
+echo "========== Patching Unified Autobuild rules =========="
 python3 - "$BASE_DIR" <<'PYRULES'
 from pathlib import Path
 import re
@@ -204,7 +314,8 @@ for path in (platform_rules, wifi_rules):
 
 def remove_function(text: str, name: str) -> str:
     pattern = re.compile(r"(?ms)^[A-Za-z_][A-Za-z0-9_]*\(\)\s*\{.*?^\}\s*\n?")
-    matches = [m for m in pattern.finditer(text) if re.match(rf"{re.escape(name)}\(\)", m.group(0))]
+    matches = [m for m in pattern.finditer(text)
+               if re.match(rf"{re.escape(name)}\(\)", m.group(0))]
     if len(matches) > 1:
         raise SystemExit(f"ERROR: Multiple definitions of {name} in rules file")
     if matches:
@@ -230,16 +341,26 @@ def patch_platform_rules(text: str) -> str:
         raise SystemExit("ERROR: Cannot find platform_change_openwrt_config()")
 
     # Remove the interactive KDB/KGDB kernel debugger hook and implementation.
-    text = remove_exact_line(text, "list_add_after $(hooks autobuild_prepare) filogic_change_kernel_config change_kernel_kdb_config")
+    text = remove_exact_line(
+        text,
+        "list_add_after $(hooks autobuild_prepare) filogic_change_kernel_config change_kernel_kdb_config",
+    )
     text = remove_function(text, "change_kernel_kdb_config")
 
     # Remove firmware preparation for external PHYs absent from the 360T7.
     text = remove_exact_line(text, "list_append $(hooks autobuild_prepare) airoha_firmware_install")
-    text = remove_exact_line(text, "list_add_after $(hooks autobuild_prepare) airoha_firmware_install copy_phy_firmware")
+    text = remove_exact_line(
+        text,
+        "list_add_after $(hooks autobuild_prepare) airoha_firmware_install copy_phy_firmware",
+    )
     text = re.sub(r"(?m)^[ \t]*extra_firmware(?:\+)?=.*\n", "", text)
     text = remove_function(text, "airoha_firmware_install")
     text = remove_function(text, "copy_phy_firmware")
-    text = re.sub(r"(?m)^[ \t]*kernel_config_enable CONFIG_EXTRA_FIRMWARE(?:_DIR)?(?:[ \t]+.*)?\n", "", text)
+    text = re.sub(
+        r"(?m)^[ \t]*kernel_config_enable CONFIG_EXTRA_FIRMWARE(?:_DIR)?(?:[ \t]+.*)?\n",
+        "",
+        text,
+    )
 
     # Explicitly disable unused external PHY/switch, sensor and emulation drivers.
     disable = [
@@ -252,7 +373,11 @@ def patch_platform_rules(text: str) -> str:
         "CONFIG_ZTS8232", "CONFIG_THERMAL_EMULATION",
     ]
     for symbol in disable:
-        text = re.sub(rf"(?m)^[ \t]*kernel_config_enable {re.escape(symbol)}(?:[ \t]+.*)?\n", "", text)
+        text = re.sub(
+            rf"(?m)^[ \t]*kernel_config_enable {re.escape(symbol)}(?:[ \t]+.*)?\n",
+            "",
+            text,
+        )
 
     func = re.search(r"(?ms)^filogic_change_kernel_config\(\)\s*\{.*?^\}", text)
     if not func:
@@ -268,7 +393,10 @@ def patch_platform_rules(text: str) -> str:
 
 def patch_wifi_rules(text: str) -> str:
     # Preserve change_kernel_coredump_conf; remove only relayd's re-enable hook.
-    text = remove_exact_line(text, "list_add_after $(hooks autobuild_prepare) variant_change_openwrt_config change_openwrt_relayd_conf")
+    text = remove_exact_line(
+        text,
+        "list_add_after $(hooks autobuild_prepare) variant_change_openwrt_config change_openwrt_relayd_conf",
+    )
     text = remove_function(text, "change_openwrt_relayd_conf")
     return text
 
@@ -285,4 +413,3 @@ PYRULES
 
 echo
 echo "========== Pruning completed =========="
-echo "Modified: four defconfigs, filogic/rules, filogic/mac80211/rules."
