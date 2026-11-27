@@ -67,12 +67,6 @@ jobs:
           bash scripts/prune-mtk-defconfig.sh \
             "$GITHUB_WORKSPACE/mtk-openwrt-feeds"
 
-      - name: Configure Qihoo 360T7
-        working-directory: openwrt
-        run: |
-          cat ../config/openwrt-25.12.config >> .config
-          make defconfig
-
       - name: Apply MediaTek OpenWrt files and patches
         working-directory: openwrt
         run: |
@@ -80,6 +74,12 @@ jobs:
           bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
             filogic-mac80211-mt798x_rfb-wifi6_nic \
             prepare log_file=prepare
+
+      - name: Configure Qihoo 360T7
+        working-directory: openwrt
+        run: |
+          cat ../config/openwrt-25.12.config >> .config
+          make defconfig
 
       - name: Save final config
         working-directory: openwrt
