@@ -1,4 +1,4 @@
-name: 360T7 Firmware Configuration Publisher
+name: 360T7 固件配置生成
 
 on:
   workflow_dispatch:
