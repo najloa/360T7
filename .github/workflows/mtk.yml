@@ -103,12 +103,21 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
-#      - name: Build OpenWrt
-#        working-directory: openwrt
-#        run: |
- #         set -e
- #         bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
- #           build log_file=build
+      - name: Build OpenWrt
+        working-directory: openwrt
+        run: |
+          set -e
+          bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
+            build log_file=build
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenWrt-25.12-Qihoo-360T7
+          path: |
+            openwrt/bin/targets/mediatek/filogic/
+          if-no-files-found: error
+          retention-days: 3
 
       - name: Delete workflow runs
         uses: Mattraks/delete-workflow-runs@main
