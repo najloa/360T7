@@ -75,11 +75,17 @@ jobs:
             filogic-mac80211-mt798x_rfb-wifi6_nic \
             prepare log_file=prepare
 
-      - name: Configure Qihoo 360T7
-        working-directory: openwrt
-        run: |
-          cat ../config/defconfig-openwrt-25.12.config >> .config
-          make defconfig
+      - name: 【先q 后cd openwrt && make menuconfig 完sudo touch /continue】
+        uses: Warpbuilds/action-debugger@v2 #【多配置install -Dp .config ./publish/openwrt-25.12-.config && cp -f defconfig/mt7981-ax3000.config .config】【https://github.com/mxschmitt/action-tmate】
+        timeout-minutes: 50
+        with:
+          limit-access-to-actor: false
+
+#      - name: Configure Qihoo 360T7
+#        working-directory: openwrt
+#        run: |
+#          cat ../config/defconfig-openwrt-25.12.config >> .config
+#          make defconfig
 
       - name: Save final config
         working-directory: openwrt
@@ -97,12 +103,12 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
-      - name: Build OpenWrt
-        working-directory: openwrt
-        run: |
-          set -e
-          #bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
-            build log_file=build
+#      - name: Build OpenWrt
+#        working-directory: openwrt
+#        run: |
+ #         set -e
+ #         bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
+ #           build log_file=build
 
       - name: Delete workflow runs
         uses: Mattraks/delete-workflow-runs@main
