@@ -78,7 +78,7 @@ jobs:
       - name: Configure Qihoo 360T7
         working-directory: openwrt
         run: |
-          cat ../config/openwrt-25.12.config >> .config
+          cat ../config/defconfig-openwrt-25.12.config >> .config
           make defconfig
 
       - name: Save final config
@@ -101,7 +101,7 @@ jobs:
         working-directory: openwrt
         run: |
           set -e
-          bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
+          #bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
             build log_file=build
 
       - name: Delete workflow runs
