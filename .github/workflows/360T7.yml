@@ -152,7 +152,7 @@ jobs:
       run: |
         chmod +x $DIY_P1_SH
         cd openwrt
-        $GITHUB_WORKSPACE/$DIY_P1_SH
+        #$GITHUB_WORKSPACE/$DIY_P1_SH
 
     - name: Update feeds
       if: ${{ !startsWith(inputs.version, 'openwrt-') || inputs.openwrt_source == 'openwrt' }}
@@ -174,7 +174,7 @@ jobs:
         bash scripts/prune-mtk-defconfig.sh \
           "$GITHUB_WORKSPACE/mtk-openwrt-feeds"
 
-    - name: Prepare MediaTek SDK
+    - name: Prepare MediaTek SDK 可疑cd openwrt
       if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
       run: |
         cd openwrt
@@ -189,9 +189,6 @@ jobs:
         OPENWRT_SOURCE: ${{ inputs.openwrt_source }}
       run: |
         [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
-        chmod +x $DIY_P2_SH
-        cd openwrt
-        $GITHUB_WORKSPACE/$DIY_P2_SH
 
     - name: Download package
       id: package
@@ -225,7 +222,7 @@ jobs:
         echo "Kernel patch installed: $KERNEL_PATCH_DIR"
         echo "mt76 patch installed: $MT76_PATCH_DIR"
 
-    - name: Build OpenWrt MediaTek SDK
+    - name: Build OpenWrt MediaTek SDK 可疑cd openwrt
       if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
       run: |
         cd openwrt
