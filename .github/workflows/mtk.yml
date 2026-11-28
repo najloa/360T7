@@ -75,17 +75,18 @@ jobs:
             filogic-mac80211-mt798x_rfb-wifi6_nic \
             prepare log_file=prepare
 
-      - name: 【先q 后cd openwrt && make menuconfig 完sudo touch /continue】
-        uses: Warpbuilds/action-debugger@v2 #【多配置install -Dp .config ./publish/openwrt-25.12-.config && cp -f defconfig/mt7981-ax3000.config .config】【https://github.com/mxschmitt/action-tmate】
-        timeout-minutes: 50
-        with:
-          limit-access-to-actor: false
+#      - name: 【先q 后cd openwrt && make menuconfig 完sudo touch /continue】
+#        uses: Warpbuilds/action-debugger@v2 #【多配置install -Dp .config ./publish/openwrt-25.12-.config && cp -f defconfig/mt7981-ax3000.config .config】【https://github.com/mxschmitt/action-tmate】
+#        timeout-minutes: 50
+#        with:
+#          limit-access-to-actor: false
 
-#      - name: Configure Qihoo 360T7
-#        working-directory: openwrt
-#        run: |
-#          cat ../config/defconfig-openwrt-25.12.config >> .config
-#          make defconfig
+      - name: Configure Qihoo 360T7
+        working-directory: openwrt
+        run: |
+          #cat ../config/defconfig-openwrt-25.12.config >> .config
+          #make defconfig
+          cp -f ../config/openwrt-25.12-mtk.config .config
 
       - name: Save final config
         working-directory: openwrt
