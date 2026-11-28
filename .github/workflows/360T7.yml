@@ -139,6 +139,12 @@ jobs:
         git clone --depth 1 -b main \
           https://github.com/mediatek/mtk-openwrt-feeds.git
 
+    - name: Prune MediaTek defconfigs
+      if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
+      run: |
+        bash $GITHUB_WORKSPACE/scripts/prune-mtk-defconfig.sh \
+          "$GITHUB_WORKSPACE/mtk-openwrt-feeds"
+
     - name: Load custom feeds
       run: |
         chmod +x $DIY_P1_SH
@@ -157,8 +163,10 @@ jobs:
       if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
       run: |
         cd openwrt
-        bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
-          filogic-mac80211 prepare
+        set -e
+          bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
+            filogic-mac80211-mt798x_rfb-wifi6_nic \
+            prepare log_file=prepare
 
     - name: SmartDNS
       run: |
@@ -180,6 +188,7 @@ jobs:
 
     - name: Download package
       id: package
+      if: ${{ !startsWith(inputs.version, 'openwrt-') || inputs.openwrt_source == 'openwrt' }}
       run: |
         cd openwrt
         make defconfig
@@ -200,17 +209,44 @@ jobs:
         KERNEL_PATCH_DIR="target/linux/mediatek/patches-$KERNEL_PATCHVER"
         MT76_PATCH_DIR="package/kernel/mt76/patches"
         mkdir -p "$KERNEL_PATCH_DIR" "$MT76_PATCH_DIR"
-        cp "$GITHUB_WORKSPACE/999-001-mtk-wed-reduce-rx-ring-size.patch" \
+        cp "$GITHUB_WORKSPACE/scripts/999-001-mtk-wed-reduce-rx-ring-size.patch" \
           "$KERNEL_PATCH_DIR/"
-        cp "$GITHUB_WORKSPACE/999-003-mtk-eth.patch" \
+        cp "$GITHUB_WORKSPACE/scripts/999-003-mtk-eth.patch" \
           "$KERNEL_PATCH_DIR/"
-        cp "$GITHUB_WORKSPACE/999-002-mt7915-reduce-rx-ring-size.patch" \
+        cp "$GITHUB_WORKSPACE/scripts/999-002-mt7915-reduce-rx-ring-size.patch" \
           "$MT76_PATCH_DIR/"
         echo "Kernel patch installed: $KERNEL_PATCH_DIR"
         echo "mt76 patch installed: $MT76_PATCH_DIR"
 
+    - name: Save final config
+      if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
+      run: |
+        cd openwrt
+        ./scripts/diffconfig.sh > diffconfig
+
+    - name: Upload final config
+      if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: openwrt-config
+        path: |
+          openwrt/.config
+          openwrt/diffconfig
+        include-hidden-files: true
+        if-no-files-found: error
+        retention-days: 3
+
+    - name: Build OpenWrt MediaTek SDK
+      if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
+      run: |
+        cd openwrt
+        set -e
+          bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
+            build log_file=build
+
     - name: Compile the firmware
       id: compile
+      if: ${{ !startsWith(inputs.version, 'openwrt-') || inputs.openwrt_source == 'openwrt' }}
       run: |
         cd openwrt
         make -j$(nproc) || make -j1 V=s
