@@ -123,18 +123,13 @@ jobs:
           gcc-multilib g++-multilib gettext libssl-dev \
           python3-distutils python3-setuptools rsync swig unzip zlib1g-dev file wget
         sudo timedatectl set-timezone "$TZ"
-        sudo mkdir -p /workdir
-        sudo chown $USER:$GROUPS /workdir
 
     - name: Clone source code
-      working-directory: /workdir
       run: |
         git clone --depth 1 -b $REPO_BRANCH $REPO_URL openwrt
-        ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
     - name: Clone MediaTek SDK Feeds
       if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
-      working-directory: /workdir
       run: |
         git clone --depth 1 -b main \
           https://github.com/mediatek/mtk-openwrt-feeds.git
@@ -142,7 +137,7 @@ jobs:
     - name: Prune MediaTek defconfigs
       if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
       run: |
-        bash $GITHUB_WORKSPACE/scripts/prune-mtk-defconfig.sh \
+        bash scripts/prune-mtk-defconfig.sh \
           "$GITHUB_WORKSPACE/mtk-openwrt-feeds"
 
     - name: Load custom feeds
