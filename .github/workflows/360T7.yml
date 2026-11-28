@@ -29,236 +29,316 @@ permissions:
   actions: write
 
 env:
-  DIY_P1_SH: diy-part1.sh
   TZ: Asia/Shanghai
 
 jobs:
   build:
     runs-on: ubuntu-22.04
+    timeout-minutes: 360
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        persist-credentials: true
+      - name: Checkout build configuration
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
 
-    - name: Set build configuration
-      env:
-        FIRMWARE_VERSION: ${{ inputs.version }}
-        OPENWRT_SOURCE: ${{ inputs.openwrt_source }}
-      run: |
-        if [[ "$OPENWRT_SOURCE" == "mediatek-sdk" && "$FIRMWARE_VERSION" != openwrt-* ]]; then
-          echo "::error::MediaTek SDK is only supported for OpenWrt versions."
-          exit 1
-        fi
-        case "${{ inputs.version }}" in
-          openwrt-25.12)
-            echo "REPO_URL=https://github.com/openwrt/openwrt" >> $GITHUB_ENV
-            echo "REPO_BRANCH=openwrt-25.12" >> $GITHUB_ENV
-            echo "CONFIG_FILE=./config/openwrt-25.12.config" >> $GITHUB_ENV
-            echo "DIY_P2_SH=openwrt-25.12.sh" >> $GITHUB_ENV
-            echo "TAG_NAME=openwrt-25.12" >> $GITHUB_ENV
-            echo "RELEASE_NAME=openwrt-25.12" >> $GITHUB_ENV
-            ;;
-          openwrt-25.12-dae)
-            echo "REPO_URL=https://github.com/openwrt/openwrt" >> $GITHUB_ENV
-            echo "REPO_BRANCH=openwrt-25.12" >> $GITHUB_ENV
-            echo "CONFIG_FILE=./config/openwrt-25.12-dae.config" >> $GITHUB_ENV
-            echo "DIY_P2_SH=openwrt-25.12.sh" >> $GITHUB_ENV
-            echo "TAG_NAME=openwrt-25.12-dae" >> $GITHUB_ENV
-            echo "RELEASE_NAME=openwrt-25.12-dae" >> $GITHUB_ENV
-            ;;
-          openwrt-25.12-honk)
-            echo "REPO_URL=https://github.com/openwrt/openwrt" >> $GITHUB_ENV
-            echo "REPO_BRANCH=openwrt-25.12" >> $GITHUB_ENV
-            echo "CONFIG_FILE=./config/openwrt-25.12-honk.config" >> $GITHUB_ENV
-            echo "DIY_P2_SH=openwrt-25.12.sh" >> $GITHUB_ENV
-            echo "TAG_NAME=openwrt-25.12-honk" >> $GITHUB_ENV
-            echo "RELEASE_NAME=openwrt-25.12-honk" >> $GITHUB_ENV
-            ;;
-          openwrt-25.12-ubi)
-            echo "REPO_URL=https://github.com/openwrt/openwrt" >> $GITHUB_ENV
-            echo "REPO_BRANCH=openwrt-25.12" >> $GITHUB_ENV
-            echo "CONFIG_FILE=./config/openwrt-25.12-ubi.config" >> $GITHUB_ENV
-            echo "DIY_P2_SH=openwrt-25.12.sh" >> $GITHUB_ENV
-            echo "TAG_NAME=openwrt-25.12-ubi" >> $GITHUB_ENV
-            echo "RELEASE_NAME=openwrt-25.12-ubi" >> $GITHUB_ENV
-            ;;
-          immortalwrt-21.02)
-            echo "REPO_URL=https://github.com/hanwckf/immortalwrt-mt798x" >> $GITHUB_ENV
-            echo "REPO_BRANCH=openwrt-21.02" >> $GITHUB_ENV
-            echo "CONFIG_FILE=./config/immortalwrt-21.02.config" >> $GITHUB_ENV
-            echo "DIY_P2_SH=immortalwrt-21.02.sh" >> $GITHUB_ENV
-            echo "TAG_NAME=immortalwrt-21.02" >> $GITHUB_ENV
-            echo "RELEASE_NAME=immortalwrt-21.02" >> $GITHUB_ENV
-            ;;
-          immortalwrt-25.12)
-            echo "REPO_URL=https://github.com/chasey-dev/immortalwrt-mt798x-rebase" >> $GITHUB_ENV
-            echo "REPO_BRANCH=25.12" >> $GITHUB_ENV
-            echo "CONFIG_FILE=./config/immortalwrt-25.12.config" >> $GITHUB_ENV
-            echo "DIY_P2_SH=immortalwrt-25.12.sh" >> $GITHUB_ENV
-            echo "TAG_NAME=immortalwrt-25.12" >> $GITHUB_ENV
-            echo "RELEASE_NAME=immortalwrt-25.12" >> $GITHUB_ENV
-            ;;
-          *)
-            echo "Invalid version: ${{ inputs.version }}"
+      - name: Set build configuration
+        env:
+          FIRMWARE_VERSION_INPUT: ${{ inputs.version }}
+          FIRMWARE_SOURCE_INPUT: ${{ inputs.openwrt_source }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "$FIRMWARE_SOURCE_INPUT" == "mediatek-sdk" && "$FIRMWARE_VERSION_INPUT" != openwrt-* ]]; then
+            echo "::error::MediaTek SDK is only supported for OpenWrt versions."
             exit 1
-            ;;
-        esac
+          fi
 
-        if [[ "$OPENWRT_SOURCE" == "mediatek-sdk" && "$FIRMWARE_VERSION" == openwrt-* ]]; then
-          echo "CONFIG_FILE=./config/${FIRMWARE_VERSION}-mtk.config" >> "$GITHUB_ENV"
-        fi
+          case "$FIRMWARE_VERSION_INPUT" in
+            openwrt-25.12|openwrt-25.12-dae|openwrt-25.12-honk|openwrt-25.12-ubi)
+              repo_url='https://github.com/openwrt/openwrt'
+              repo_branch='openwrt-25.12'
+              diy_p2_sh='openwrt-25.12.sh'
+              ;;
+            immortalwrt-21.02)
+              repo_url='https://github.com/hanwckf/immortalwrt-mt798x'
+              repo_branch='openwrt-21.02'
+              diy_p2_sh='immortalwrt.sh'
+              ;;
+            immortalwrt-25.12)
+              repo_url='https://github.com/chasey-dev/immortalwrt-mt798x-rebase'
+              repo_branch='25.12'
+              diy_p2_sh='immortalwrt.sh'
+              ;;
+            *)
+              echo "::error::Invalid firmware version: $FIRMWARE_VERSION_INPUT"
+              exit 1
+              ;;
+          esac
 
-    - name: Initialization environment
-      env:
-        DEBIAN_FRONTEND: noninteractive
-      run: |
-        sudo apt update
-        sudo apt-get install -y \
-            build-essential \
-            clang \
-            flex \
-            bison \
-            g++ \
-            gawk \
-            gcc-multilib \
-            gettext \
-            git \
-            libelf-dev \
-            libncurses-dev \
-            libssl-dev \
-            libxml-parser-perl \
-            python3 \
-            python3-dev \
-            python3-setuptools \
-            python3-yaml \
-            rsync \
-            swig \
-            time \
-            unzip \
-            wget \
-            xsltproc \
-            zlib1g-dev \
-            file \
-            zstd
-        sudo timedatectl set-timezone "$TZ"
+          config_file="config/${FIRMWARE_VERSION_INPUT}.config"
+          if [[ "$FIRMWARE_SOURCE_INPUT" == "mediatek-sdk" ]]; then
+            config_file="config/${FIRMWARE_VERSION_INPUT}-mtk.config"
+          fi
 
-    - name: Clone source code
-      run: |
-        git clone --depth 1 -b $REPO_BRANCH $REPO_URL openwrt
+          {
+            printf 'FIRMWARE_REPO_URL=%s\n' "$repo_url"
+            printf 'FIRMWARE_REPO_BRANCH=%s\n' "$repo_branch"
+            printf 'FIRMWARE_CONFIG_FILE=%s\n' "$config_file"
+            printf 'FIRMWARE_DIY_P2_SH=%s\n' "$diy_p2_sh"
+          } >> "$GITHUB_ENV"
 
-    - name: Update feeds
-      if: ${{ !startsWith(inputs.version, 'openwrt-') || inputs.openwrt_source == 'openwrt' }}
-      run: cd openwrt && ./scripts/feeds update -a
+          echo "Firmware version: $FIRMWARE_VERSION_INPUT"
+          echo "OpenWrt source: $FIRMWARE_SOURCE_INPUT"
+          echo "Repository: $repo_url @ $repo_branch"
+          echo "Configuration: $config_file"
+          echo "DIY part 1: diy-part1.sh"
+          echo "DIY part 2: $diy_p2_sh"
 
-    - name: Install feeds
-      if: ${{ !startsWith(inputs.version, 'openwrt-') || inputs.openwrt_source == 'openwrt' }}
-      run: cd openwrt && ./scripts/feeds install -a
+      - name: Install build dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential clang flex bison \
+            g++ gawk gcc-multilib gettext git \
+            libelf-dev libncurses-dev libssl-dev \
+            libxml-parser-perl python3 \
+            python3-dev python3-setuptools \
+            python3-yaml rsync swig time \
+            unzip wget xsltproc zlib1g-dev \
+            file zstd
+          sudo timedatectl set-timezone "$TZ"
 
-    - name: Clone MediaTek SDK Feeds
-      if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
-      run: |
-        git clone --depth 1 -b main \
-          https://github.com/mediatek/mtk-openwrt-feeds.git \
-          mtk-openwrt-feeds
+      - name: Clone source code
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPO_URL="$FIRMWARE_REPO_URL"
+          REPO_BRANCH="$FIRMWARE_REPO_BRANCH"
+          unset FIRMWARE_REPO_URL FIRMWARE_REPO_BRANCH
 
-    - name: Prune MediaTek defconfigs
-      if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
-      run: |
-        bash scripts/prune-mtk-defconfig.sh \
-          "$GITHUB_WORKSPACE/mtk-openwrt-feeds"
+          git clone --depth 1 --branch "$REPO_BRANCH" "$REPO_URL" openwrt
+          git -C openwrt rev-parse HEAD
 
-    - name: Prepare MediaTek SDK
-      working-directory: openwrt
-      if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
-      run: |
-        set -e
-        bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
-          filogic-mac80211-mt798x_rfb-wifi6_nic \
-          prepare log_file=prepare
+          printf 'FIRMWARE_REPO_URL=\nFIRMWARE_REPO_BRANCH=\n' >> "$GITHUB_ENV"
 
-    - name: Load custom configuration
-      working-directory: openwrt
-      env:
-        FIRMWARE_VERSION: ${{ inputs.version }}
-        OPENWRT_SOURCE: ${{ inputs.openwrt_source }}
-      run: |
-        #[ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
-        cp -f ../config/openwrt-25.12-mtk.config .config
+      - name: Run DIY part 1
+        env:
+          FIRMWARE_DIY_P1_SH: diy-part1.sh
+        shell: bash
+        run: |
+          set -euo pipefail
+          DIY_SCRIPT="$GITHUB_WORKSPACE/$FIRMWARE_DIY_P1_SH"
 
-    - name: Download package
-      id: package
-      if: ${{ !startsWith(inputs.version, 'openwrt-') || inputs.openwrt_source == 'openwrt' }}
-      run: |
-        cd openwrt
-        make defconfig
-        make download -j8
-        find dl -size -1024c -exec ls -l {} \;
-        find dl -size -1024c -exec rm -f {} \;
+          if [[ ! -f "$DIY_SCRIPT" ]]; then
+            echo "::error::DIY part 1 script not found: $DIY_SCRIPT"
+            exit 1
+          fi
 
-    - name: Install WED and mt76 Patches
-      if: ${{ !startsWith(inputs.version, 'openwrt-') || inputs.openwrt_source == 'openwrt' }}
-      run: |
-        cd openwrt
-        KERNEL_PATCHVER=$(sed -n 's/^KERNEL_PATCHVER:=//p' \
-          target/linux/mediatek/Makefile | head -n 1)
-        if [ -z "$KERNEL_PATCHVER" ]; then
-          echo "::error::Cannot determine KERNEL_PATCHVER"
-          exit 1
-        fi
-        KERNEL_PATCH_DIR="target/linux/mediatek/patches-$KERNEL_PATCHVER"
-        MT76_PATCH_DIR="package/kernel/mt76/patches"
-        mkdir -p "$KERNEL_PATCH_DIR" "$MT76_PATCH_DIR"
-        cp "$GITHUB_WORKSPACE/scripts/999-001-mtk-wed-reduce-rx-ring-size.patch" \
-          "$KERNEL_PATCH_DIR/"
-        cp "$GITHUB_WORKSPACE/scripts/999-003-mtk-eth.patch" \
-          "$KERNEL_PATCH_DIR/"
-        cp "$GITHUB_WORKSPACE/scripts/999-002-mt7915-reduce-rx-ring-size.patch" \
-          "$MT76_PATCH_DIR/"
-        echo "Kernel patch installed: $KERNEL_PATCH_DIR"
-        echo "mt76 patch installed: $MT76_PATCH_DIR"
+          echo "Running $FIRMWARE_DIY_P1_SH"
+          unset FIRMWARE_DIY_P1_SH
+          bash "$DIY_SCRIPT"
 
-    - name: Build OpenWrt MediaTek SDK
-      working-directory: openwrt
-      if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
-      run: |
-        set -e
-        bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
-          build log_file=build
+      - name: Update feeds
+        if: ${{ !startsWith(inputs.version, 'openwrt-') || inputs.openwrt_source == 'openwrt' }}
+        working-directory: openwrt
+        run: |
+          set -euo pipefail
+          ./scripts/feeds update -a
 
-    - name: Compile the firmware
-      id: compile
-      if: ${{ !startsWith(inputs.version, 'openwrt-') || inputs.openwrt_source == 'openwrt' }}
-      run: |
-        cd openwrt
-        make -j$(nproc) || make -j1 V=s
+      - name: Install feeds
+        if: ${{ !startsWith(inputs.version, 'openwrt-') || inputs.openwrt_source == 'openwrt' }}
+        working-directory: openwrt
+        run: |
+          set -euo pipefail
+          ./scripts/feeds install -a
 
-    - name: Prepare firmware path
-      run: |
-        cd openwrt/bin/targets/*/*
-        echo "FIRMWARE=$PWD" >> $GITHUB_ENV
+      - name: Clone MediaTek SDK feeds
+        if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch main \
+            https://github.com/mediatek/mtk-openwrt-feeds.git \
+            mtk-openwrt-feeds
+          git -C mtk-openwrt-feeds rev-parse HEAD
 
-    - name: Generate build date
-      id: date
-      run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+      - name: Prune MediaTek defconfigs
+        if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
+        run: |
+          set -euo pipefail
+          bash scripts/prune-mtk-defconfig.sh \
+            "$GITHUB_WORKSPACE/mtk-openwrt-feeds"
 
-    - name: Upload firmware to release
-      uses: softprops/action-gh-release@v3
-      with:
-        tag_name: ${{ env.TAG_NAME }}
-        name: ${{ env.RELEASE_NAME }}-${{ steps.date.outputs.date }}
-        files: |
-          ${{ env.FIRMWARE }}/*.itb
-          ${{ env.FIRMWARE }}/*.fip
-          ${{ env.FIRMWARE }}/*.bin
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Prepare MediaTek SDK
+        if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
+        working-directory: openwrt
+        shell: bash
+        run: |
+          set -euo pipefail
 
-    - name: Delete workflow runs
-      uses: Mattraks/delete-workflow-runs@main
-      with:
-        token: ${{ github.token }}
-        repository: ${{ github.repository }}
-        retain_days: 0
-        keep_minimum_runs: 1
+          unset FIRMWARE_REPO_URL FIRMWARE_REPO_BRANCH \
+            FIRMWARE_CONFIG_FILE FIRMWARE_DIY_P2_SH
+
+          bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
+            filogic-mac80211-mt798x_rfb-wifi6_nic \
+            prepare log_file=prepare
+
+      - name: Load custom configuration
+        working-directory: openwrt
+        shell: bash
+        run: |
+          set -euo pipefail
+          CONFIG_PATH="$GITHUB_WORKSPACE/$FIRMWARE_CONFIG_FILE"
+          unset FIRMWARE_CONFIG_FILE
+
+          if [[ ! -f "$CONFIG_PATH" ]]; then
+            echo "::error::Configuration file not found: $CONFIG_PATH"
+            exit 1
+          fi
+
+          cp -f "$CONFIG_PATH" .config
+          echo "Loaded configuration: $CONFIG_PATH"
+          sha256sum .config
+
+          printf 'FIRMWARE_CONFIG_FILE=\n' >> "$GITHUB_ENV"
+
+      - name: Run DIY part 2
+        working-directory: openwrt
+        shell: bash
+        run: |
+          set -euo pipefail
+          DIY_SCRIPT="$GITHUB_WORKSPACE/$FIRMWARE_DIY_P2_SH"
+
+          if [[ ! -f "$DIY_SCRIPT" ]]; then
+            echo "::error::DIY part 2 script not found: $DIY_SCRIPT"
+            exit 1
+          fi
+
+          echo "Running $FIRMWARE_DIY_P2_SH"
+          unset FIRMWARE_DIY_P2_SH
+          bash "$DIY_SCRIPT"
+
+          printf 'FIRMWARE_DIY_P2_SH=\n' >> "$GITHUB_ENV"
+
+      - name: Download packages
+        if: ${{ !startsWith(inputs.version, 'openwrt-') || inputs.openwrt_source == 'openwrt' }}
+        working-directory: openwrt
+        shell: bash
+        run: |
+          set -euo pipefail
+          make defconfig
+          make download -j8
+          find dl -size -1024c -exec ls -l {} \;
+          find dl -size -1024c -exec rm -f {} \;
+
+      - name: Install WED and mt76 patches
+        if: ${{ !startsWith(inputs.version, 'openwrt-') || inputs.openwrt_source == 'openwrt' }}
+        working-directory: openwrt
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          KERNEL_PATCHVER="$(sed -n 's/^KERNEL_PATCHVER:=//p' \
+            target/linux/mediatek/Makefile | head -n 1)"
+
+          if [[ -z "$KERNEL_PATCHVER" ]]; then
+            echo "::error::Cannot determine KERNEL_PATCHVER"
+            exit 1
+          fi
+
+          KERNEL_PATCH_DIR="target/linux/mediatek/patches-$KERNEL_PATCHVER"
+          MT76_PATCH_DIR='package/kernel/mt76/patches'
+
+          mkdir -p "$KERNEL_PATCH_DIR" "$MT76_PATCH_DIR"
+          cp "$GITHUB_WORKSPACE/scripts/999-001-mtk-wed-reduce-rx-ring-size.patch" \
+            "$KERNEL_PATCH_DIR/"
+          cp "$GITHUB_WORKSPACE/scripts/999-003-mtk-eth.patch" \
+            "$KERNEL_PATCH_DIR/"
+          cp "$GITHUB_WORKSPACE/scripts/999-002-mt7915-reduce-rx-ring-size.patch" \
+            "$MT76_PATCH_DIR/"
+
+          echo "Kernel patch installed: $KERNEL_PATCH_DIR"
+          echo "mt76 patch installed: $MT76_PATCH_DIR"
+
+      - name: Build OpenWrt with MediaTek SDK
+        if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
+        working-directory: openwrt
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
+            build log_file=build
+
+      - name: Compile firmware
+        if: ${{ !startsWith(inputs.version, 'openwrt-') || inputs.openwrt_source == 'openwrt' }}
+        working-directory: openwrt
+        shell: bash
+        run: |
+          set -euo pipefail
+          make -j"$(nproc)" || make -j1 V=s
+
+      - name: Verify firmware artifacts
+        id: firmware
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TARGET_ROOT='openwrt/bin/targets'
+          if [[ ! -d "$TARGET_ROOT" ]]; then
+            echo "::error::Firmware target directory not found: $TARGET_ROOT"
+            exit 1
+          fi
+
+          mapfile -t TARGET_DIRS < <(
+            find "$TARGET_ROOT" -mindepth 2 -maxdepth 2 -type d -print | sort
+          )
+
+          if [[ ${#TARGET_DIRS[@]} -ne 1 ]]; then
+            echo "::error::Expected exactly one target output directory, found ${#TARGET_DIRS[@]}"
+            printf '%s\n' "${TARGET_DIRS[@]}"
+            exit 1
+          fi
+
+          TARGET_DIR="${TARGET_DIRS[0]}"
+          shopt -s nullglob
+          ARTIFACTS=("$TARGET_DIR"/*.itb "$TARGET_DIR"/*.fip "$TARGET_DIR"/*.bin)
+
+          if [[ ${#ARTIFACTS[@]} -eq 0 ]]; then
+            echo "::error::No .itb, .fip or .bin firmware files found in $TARGET_DIR"
+            exit 1
+          fi
+
+          echo "Firmware output directory: $TARGET_DIR"
+          printf '  %s\n' "${ARTIFACTS[@]}"
+          printf 'directory=%s\n' "$TARGET_DIR" >> "$GITHUB_OUTPUT"
+
+      - name: Generate build date
+        id: date
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'date=%s\n' "$(date +'%Y%m%d')" >> "$GITHUB_OUTPUT"
+
+      - name: Upload firmware to release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ inputs.version }}
+          name: ${{ inputs.version }}-${{ steps.date.outputs.date }}
+          files: |
+            ${{ steps.firmware.outputs.directory }}/*.itb
+            ${{ steps.firmware.outputs.directory }}/*.fip
+            ${{ steps.firmware.outputs.directory }}/*.bin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete workflow runs
+        uses: Mattraks/delete-workflow-runs@main
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 0
+          keep_minimum_runs: 1
