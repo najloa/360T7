@@ -37,7 +37,7 @@ s/ \\\n[[:space:]]*v2ray-geoip v2ray-geosite//g;
 s/\tcase " \$\* " in\n\t\t\*" v2ray-geoip "\*\|\*" v2ray-geosite "\*\) ;;\n\t\t\*\) return 0 ;;\n\tesac\n//g;
 ' ./feeds/daeuniverse_packages/luci-lib-daeuniverse/root/usr/libexec/daeuniverse-pkg
 # 规则集更新功能
-sh "$GITHUB_WORKSPACE/patch-dae-geodata.sh" "$PWD/feeds/daeuniverse_packages"
+sh "$GITHUB_WORKSPACE/scripts/patch-dae-geodata.sh" "$PWD/feeds/daeuniverse_packages"
 
 # OpenWrt configuration
 set_openwrt_config() {
