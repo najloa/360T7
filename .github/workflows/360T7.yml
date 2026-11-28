@@ -160,7 +160,8 @@ jobs:
       if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
       run: |
         git clone --depth 1 -b main \
-          https://github.com/mediatek/mtk-openwrt-feeds.git
+          https://github.com/mediatek/mtk-openwrt-feeds.git \
+          mtk-openwrt-feeds
 
     - name: Prune MediaTek defconfigs
       if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
@@ -169,19 +170,22 @@ jobs:
           "$GITHUB_WORKSPACE/mtk-openwrt-feeds"
 
     - name: Prepare MediaTek SDK
+      working-directory: openwrt
       if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
       run: |
         set -e
-          bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
-            filogic-mac80211-mt798x_rfb-wifi6_nic \
-            prepare log_file=prepare
+        bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
+          filogic-mac80211-mt798x_rfb-wifi6_nic \
+          prepare log_file=prepare
 
     - name: Load custom configuration
+      working-directory: openwrt
       env:
         FIRMWARE_VERSION: ${{ inputs.version }}
         OPENWRT_SOURCE: ${{ inputs.openwrt_source }}
       run: |
-        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
+        #[ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
+        cp -f ../config/openwrt-25.12-mtk.config .config
 
     - name: Download package
       id: package
@@ -215,12 +219,13 @@ jobs:
         echo "Kernel patch installed: $KERNEL_PATCH_DIR"
         echo "mt76 patch installed: $MT76_PATCH_DIR"
 
-    - name: Build OpenWrt MediaTek SDK 可疑cd openwrt
+    - name: Build OpenWrt MediaTek SDK
+      working-directory: openwrt
       if: ${{ startsWith(inputs.version, 'openwrt-') && inputs.openwrt_source == 'mediatek-sdk' }}
       run: |
         set -e
-          bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
-            build log_file=build
+        bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh \
+          build log_file=build
 
     - name: Compile the firmware
       id: compile
